@@ -121,13 +121,13 @@ const PrivacyPage: React.FC = () => (
       <div className="max-w-content mx-auto px-24 py-96">
         <TrustMark kind="minimal" className="mb-16" />
         <h2 className="text-heading font-signifier text-ink max-w-prose">
-          We hold a standard nobody is making us meet
+          The standard we hold ourselves to
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[600px]">
           We collect only what a seller needs to get paid and a regulator needs to see the system
-          working — the same test Europe&apos;s GDPR and South Africa&apos;s POPIA apply: collect
-          only what a stated purpose requires, and never repurpose it. We chose that bar
-          voluntarily, ahead of Namibia&apos;s own data protection law taking effect.
+          working. We are aligned with the same principles Europe&apos;s GDPR and South
+          Africa&apos;s POPIA set out: collect only what a stated purpose requires, and never
+          repurpose it.
         </p>
       </div>
     </section>
