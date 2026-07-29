@@ -1,0 +1,35 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+sqlalchemy==2.0.23
+alembic==1.13.1
+psycopg2-binary==2.9.9
+requests==2.31.0
+crcmod==1.7
+python-dotenv==1.0.0
+anthropic==0.117.0
+
+# Unsupervised anomaly detection (app/services/anomaly_detection.py,
+# backend/ml/). scikit-learn's IsolationForest is needed at inference time,
+# not just training, so it belongs in the runtime image. No TensorFlow: the
+# temporal signal is already engineered into the velocity features, so a
+# sequence model would add weight without adding information. See
+# backend/ml/README.md for why this model was chosen over the alternatives.
+numpy==1.26.2
+scikit-learn==1.3.2
+joblib==1.3.2
+
+# AMQP client for the payment event stream (app/events/). Pinned to 1.3.2
+# rather than the newest release: 1.4.x is recent enough that the house
+# seven-day cool-down on newly published packages applies, and nothing here
+# needs what it added.
+pika==1.3.2
+
+# Reserved for work documented in changelog.md "Next Steps" — not yet
+# imported anywhere in app/. Kept deliberately so the planned JWT auth and
+# Redis caching land without a dependency change.
+redis==5.0.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6

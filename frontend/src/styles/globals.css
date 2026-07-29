@@ -1,0 +1,79 @@
+/* Poppins carries the whole interface, matching the brand's geometric sans.
+   300 and 400 for headlines — the brand sets large type light — through 600
+   for the emphasis the FAQ cards use on key phrases. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sohne;
+  }
+
+  /* The brand sets large type light and lets size carry the emphasis. At
+     44px and above, regular weight looks heavy beside the marks. */
+  h1, h2 {
+    font-weight: 300;
+  }
+}
+
+/* Scrollbar, tinted to the brand rather than system grey.
+   Values mirror `mist` / `smoke` / `ash` in tailwind.config.js. Pseudo-
+   elements can't take Tailwind classes, so these have to be literals — but
+   they had drifted from an earlier palette pass (the config's neutral ramp
+   was darkened for AA contrast afterward and this file was not updated).
+   Keep these three in sync with the config by hand; there is no other way
+   to share the token here. */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F6F1F2; /* mist */
+}
+::-webkit-scrollbar-thumb {
+  background: #C0B2B8; /* smoke */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #675C62; /* ash */
+}
+
+/* Custom utilities */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Visible to assistive technology, not on screen. Tailwind ships this,
+     but this project only pulls in the utilities it uses and the class was
+     being applied without being generated. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/* Leaflet map container needs an explicit stacking context so its
+   internal z-indexed panes don't bleed over app chrome. */
+.leaflet-container {
+  font-family: inherit;
+}
+
+/* Brand gradients used to be redefined here by hand, duplicating the same
+   two classes Tailwind already generates from `backgroundImage` in
+   tailwind.config.js — two definitions of `.bg-brand-gradient` targeting the
+   same selector, resolved only by CSS cascade order. That is the exact
+   two-sources problem docs/design-system.md exists to prevent, and it had
+   quietly become one itself. The token file is the single source now.
+   `.text-brand-gradient` and `.card-brand` were unused everywhere (the
+   `Card` component's `brand` variant already covers the latter) and were
+   removed rather than kept "just in case" — dead CSS is dead code. */
