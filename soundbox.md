@@ -14,6 +14,14 @@ picture anyone has had of how money actually moves through the country.
 over Namibia's instant payment rails and announces them. It cannot start,
 stop, hold or reverse a payment — structurally, not as a matter of policy.
 
+**What SoundBox connects to.** SoundBox listens to the WayaMe rails. WayaMe
+is the consumer-facing name of Namibia's instant payment service, operated
+by Instant Payments Namibia (IPN); it is named here to say what SoundBox
+connects to, **not to imply endorsement, partnership or approval that has
+not been granted**. Establishing that relationship properly — technical
+integration, branding terms, and the approvals attached to both — is work
+being taken to the Bank of Namibia and IPN, not something already held.
+
 ---
 
 ## Documentation
@@ -59,6 +67,44 @@ IPN's call, not a unilateral choice. Until that's settled, all
 documentation, firmware strings (`payment_handler.h`'s `PaymentNotification`
 device labels), and dashboard copy should stay genericized (e.g. "SoundBox"
 rather than a committed brand name) so nothing has to be re-labeled mid-build.
+
+**We are open to co-branding, and to being told what it should look like.**
+Both paths in the table above are acceptable outcomes. The mark belongs to
+IPN, so the terms are theirs to set; our position is that we would rather
+agree them early than build an identity that has to be unwound.
+
+---
+
+## 0a. Regulatory posture
+
+**The risk boundary is the design, not a policy.** SoundBox sits outside
+the payment path: it is told outcomes and announces them. It cannot
+initiate, authorise, hold, reverse or settle a payment, and it holds no
+customer balance. That is a property of where the system sits rather than a
+control that could be switched off — which is the honest answer to the
+first question any risk assessment asks of a new participant.
+
+**We are engaging the regulators to confirm that, not asserting it at
+them.** The Bank of Namibia (Innovation Hub, and the NPS department),
+Instant Payments Namibia, and CRAN each define requirements this product
+has to meet — licensing and authorisation, operational and cybersecurity
+standards, the national QR standard, and radio type approval. Those
+engagements are underway or being opened, and their output is expected to
+**shape the design and architecture**, not merely to certify what has
+already been built. Where a requirement conflicts with a decision made
+here, the requirement wins and the decision changes.
+
+Two consequences worth stating plainly, because they cost more to reverse
+later than to honour now:
+
+- **Nothing is claimed as approved, certified or partnered until it is.**
+  Capability that is designed but not running is labelled as being built —
+  see the roadmap treatment on the oversight pages. An overclaim that a
+  technical reviewer can disprove is expensive in a process built on trust.
+- **Architecture stays movable where a requirement is still open.** Fixed
+  lists live in configuration rather than in code, tenancy is carried on
+  every operational record, and the schema avoids one-way doors, so a
+  requirement arriving late is a change rather than a rebuild.
 
 ---
 

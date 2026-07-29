@@ -12,6 +12,16 @@
 
 This business plan outlines the complete technical architecture, regulatory compliance strategy, operational model, financial projections, and **predictive analytics product suite** for establishing a SoundBox business in Namibia, with the long-term goal of local assembly and manufacturing, and the strategic objective of becoming a RegTech partner to the Bank of Namibia and NAMFISA.
 
+> **Naming and status note.** SoundBox listens to the WayaMe rails. WayaMe is
+> the consumer-facing name of Namibia's instant payment service, operated by
+> Instant Payments Namibia; it is named throughout this plan to say what
+> SoundBox connects to, **not to imply endorsement, partnership or approval
+> that has not been granted**. No licence, certification, integration
+> agreement or partnership described here should be read as already held —
+> the engagements to obtain them are set out in
+> [`regulatory.md`](regulatory.md) §2.4, and their output is expected to
+> shape the design rather than merely certify it.
+
 ---
 
 

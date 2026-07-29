@@ -7,6 +7,14 @@ platform built from what it hears.
 explains what WayaMe is and, more importantly, what this system deliberately
 cannot do to a payment. Everything else assumes that.
 
+> **Naming note, applying to this whole set.** SoundBox listens to the
+> WayaMe rails. WayaMe is the consumer-facing name of Namibia's instant
+> payment service, operated by Instant Payments Namibia; it is named
+> throughout these documents to say what SoundBox connects to, **not to
+> imply endorsement, partnership or approval that has not been granted**.
+> Integration and branding terms are being taken to the Bank of Namibia and
+> IPN — see [`../soundbox.md`](../soundbox.md) §0 and §0a.
+
 ---
 
 ## The set

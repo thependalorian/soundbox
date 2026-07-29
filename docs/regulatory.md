@@ -108,6 +108,27 @@ PSD-12 requires entities to implement robust cybersecurity measures:
 | CRAN | Type Approval application | Month 3-4 |
 | Instant Payment Namibia (IPN) | Technical integration discussions | Month 2-5 |
 
+**These engagements are expected to shape the design, not merely certify
+it.** The purpose is to establish standing relationships with the Bank,
+IPN and the supply chain, and to build to their stated requirements rather
+than present a finished product for approval. Where a requirement conflicts
+with a decision already made in this repository, the requirement wins and
+the decision changes — which is why fixed lists live in configuration, why
+tenancy is carried on every operational record, and why the schema avoids
+one-way doors. A requirement arriving late should be a change, not a
+rebuild.
+
+Two rules follow, and both are cheaper to honour now than to reverse:
+
+- **Nothing is described as approved, certified, licensed or partnered
+  until it is.** Designed-but-not-running capability is labelled as being
+  built, including on the public oversight pages. In a process built on
+  trust, a claim a technical reviewer disproves in one question is
+  expensive.
+- **The WayaMe name is used to say what the system connects to, never to
+  imply endorsement.** Co-branding terms are IPN's to set; see
+  [`soundbox.md`](../soundbox.md) §0.
+
 ---
 
 
