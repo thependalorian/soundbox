@@ -365,8 +365,8 @@ export const SCORING_ERROR_COST =
 export const REGULATOR = {
   heroHeading: 'Evidence from the counter',
   heroSupport:
-    'Every confirmed payment is a data point about the part of the economy that has always been hardest to see.',
-  alignmentHeading: 'Measured the way a regulator would measure it',
+    'Every confirmed payment adds a fact to a part of the economy nobody has been able to count until now.',
+  alignmentHeading: 'Measured the way regulators already measure this elsewhere',
   alignmentBody:
-    'Reach is counted per ten thousand adults against the census, not against a number we chose ourselves. Concentration is scored the same way competition authorities score it anywhere. Every ratio here carries the count it was built from, so a figure from eleven transactions is never shown the same way as one from eleven thousand — and where there is not yet enough to say something, the answer is that plainly, not a guess dressed up as a number.',
+    'Reach is counted per ten thousand adults against the census — not a number we chose ourselves. Concentration is scored exactly the way competition regulators score it anywhere. Every ratio here carries the count behind it, so a figure from eleven transactions is never shown the same way as one from eleven thousand. And where there is not yet enough evidence, that is the answer — not a guess dressed up as a number.',
 } as const;

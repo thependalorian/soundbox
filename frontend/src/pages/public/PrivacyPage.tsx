@@ -89,12 +89,12 @@ const ROADMAP = [
   {
     phase: 'building' as const,
     title: 'Security, hardened for production',
-    detail: 'Independent review and external certification, both sequenced ahead of any live payment traffic.',
+    detail: 'Annual penetration testing and an independent security review, both sequenced ahead of any live payment traffic.',
   },
   {
     phase: 'building' as const,
     title: 'Regulatory approvals',
-    detail: 'Device certification and payment platform authorisation are both already underway.',
+    detail: 'Type approval for the device’s radio from Namibia’s telecoms regulator, and certification against the national QR payment standard, are both already underway.',
   },
   {
     phase: 'planned' as const,
@@ -121,14 +121,14 @@ const PrivacyPage: React.FC = () => (
       <div className="max-w-content mx-auto px-24 py-96">
         <TrustMark kind="minimal" className="mb-16" />
         <h2 className="text-heading font-signifier text-ink max-w-prose">
-          Our approach to data privacy
+          We hold a standard nobody is making us meet
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[600px]">
-          We collect as little personally identifiable information as possible — only what a
-          seller needs to get paid and a regulator needs to see the system working. We hold
-          ourselves to the same standards set out in Europe&apos;s General Data Protection
-          Regulation and South Africa&apos;s Protection of Personal Information Act: collect only
-          what a stated purpose requires, and never repurpose it.
+          Namibia has no data protection law in force yet, so nothing requires this of us. We
+          collect only what a seller needs to get paid and a regulator needs to see the system
+          working — the same test Europe&apos;s GDPR and South Africa&apos;s POPIA apply: collect
+          only what a stated purpose requires, and never repurpose it. We chose that bar before
+          anyone could hold us to it.
         </p>
       </div>
     </section>
