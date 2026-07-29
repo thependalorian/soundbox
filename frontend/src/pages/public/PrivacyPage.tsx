@@ -124,11 +124,10 @@ const PrivacyPage: React.FC = () => (
           We hold a standard nobody is making us meet
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[600px]">
-          Namibia has no data protection law in force yet, so nothing requires this of us. We
-          collect only what a seller needs to get paid and a regulator needs to see the system
+          We collect only what a seller needs to get paid and a regulator needs to see the system
           working — the same test Europe&apos;s GDPR and South Africa&apos;s POPIA apply: collect
-          only what a stated purpose requires, and never repurpose it. We chose that bar before
-          anyone could hold us to it.
+          only what a stated purpose requires, and never repurpose it. We chose that bar
+          voluntarily, ahead of Namibia&apos;s own data protection law taking effect.
         </p>
       </div>
     </section>
