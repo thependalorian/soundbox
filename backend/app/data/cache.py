@@ -134,6 +134,25 @@ def get_or_compute(
     return result
 
 
+# Namespaces whose figures are derived from the anomaly rule thresholds, and
+# which therefore go stale the moment an operator changes one. Kept as a list
+# rather than left to each call site because the failure mode is silent: a
+# threshold moves, the queue changes, and a cached flag rate keeps reporting
+# the old world for up to the TTL. Adding a rule-dependent cached endpoint
+# means adding it here.
+RULE_DEPENDENT_NAMESPACES = (
+    "nps_dashboard",
+    "nps_integrity",
+    "nps_resilience",
+    "market_availability",
+)
+
+
+def invalidate_rule_dependent() -> int:
+    """Drop every cached figure that a rule or policy change invalidates."""
+    return sum(invalidate(ns) for ns in RULE_DEPENDENT_NAMESPACES)
+
+
 def invalidate(namespace: str) -> int:
     """Drop every entry in a namespace. Returns how many were removed.
 

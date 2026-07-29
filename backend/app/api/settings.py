@@ -85,7 +85,7 @@ async def update_anomaly_rule(
         # A cached alert rate computed under the previous thresholds is not
         # merely stale, it is misleading — it describes a policy no longer in
         # force.
-        cache.invalidate("nps_dashboard")
+        cache.invalidate_rule_dependent()
         rules = anomaly_rule_config.load_rules(db, org.id)
         policy = anomaly_rule_config.load_policy(db, org.id)
         return {
@@ -109,7 +109,7 @@ async def update_anomaly_policy(
     try:
         org = get_or_create_organization(db)
         setting = anomaly_rule_config.update_policy(db, org.id, code, body.value, actor.display_name, body.note)
-        cache.invalidate("nps_dashboard")
+        cache.invalidate_rule_dependent()
         rules = anomaly_rule_config.load_rules(db, org.id)
         policy = anomaly_rule_config.load_policy(db, org.id)
         return {

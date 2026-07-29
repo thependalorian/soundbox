@@ -39,7 +39,11 @@ logger = logging.getLogger(__name__)
 async def get_concentration(days: int = 90, db: Session = Depends(get_db)):
     """Herfindahl-Hirschman concentration by business and by region."""
     try:
-        return MarketAnalyticsService(db).get_concentration(days=days)
+        return cache.get_or_compute(
+            "market_concentration",
+            {"days": days},
+            lambda: MarketAnalyticsService(db).get_concentration(days=days),
+        )
     except Exception as e:
         logger.error(f"Error getting concentration: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -49,7 +53,11 @@ async def get_concentration(days: int = 90, db: Session = Depends(get_db)):
 async def get_value_distribution(days: int = 90, db: Session = Depends(get_db)):
     """Percentiles and a histogram of payment values."""
     try:
-        return MarketAnalyticsService(db).get_value_distribution(days=days)
+        return cache.get_or_compute(
+            "market_value_distribution",
+            {"days": days},
+            lambda: MarketAnalyticsService(db).get_value_distribution(days=days),
+        )
     except Exception as e:
         logger.error(f"Error getting value distribution: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -59,7 +67,11 @@ async def get_value_distribution(days: int = 90, db: Session = Depends(get_db)):
 async def get_inclusion(days: int = 90, db: Session = Depends(get_db)):
     """Wallet reliance, acceptance rate, and regions with no business yet."""
     try:
-        return MarketAnalyticsService(db).get_inclusion_metrics(days=days)
+        return cache.get_or_compute(
+            "market_inclusion",
+            {"days": days},
+            lambda: MarketAnalyticsService(db).get_inclusion_metrics(days=days),
+        )
     except Exception as e:
         logger.error(f"Error getting inclusion metrics: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -69,7 +81,11 @@ async def get_inclusion(days: int = 90, db: Session = Depends(get_db)):
 async def get_retention(months: int = 6, db: Session = Depends(get_db)):
     """Retention by onboarding cohort — the honest test of adoption."""
     try:
-        return MarketAnalyticsService(db).get_cohort_retention(months=months)
+        return cache.get_or_compute(
+            "market_retention",
+            {"months": months},
+            lambda: MarketAnalyticsService(db).get_cohort_retention(months=months),
+        )
     except Exception as e:
         logger.error(f"Error getting retention: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -79,7 +95,11 @@ async def get_retention(months: int = 6, db: Session = Depends(get_db)):
 async def get_availability(days: int = 30, db: Session = Depends(get_db)):
     """Success rate with the worst day and worst hour, not just the average."""
     try:
-        return MarketAnalyticsService(db).get_availability(days=days)
+        return cache.get_or_compute(
+            "market_availability",
+            {"days": days},
+            lambda: MarketAnalyticsService(db).get_availability(days=days),
+        )
     except Exception as e:
         logger.error(f"Error getting availability: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -139,7 +159,11 @@ async def get_nps_dashboard(days: int = 90, db: Session = Depends(get_db)):
 async def get_nps_adoption(days: int = 90, db: Session = Depends(get_db)):
     """Usage growth by use case, against the preceding equal window."""
     try:
-        return NpsMetricsService(db).adoption(days=days)
+        return cache.get_or_compute(
+            "nps_adoption",
+            {"days": days},
+            lambda: NpsMetricsService(db).adoption(days=days),
+        )
     except Exception as e:
         logger.error(f"Error computing adoption: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -149,7 +173,11 @@ async def get_nps_adoption(days: int = 90, db: Session = Depends(get_db)):
 async def get_nps_access(db: Session = Depends(get_db)):
     """Access points per 10,000 adults aged 15 and over, by region."""
     try:
-        return NpsMetricsService(db).access()
+        return cache.get_or_compute(
+            "nps_access",
+            {},
+            lambda: NpsMetricsService(db).access(),
+        )
     except Exception as e:
         logger.error(f"Error computing access: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -159,7 +187,11 @@ async def get_nps_access(db: Session = Depends(get_db)):
 async def get_nps_resilience(days: int = 30, db: Session = Depends(get_db)):
     """Availability and straight-through processing."""
     try:
-        return NpsMetricsService(db).resilience(days=days)
+        return cache.get_or_compute(
+            "nps_resilience",
+            {"days": days},
+            lambda: NpsMetricsService(db).resilience(days=days),
+        )
     except Exception as e:
         logger.error(f"Error computing resilience: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -169,7 +201,11 @@ async def get_nps_resilience(days: int = 30, db: Session = Depends(get_db)):
 async def get_nps_integrity(days: int = 90, db: Session = Depends(get_db)):
     """Anomaly and confirmed-fraud incidence, reported separately."""
     try:
-        return NpsMetricsService(db).integrity(days=days)
+        return cache.get_or_compute(
+            "nps_integrity",
+            {"days": days},
+            lambda: NpsMetricsService(db).integrity(days=days),
+        )
     except Exception as e:
         logger.error(f"Error computing integrity: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -179,7 +215,11 @@ async def get_nps_integrity(days: int = 90, db: Session = Depends(get_db)):
 async def get_nps_interoperability(days: int = 90, db: Session = Depends(get_db)):
     """Cross-instrument coverage and use-case coverage."""
     try:
-        return NpsMetricsService(db).interoperability(days=days)
+        return cache.get_or_compute(
+            "nps_interoperability",
+            {"days": days},
+            lambda: NpsMetricsService(db).interoperability(days=days),
+        )
     except Exception as e:
         logger.error(f"Error computing interoperability: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -189,7 +229,11 @@ async def get_nps_interoperability(days: int = 90, db: Session = Depends(get_db)
 async def get_settlement_lag(days: int = 30, db: Session = Depends(get_db)):
     """Confirmation lag and settlement lag, kept apart."""
     try:
-        return MarketAnalyticsService(db).get_settlement_lag(days=days)
+        return cache.get_or_compute(
+            "market_settlement_lag",
+            {"days": days},
+            lambda: MarketAnalyticsService(db).get_settlement_lag(days=days),
+        )
     except Exception as e:
         logger.error(f"Error computing settlement lag: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -199,7 +243,11 @@ async def get_settlement_lag(days: int = 30, db: Session = Depends(get_db)):
 async def get_cash_flow(days: int = 30, db: Session = Depends(get_db)):
     """Net cash position at agent points — who is running dry."""
     try:
-        return MarketAnalyticsService(db).get_cash_flow(days=days)
+        return cache.get_or_compute(
+            "market_cash_flow",
+            {"days": days},
+            lambda: MarketAnalyticsService(db).get_cash_flow(days=days),
+        )
     except Exception as e:
         logger.error(f"Error computing cash flow: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

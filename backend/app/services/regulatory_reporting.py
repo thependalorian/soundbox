@@ -75,6 +75,7 @@ class RegulatoryReportingEngine:
                 func.sum(Transaction.amount).label("total_value"),
             ).filter(
                 Transaction.organization_id == self.organization_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= start_date,
                 Transaction.created_at < end_date,
             ).group_by(
@@ -275,17 +276,20 @@ class RegulatoryReportingEngine:
 
             total_txns = self.db.query(Transaction).filter(
                 Transaction.organization_id == self.organization_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= thirty_days_ago,
             ).count()
 
             successful_txns = self.db.query(Transaction).filter(
                 Transaction.organization_id == self.organization_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= thirty_days_ago,
                 Transaction.status == "success",
             ).count()
 
             failed_txns = self.db.query(Transaction).filter(
                 Transaction.organization_id == self.organization_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= thirty_days_ago,
                 Transaction.status == "failed",
             ).count()

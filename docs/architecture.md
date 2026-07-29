@@ -373,12 +373,97 @@ devices ──> ingest gateway ──> queue ──> workers ──> Postgres
    deploy or a slow query stops costing confirmations.
 2. **Read replica second.** Analytics and reporting compete with verification
    writes; separate them before they interfere.
-3. **Partition transactions by month third.** Only once table size actually
-   hurts — not before.
+3. **Partition transactions by month third.** See §8.2 — the trigger is
+   closer than a merchant-count view of the product suggests.
 
-Deliberately not planned: caching layers, microservice decomposition, or a
-streaming platform. None are justified by current or near-term volume, and
-each would add operational burden a small team cannot carry.
+Deliberately not planned: microservice decomposition or a streaming
+platform. Neither is justified by current or near-term volume, and each would
+add operational burden a small team cannot carry.
+
+### 8.1 What sets the row count
+
+**SoundBox reports on every payment carried by the WayaMe rails, not only the
+ones its own devices confirm.** That single fact governs every capacity
+question here, and it is easy to get wrong: the instinct is to size the
+database against SoundBox merchant adoption, which is the wrong denominator
+by roughly two orders of magnitude.
+
+Namibia has 3,022,401 people and about 1,901,090 adults
+(`app/db/namibia_geography.py`, which is the denominator of record). Sizing
+against national instant-payment adoption rather than device sales:
+
+| Rails maturity | Payments per adult per year | Rows per year |
+|---|---|---|
+| Early scheme | 10 | ~19M |
+| Established | 50 | ~95M |
+| Mature (Pix/UPI-like) | 150 | ~285M |
+
+For contrast, a merchant-only view — 20,000 SoundBox merchants at 20 payments
+a day — is ~146M/year, and that is an ambitious ceiling for device
+distribution. The rails number passes it at moderate national adoption and
+keeps going, because it does not depend on selling any more hardware.
+
+A single Postgres table with correct indexes is comfortable to roughly 100M
+rows. On the rails figures that is reached during ordinary scheme growth, not
+at some distant success case.
+
+### 8.2 Where partitioning actually lands
+
+Range-partitioning `transactions` by month is therefore a **when, not an if**.
+Two things follow:
+
+- `transactions` is empty today. Converting an empty table to a partitioned
+  one is trivial; converting a 100M-row table is a maintenance window on a
+  system sellers depend on. The cheapest moment to do this is the one where
+  it appears to be least necessary.
+- The partition key must be the column queries already filter on.
+  `ix_transactions_org_merchant_created` leads with the tenant and carries
+  `created_at`, and every analytics window filters on `created_at`, so the
+  shape is already right. Nothing needs to change to keep the option open.
+
+**This is a foundational schema decision and is deliberately left open here**
+— per workspace `CLAUDE.md` §2, core schema and tenancy architecture are
+designed by a human, not by an executing model. The recommendation on the
+table is monthly range partitions on `transactions`, adopted before the first
+production ingest of rails traffic rather than after.
+
+### 8.3 Closed: what the read path does now
+
+Three things were changed once the rails scope was clear.
+
+- **Aggregation happens in Postgres.** `PaymentRepository` grew `totals`,
+  `daily_counts`, `daily_values`, `value_by_merchant` and
+  `count_by_payment_type`, each a `GROUP BY` rather than a Python fold over
+  a loaded row set. `get_concentration` was loading a 90-day window into
+  memory to compute two indices; it now reads one row per business. Memory
+  is proportional to the number of groups, not to national payment volume.
+  The `*_from_rows` variants remain for callers that already hold rows.
+  Percentile and Gini work still needs every value, so `amounts()` returns a
+  single float column instead of whole ORM objects.
+- **Tenant indexes are partial.** All 15 composite tenant indexes now carry
+  `WHERE deleted_at IS NULL` (migration `c4f8a21b7d90`), per `CLAUDE.md` §2.
+  Soft deletes only accumulate, so without this an ever-growing share of each
+  index is rows no query wants. The three remaining single-column
+  `ix_*_organization_id` indexes are auto-created by the `ref_id()` helper and
+  are redundant with the composites.
+- **Derived aggregates are cached.** The twelve market and NPS oversight
+  endpoints now go through `app/data/cache.py` (Redis, 300s, fails soft,
+  every response annotated with `cachedAt`/`ageSeconds`). Only derived
+  aggregates — never a payment, balance or alert status, because a cached
+  payment status is a stale one and the whole argument for this product is
+  that a seller can trust what it says. Figures derived from anomaly
+  thresholds are listed in `RULE_DEPENDENT_NAMESPACES` and dropped whenever a
+  rule changes; a moved threshold makes a cached flag rate misleading rather
+  than merely old.
+
+A correctness defect surfaced alongside this work and is fixed in the same
+change: nineteen query blocks across `analytics_service`, `anomaly_scoring`
+and `regulatory_reporting` counted soft-deleted payments, because they query
+`Transaction` directly instead of going through the repository that enforces
+the filter. Four of them were in `regulatory_reporting` — a withdrawn payment
+was landing in the PSD-6 return. Every one now filters `deleted_at IS NULL`.
+The underlying cause is unchanged and worth naming: **three services bypass
+`PaymentRepository`.** Routing them through it is the durable fix.
 
 ---
 

@@ -26,6 +26,7 @@ class AnalyticsService:
 
             total_txns = self.db.query(Transaction).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= start_date
             ).count()
 
@@ -33,6 +34,7 @@ class AnalyticsService:
                 func.sum(Transaction.amount)
             ).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= start_date
             ).scalar() or 0
 
@@ -44,6 +46,7 @@ class AnalyticsService:
             today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             today_count = self.db.query(Transaction).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= today_start
             ).count()
 
@@ -51,6 +54,7 @@ class AnalyticsService:
             # on Transaction (authoritative history lives in anomaly_alerts)
             flagged_count = self.db.query(Transaction).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= start_date,
                 Transaction.anomaly_score > 0.7
             ).count()
@@ -80,6 +84,7 @@ class AnalyticsService:
                 func.sum(Transaction.amount).label("volume")
             ).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= start_date
             ).group_by(
                 day_bucket
@@ -148,10 +153,12 @@ class AnalyticsService:
 
             total_txns = self.db.query(Transaction).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= yesterday
             ).count()
             successful_txns = self.db.query(Transaction).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= yesterday,
                 Transaction.status == "success"
             ).count()
@@ -173,12 +180,14 @@ class AnalyticsService:
                 func.avg(Transaction.response_time_ms)
             ).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= yesterday,
                 Transaction.response_time_ms.isnot(None)
             ).scalar() or 0
 
             flagged_txns = self.db.query(Transaction).filter(
                 Transaction.organization_id == org_id,
+                Transaction.deleted_at.is_(None),
                 Transaction.created_at >= yesterday,
                 Transaction.anomaly_score > 0.7
             ).count()

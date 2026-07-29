@@ -28,6 +28,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Sequence
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -209,26 +210,100 @@ class PaymentRepository:
     # Grouping payments by day, by merchant or by type was written three
     # times over. Once here, so a metric and a forecast built on "daily
     # counts" are built on the same daily counts.
+    #
+    # **These aggregate in the database, not in Python.** The distinction is
+    # not stylistic. SoundBox reports on every payment carried by the WayaMe
+    # rails, not only the ones its own devices confirm, so the row count is
+    # set by national instant-payment adoption rather than by how many
+    # SoundBoxes are in the field. Folding a 90-day window in Python costs
+    # memory proportional to that traffic; folding it in SQL costs memory
+    # proportional to the number of groups — merchants, days, payment types —
+    # which stays small no matter how large the country's payment volume
+    # gets. The `*_from_rows` variants below remain for callers that already
+    # hold a row set for another reason.
 
-    def daily_counts(self, transactions: Sequence[Transaction]) -> Dict[str, int]:
+    def _base_window(self, days: int, merchant_id=None, anchor: Optional[datetime] = None):
+        """The filtered query every aggregation below starts from, so the
+        tenancy clause, the soft-delete filter and the window are identical
+        to `transactions()`."""
+        q = self.db.query(Transaction).filter(
+            Transaction.organization_id == self.organization_id,
+            Transaction.deleted_at.is_(None),
+            Transaction.created_at >= window_start(days, anchor),
+        )
+        if merchant_id:
+            q = q.filter(Transaction.merchant_id == merchant_id)
+        return q
+
+    def totals(self, days: int, merchant_id=None, anchor: Optional[datetime] = None) -> Dict:
+        """Count and summed value for a window, in one round trip."""
+        row = self._base_window(days, merchant_id, anchor).with_entities(
+            func.count(Transaction.id),
+            func.coalesce(func.sum(Transaction.amount), 0),
+        ).one()
+        return {"count": int(row[0] or 0), "value": float(row[1] or 0)}
+
+    def daily_counts(self, days: int, merchant_id=None, anchor: Optional[datetime] = None) -> Dict[str, int]:
+        rows = self._base_window(days, merchant_id, anchor).with_entities(
+            func.to_char(Transaction.created_at, "YYYY-MM-DD"),
+            func.count(Transaction.id),
+        ).group_by(func.to_char(Transaction.created_at, "YYYY-MM-DD")).all()
+        return {r[0]: int(r[1]) for r in rows}
+
+    def daily_values(self, days: int, merchant_id=None, anchor: Optional[datetime] = None) -> Dict[str, float]:
+        rows = self._base_window(days, merchant_id, anchor).with_entities(
+            func.to_char(Transaction.created_at, "YYYY-MM-DD"),
+            func.coalesce(func.sum(Transaction.amount), 0),
+        ).group_by(func.to_char(Transaction.created_at, "YYYY-MM-DD")).all()
+        return {r[0]: float(r[1]) for r in rows}
+
+    def value_by_merchant(self, days: int, anchor: Optional[datetime] = None) -> Dict[str, float]:
+        """Summed value per business. The input to both concentration indices,
+        and the query that would otherwise pull an entire quarter into RAM."""
+        rows = self._base_window(days, anchor=anchor).with_entities(
+            Transaction.merchant_id,
+            func.coalesce(func.sum(Transaction.amount), 0),
+        ).group_by(Transaction.merchant_id).all()
+        return {str(r[0]): float(r[1]) for r in rows}
+
+    def count_by_payment_type(self, days: int, anchor: Optional[datetime] = None) -> Dict[str, int]:
+        rows = self._base_window(days, anchor=anchor).with_entities(
+            Transaction.payment_type,
+            func.count(Transaction.id),
+        ).group_by(Transaction.payment_type).all()
+        return {(r[0] or "unrecorded"): int(r[1]) for r in rows}
+
+    def amounts(self, days: int, anchor: Optional[datetime] = None) -> List[float]:
+        """Just the amounts, for percentile and Gini work that genuinely needs
+        every value. One float column instead of whole ORM objects — still
+        O(rows), but a fraction of the footprint, and the callers that need a
+        distribution cannot be served by a GROUP BY."""
+        rows = self._base_window(days, anchor=anchor).with_entities(Transaction.amount).all()
+        return [float(r[0] or 0) for r in rows]
+
+    # -- row-set variants -------------------------------------------------
+    # For callers that already hold transactions for another reason and would
+    # otherwise re-query to fold them.
+
+    def daily_counts_from_rows(self, transactions: Sequence[Transaction]) -> Dict[str, int]:
         out: Dict[str, int] = defaultdict(int)
         for t in transactions:
             out[t.created_at.strftime("%Y-%m-%d")] += 1
         return dict(out)
 
-    def daily_values(self, transactions: Sequence[Transaction]) -> Dict[str, float]:
+    def daily_values_from_rows(self, transactions: Sequence[Transaction]) -> Dict[str, float]:
         out: Dict[str, float] = defaultdict(float)
         for t in transactions:
             out[t.created_at.strftime("%Y-%m-%d")] += float(t.amount or 0)
         return dict(out)
 
-    def value_by_merchant(self, transactions: Sequence[Transaction]) -> Dict[str, float]:
+    def value_by_merchant_from_rows(self, transactions: Sequence[Transaction]) -> Dict[str, float]:
         out: Dict[str, float] = defaultdict(float)
         for t in transactions:
             out[str(t.merchant_id)] += float(t.amount or 0)
         return dict(out)
 
-    def count_by_payment_type(self, transactions: Sequence[Transaction]) -> Dict[str, int]:
+    def count_by_payment_type_from_rows(self, transactions: Sequence[Transaction]) -> Dict[str, int]:
         out: Dict[str, int] = defaultdict(int)
         for t in transactions:
             out[t.payment_type or "unrecorded"] += 1

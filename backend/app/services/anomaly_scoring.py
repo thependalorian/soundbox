@@ -178,6 +178,7 @@ class AnomalyScoringEngine:
                 return 0
             return self.db.query(Transaction).filter(
                 Transaction.organization_id == self.organization.id,
+                Transaction.deleted_at.is_(None),
                 Transaction.merchant_id == merchant_id,
                 Transaction.amount == Decimal(str(amount)),
                 Transaction.created_at >= as_of - timedelta(minutes=window_minutes),
@@ -198,6 +199,7 @@ class AnomalyScoringEngine:
                 return False
             seen = self.db.query(Transaction).filter(
                 Transaction.organization_id == self.organization.id,
+                Transaction.deleted_at.is_(None),
                 Transaction.merchant_id == merchant_id,
                 Transaction.payer_info["ref"].astext == str(payer_ref),
             ).count()
@@ -226,6 +228,7 @@ class AnomalyScoringEngine:
                 func.count(Transaction.id).label("count"),
             ).filter(
                 Transaction.organization_id == self.organization.id,
+                Transaction.deleted_at.is_(None),
                 Transaction.merchant_id == merchant_id,
                 Transaction.created_at >= since,
                 func.extract("dow", Transaction.created_at) == (weekday + 1) % 7,
@@ -271,6 +274,7 @@ class AnomalyScoringEngine:
                 func.count(Transaction.id).label("count"),
             ).filter(
                 Transaction.organization_id == self.organization.id,
+                Transaction.deleted_at.is_(None),
                 Transaction.merchant_id == merchant_id,
                 Transaction.created_at >= since,
                 # Postgres DOW: 0 = Sunday. Python weekday(): 0 = Monday.
@@ -650,6 +654,7 @@ class AnomalyScoringEngine:
 
             count = self.db.query(Transaction).filter(
                 Transaction.organization_id == self.organization.id,
+                Transaction.deleted_at.is_(None),
                 Transaction.merchant_id == merchant_id,
                 Transaction.created_at >= start_time,
                 Transaction.created_at <= anchor,

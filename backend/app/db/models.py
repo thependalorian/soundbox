@@ -35,6 +35,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.declarative import declarative_base
@@ -123,8 +124,8 @@ class Merchant(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_merchants_org_status", "organization_id", "status"),
-        Index("ix_merchants_org_region", "organization_id", "region_id"),
+        Index("ix_merchants_org_status", "organization_id", "status", postgresql_where=text("deleted_at IS NULL")),
+        Index("ix_merchants_org_region", "organization_id", "region_id", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -224,7 +225,7 @@ class User(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_users_org_role", "organization_id", "role"),
+        Index("ix_users_org_role", "organization_id", "role", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -276,8 +277,8 @@ class Device(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_devices_org_merchant", "organization_id", "merchant_id"),
-        Index("ix_devices_org_status", "organization_id", "status"),
+        Index("ix_devices_org_merchant", "organization_id", "merchant_id", postgresql_where=text("deleted_at IS NULL")),
+        Index("ix_devices_org_status", "organization_id", "status", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -359,8 +360,9 @@ class Transaction(Base):
         Index(
             "ix_transactions_org_merchant_created",
             "organization_id", "merchant_id", "created_at",
+            postgresql_where=text("deleted_at IS NULL"),
         ),
-        Index("ix_transactions_org_status", "organization_id", "status"),
+        Index("ix_transactions_org_status", "organization_id", "status", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -394,7 +396,7 @@ class Settlement(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_settlements_org_merchant", "organization_id", "merchant_id"),
+        Index("ix_settlements_org_merchant", "organization_id", "merchant_id", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -450,7 +452,7 @@ class EMoneyWallet(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_wallets_org_status", "organization_id", "status"),
+        Index("ix_wallets_org_status", "organization_id", "status", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -544,8 +546,8 @@ class AnomalyAlert(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_anomaly_alerts_org_merchant", "organization_id", "merchant_id"),
-        Index("ix_anomaly_alerts_org_status", "organization_id", "status"),
+        Index("ix_anomaly_alerts_org_merchant", "organization_id", "merchant_id", postgresql_where=text("deleted_at IS NULL")),
+        Index("ix_anomaly_alerts_org_status", "organization_id", "status", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -614,7 +616,7 @@ class SecurityIncident(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_security_incidents_org_status", "organization_id", "status"),
+        Index("ix_security_incidents_org_status", "organization_id", "status", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -688,8 +690,8 @@ class MediaAsset(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index("ix_media_assets_org_type", "organization_id", "type_code"),
-        Index("ix_media_assets_org_owner", "organization_id", "owner_id"),
+        Index("ix_media_assets_org_type", "organization_id", "type_code", postgresql_where=text("deleted_at IS NULL")),
+        Index("ix_media_assets_org_owner", "organization_id", "owner_id", postgresql_where=text("deleted_at IS NULL")),
     )
 
 
@@ -744,7 +746,7 @@ class Conversation(Base):
             "organization_id",
             "user_id",
             "updated_at",
-            postgresql_where=Column("deleted_at").is_(None),
+            postgresql_where=text("deleted_at IS NULL"),
         ),
     )
 

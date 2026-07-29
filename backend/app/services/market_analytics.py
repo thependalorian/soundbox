@@ -104,22 +104,24 @@ class MarketAnalyticsService:
         fail on the second.
         """
         try:
-            txns = self._transactions(days)
-            if not txns:
+            # Aggregated in Postgres, not here. This window is 90 days of
+            # every payment on the WayaMe rails; the grouped result is one row
+            # per business, which is the only thing this method ever needed.
+            totals = self.repo.totals(days)
+            if not totals["count"]:
                 return {
                     "status": "no_data",
                     "observationDays": days,
                     "detail": "No payments in this window.",
                 }
 
-            total_value = sum(float(t.amount or 0) for t in txns)
+            total_value = totals["value"]
             if total_value <= 0:
                 return {"status": "no_data", "observationDays": days,
                         "detail": "No settled value in this window."}
 
-            by_merchant: Dict[str, float] = defaultdict(float)
-            for t in txns:
-                by_merchant[str(t.merchant_id)] += float(t.amount or 0)
+            by_merchant: Dict[str, float] = self.repo.value_by_merchant(days)
+            txn_count = totals["count"]
 
             merchant_shares = [(v / total_value) * 100 for v in by_merchant.values()]
             merchant_shares.sort(reverse=True)
@@ -150,7 +152,7 @@ class MarketAnalyticsService:
                 "status": "ok",
                 "observationDays": days,
                 "merchants": len(by_merchant),
-                "transactions": len(txns),
+                "transactions": txn_count,
                 "totalValue": round(total_value, 2),
                 "currencyCode": "NAD",
                 "merchantHhi": round(hhi_merchant, 1) if hhi_merchant is not None else None,
@@ -166,7 +168,7 @@ class MarketAnalyticsService:
                       "value": round(v, 2)} for k, v in by_region.items()],
                     key=lambda r: r["sharePct"], reverse=True,
                 ),
-                "belowEvidenceFloor": len(txns) < MIN_OBSERVATIONS,
+                "belowEvidenceFloor": txn_count < MIN_OBSERVATIONS,
             }
         except Exception as e:
             logger.error(f"Error computing concentration: {e}")
