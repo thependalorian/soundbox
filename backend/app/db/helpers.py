@@ -5,17 +5,23 @@ Relationships between tables are enforced here (app layer), not via DB
 foreign keys — see the module docstring in app/db/models.py.
 """
 
+import logging
+import os
 import uuid
 from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.db.models import (
     Merchant,
     MerchantStatusLog,
     Organization,
+    User,
 )
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_ORGANIZATION_SLUG = "wayame-soundbox"
 DEFAULT_ORGANIZATION_NAME = "SoundBox"
@@ -105,3 +111,40 @@ def log_status_change(
     if "actor_user_id" in log_model.__table__.columns.keys():
         kwargs["actor_user_id"] = actor_user_id
     db.add(log_model(**kwargs))
+
+
+def ensure_bootstrap_admin(db: Session) -> None:
+    """Create the first admin user on a fresh deployment.
+
+    Runs once, at startup: if any user already exists this is a no-op. There
+    is no hardcoded default credential (the old mock login's "password" for
+    every role is exactly the defect this closes) -- BOOTSTRAP_ADMIN_EMAIL
+    and BOOTSTRAP_ADMIN_PASSWORD must both be set, or nothing is created and
+    an operator has to seed the first account by hand (e.g. a one-off script
+    calling hash_password() and inserting a User row directly)."""
+    if db.query(User).filter(User.deleted_at.is_(None)).count() > 0:
+        return
+
+    email = os.getenv("BOOTSTRAP_ADMIN_EMAIL")
+    password = os.getenv("BOOTSTRAP_ADMIN_PASSWORD")
+    if not email or not password:
+        logger.warning(
+            "No users exist and BOOTSTRAP_ADMIN_EMAIL/BOOTSTRAP_ADMIN_PASSWORD "
+            "are not set -- skipping bootstrap. No one can log in until a "
+            "first user is created."
+        )
+        return
+
+    org = get_or_create_organization(db)
+    user = User(
+        id=uuid.uuid4(),
+        organization_id=org.id,
+        email=email.strip().lower(),
+        password_hash=hash_password(password),
+        display_name="Administrator",
+        role="admin",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    logger.info(f"Bootstrap admin user created: {user.email}")

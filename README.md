@@ -17,12 +17,27 @@ The project is organized into the following directories:
 
 1.  Navigate to the `backend` directory.
 2.  Install dependencies: `pip install -r requirements.txt`
-3.  Run the server: `uvicorn app.main:app --reload`
+3.  Copy `.env.example` to `.env` and fill it in — `SECRET_KEY`,
+    `BOOTSTRAP_ADMIN_EMAIL`/`BOOTSTRAP_ADMIN_PASSWORD` (creates the first
+    login on an empty database; skipped if either is unset), and
+    `NAMQR_ORG_PUBLIC_KEY_PEM` if you want signed-QR verification to have
+    something to verify against (`backend/scripts/generate_namqr_keypair.py`
+    generates a keypair).
+4.  Run the migrations: `alembic upgrade head`
+5.  Run the server: `uvicorn app.main:app --reload`
+
+There is no fallback login. Every write endpoint requires a real JWT
+(`POST /api/v1/auth/login`) or, for the device-facing endpoints, a
+provisioned device key (`X-Device-Code` / `X-Device-Key`, issued once by
+`POST /api/v1/devices` — see [docs/architecture.md](docs/architecture.md)).
 
 ### Firmware
 
 1.  Navigate to the `firmware` directory.
-2.  Use the provided `Makefile` to build the firmware: `make`
+2.  Install mbedTLS (`brew install mbedtls` / `apt-get install
+    libmbedtls-dev`) — the NAMQR signed-QR verification in `security.c` links
+    it for real ECDSA P-256/SHA-256, not a stub.
+3.  Use the provided `Makefile` to build the firmware: `make`
 
 ### Frontend
 
@@ -75,6 +90,7 @@ python -m py_compile $(find app ml tests -name "*.py")   # syntax
 python -m tests.test_weekday_baseline                    # seasonal fairness
 python -m tests.test_injection_validation                # detector sensitivity
 python -m tests.test_census_figures                      # access denominators
+python -m tests.test_namqr_signature                     # real ECDSA sign/verify round-trip
 ```
 
 ```
@@ -109,3 +125,25 @@ no confirmed cases exist, and none is claimed. See `backend/ml/README.md`.
 
 Nothing in any of them can initiate, hold or reverse a payment. The system
 reads outcomes and announces them. See [docs/architecture.md](docs/architecture.md).
+
+## Auth model
+
+Two independent credentials, neither trusting anything the caller merely
+asserts:
+
+- **People** (`app/api/auth.py`, `app/core/security.py`): `POST
+  /api/v1/auth/login` exchanges a bcrypt-checked password for a signed JWT.
+  Every role-gated endpoint decodes that token server-side
+  (`app/api/deps.py`'s `require_roles`) — nothing reads an `X-User-Role`
+  header, because a header is exactly what a caller can set to whatever it
+  wants.
+- **Devices** (`app/api/deps.py`'s `get_authenticated_device`): a SoundBox
+  unit proves itself with a per-device secret, bcrypt-hashed at rest and
+  issued exactly once (in the response of `POST /api/v1/devices`), sent as
+  `X-Device-Code` / `X-Device-Key` on `/devices/register`,
+  `/devices/heartbeat`, `/payments/verify` and `/payments/process_qr`.
+
+NAMQR QR codes (`app/services/namqr_processor.py`) are ECDSA P-256/SHA-256
+verified per Bank of Namibia NAMQR Code Standards v5.0 Annexure I — CRC
+alone is integrity, not authenticity, and only the signature check proves a
+QR came from the merchant it claims to.

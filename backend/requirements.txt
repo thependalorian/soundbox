@@ -30,6 +30,23 @@ pika==1.3.2
 # imported anywhere in app/. Kept deliberately so the planned JWT auth and
 # Redis caching land without a dependency change.
 redis==5.0.1
+
+# JWT session auth (app/core/security.py, app/api/auth.py, app/api/deps.py).
+# python-jose already pulls in `cryptography` as an extra, but it's pinned
+# explicitly here too: NAMQR signature verification (app/services/
+# namqr_processor.py) depends on it directly and a future change to jose's
+# extras must not silently drop it.
 python-jose[cryptography]==3.3.0
+cryptography==49.0.0
+# passlib[bcrypt]'s own bcrypt pin resolves to bcrypt>=4.1, which removed
+# the __about__ attribute passlib 1.7.4 probes at import and broke its
+# 72-byte wrap-bug self-test (ValueError instead of a clean truncation) --
+# a known passlib/bcrypt ecosystem incompatibility. Pinned down explicitly
+# rather than left to resolve floating, since it crashed app startup.
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 python-multipart==0.0.6
+
+# Per-IP rate limiting (app/core/limiter.py), applied to /auth/login and the
+# device/payment endpoints that have no other throttle.
+slowapi==0.1.9

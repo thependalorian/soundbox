@@ -270,6 +270,28 @@ None of it can move money. These endpoints read payment outcomes and manage
 the estate around them; the observer position is a property of the service,
 not a check inside one function.
 
+**Authorization is server-verified, never caller-asserted.** Two credentials,
+neither trusting a claim the caller can set itself:
+
+- A **person** authenticates once (`POST /auth/login`, bcrypt-checked
+  password) and gets back a signed JWT. Every role-gated write decodes that
+  token server-side (`app/api/deps.py`'s `require_roles`) to get the actor's
+  role and identity — there is no header a request can set to grant itself
+  `admin`.
+- A **device** authenticates with a secret issued once, at provisioning
+  (`POST /devices`'s response), bcrypt-hashed at rest and never recoverable
+  afterward. `/devices/register`, `/devices/heartbeat`, `/payments/verify`
+  and `/payments/process_qr` all require it (`X-Device-Code` /
+  `X-Device-Key`), which is why device registration no longer creates a row
+  from an unauthenticated POST — a device must already exist, provisioned by
+  an admin, before it can announce itself.
+
+A NAMQR QR's CRC (tag 63) proves the code wasn't mis-scanned; it proves
+nothing about who generated it. Where a QR carries a signature (tag 66),
+`app/services/namqr_processor.py` verifies it with ECDSA P-256/SHA-256
+against the presenting merchant's on-file key (falling back to a configured
+org-wide key), per Bank of Namibia NAMQR Code Standards v5.0 Annexure I.
+
 Two fields are deliberately withheld from responses: a beneficial owner's
 national ID (only `hasIdOnFile` is returned) and raw payer detail (only the
 masked alias). Both are reasoned through in [privacy.md](privacy.md).

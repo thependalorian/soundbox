@@ -28,11 +28,13 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_roles
+from app.core.security import generate_device_secret, hash_password
 from app.db.helpers import get_or_create_organization, log_status_change
 from app.db.models import (
     AnomalyAlert,
@@ -47,6 +49,7 @@ from app.db.models import (
     Transaction,
     TransactionStatusLog,
     TypeDefinition,
+    User,
 )
 from app.db.session import get_db
 from app.events import contracts, publisher
@@ -60,20 +63,6 @@ ADMIN_ROLES = {"admin"}
 REVIEW_ROLES = {"admin", "regulator"}
 
 MAX_PAGE = 200
-
-
-def _require(x_user_role: Optional[str], allowed: set, action: str) -> str:
-    role = (x_user_role or "").lower()
-    if role not in allowed:
-        raise HTTPException(
-            status_code=403,
-            detail=f"{action} is limited to: {', '.join(sorted(allowed))}.",
-        )
-    return role
-
-
-def _actor(x_user_name: Optional[str], role: str) -> str:
-    return x_user_name or role or "unknown"
 
 
 def _merchant_names(db: Session, organization_id) -> Dict[str, str]:
@@ -274,8 +263,7 @@ async def assign_device(
     device_id: str,
     body: AssignDevice,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*ADMIN_ROLES)),
 ) -> Dict:
     """Move a device to a merchant.
 
@@ -284,7 +272,6 @@ async def assign_device(
     later needs explaining, and a reassignment that leaves no trace makes a
     device's transaction history impossible to interpret.
     """
-    role = _require(x_user_role, ADMIN_ROLES, "Assigning a device")
     try:
         org = get_or_create_organization(db)
         device = db.query(Device).filter(
@@ -311,7 +298,7 @@ async def assign_device(
         log_status_change(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=device.status, to_status=device.status,
-            note=(f"Assigned to {name} (was {previous}) by {_actor(x_user_name, role)}."
+            note=(f"Assigned to {name} (was {previous}) by {actor.display_name}."
                   + (f" {body.note}" if body.note else "")),
         )
         db.commit()
@@ -331,15 +318,13 @@ async def set_device_status(
     device_id: str,
     body: DeviceStatusChange,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*ADMIN_ROLES)),
 ) -> Dict:
     """Change a device's status.
 
     Valid statuses come from `type_definitions`, not from a literal list
     here — adding one is a configuration row, not a release.
     """
-    role = _require(x_user_role, ADMIN_ROLES, "Changing a device's status")
     try:
         org = get_or_create_organization(db)
         valid = {
@@ -372,7 +357,7 @@ async def set_device_status(
         log_status_change(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=previous, to_status=body.status,
-            note=(body.note or f"Changed by {_actor(x_user_name, role)}."),
+            note=(body.note or f"Changed by {actor.display_name}."),
         )
         db.commit()
         publisher.publish(contracts.device_status_changed(
@@ -552,15 +537,13 @@ async def set_merchant_status(
     merchant_id: str,
     body: MerchantStatusChange,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Approve, reject, or otherwise move an application.
 
     A rejection must carry a note. A business turned away is owed a reason,
     and a reviewer who cannot state one has not finished reviewing.
     """
-    role = _require(x_user_role, REVIEW_ROLES, "Deciding an application")
     try:
         org = get_or_create_organization(db)
         valid = {
@@ -603,7 +586,7 @@ async def set_merchant_status(
         log_status_change(
             db, MerchantStatusLog, org.id, "merchant_id", m.id,
             from_status=previous, to_status=body.status,
-            note=(body.note or f"Decided by {_actor(x_user_name, role)}."),
+            note=(body.note or f"Decided by {actor.display_name}."),
         )
         db.commit()
         publisher.publish(contracts.merchant_status_changed(
@@ -838,8 +821,7 @@ async def record_verdict(
     alert_id: str,
     body: AlertVerdict,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Record a reviewer's decision on an alert.
 
@@ -849,7 +831,6 @@ async def record_verdict(
     supervised model would need, which is why the endpoint exists long
     before that model does.
     """
-    role = _require(x_user_role, REVIEW_ROLES, "Recording a verdict")
     if body.verdict not in VERDICT_STATUS:
         raise HTTPException(
             status_code=400,
@@ -871,7 +852,7 @@ async def record_verdict(
         log_status_change(
             db, AnomalyAlertStatusLog, org.id, "anomaly_alert_id", a.id,
             from_status=previous, to_status=a.status,
-            note=f"{VERDICT_NOTE[body.verdict]} Recorded by {_actor(x_user_name, role)}."
+            note=f"{VERDICT_NOTE[body.verdict]} Recorded by {actor.display_name}."
                  + (f" {body.note}" if body.note else ""),
         )
         db.commit()
@@ -883,7 +864,7 @@ async def record_verdict(
             alert_id=str(a.id),
             verdict=body.verdict,
             status=a.status,
-            reviewer=_actor(x_user_name, role),
+            reviewer=actor.display_name,
         ))
         return {"id": str(a.id), "status": a.status, "verdict": body.verdict}
     except HTTPException:
@@ -955,8 +936,7 @@ async def set_alert_status(
     alert_id: str,
     body: AlertStatusChange,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Move an alert through triage without recording a verdict.
 
@@ -965,7 +945,6 @@ async def set_alert_status(
     training data. Recording the first as though it were the second would
     poison the only ground truth this product has.
     """
-    role = _require(x_user_role, REVIEW_ROLES, "Changing an alert's status")
     if body.status not in ALERT_STATUSES:
         raise HTTPException(
             status_code=400,
@@ -990,7 +969,7 @@ async def set_alert_status(
         log_status_change(
             db, AnomalyAlertStatusLog, org.id, "anomaly_alert_id", a.id,
             from_status=previous, to_status=body.status,
-            note=(body.note or f"Status changed by {_actor(x_user_name, role)}."),
+            note=(body.note or f"Status changed by {actor.display_name}."),
         )
         db.commit()
         return {"id": str(a.id), "status": a.status}
@@ -1028,8 +1007,7 @@ class UpdateDevice(BaseModel):
 async def create_device(
     body: CreateDevice,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*ADMIN_ROLES)),
 ) -> Dict:
     """Add a device to the estate from the console.
 
@@ -1038,7 +1016,6 @@ async def create_device(
     so it starts `inactive` — a device that has never spoken should not
     appear healthy.
     """
-    role = _require(x_user_role, ADMIN_ROLES, "Adding a device")
     try:
         org = get_or_create_organization(db)
         existing = db.query(Device).filter(
@@ -1062,6 +1039,13 @@ async def create_device(
                 raise HTTPException(status_code=404, detail="Business not found.")
             merchant_id = m.id
 
+        # The credential this device will use to prove it is itself on
+        # /devices/register, /devices/heartbeat, /payments/verify and
+        # /payments/process_qr (X-Device-Code + X-Device-Key). Shown exactly
+        # once, in this response -- only its bcrypt hash is ever persisted,
+        # so provision it onto the physical unit now or it must be rotated.
+        device_secret = generate_device_secret()
+
         # Client-side UUID so a retried request cannot create a second row.
         device = Device(
             id=uuid.uuid4(),
@@ -1072,6 +1056,7 @@ async def create_device(
             status="inactive",
             battery_level=0,
             signal_strength=0,
+            api_key_hash=hash_password(device_secret),
             registered_at=datetime.utcnow(),
         )
         db.add(device)
@@ -1079,14 +1064,58 @@ async def create_device(
         log_status_change(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=None, to_status="inactive",
-            note=(body.note or f"Added by {_actor(x_user_name, role)}. Not yet heard from."),
+            note=(body.note or f"Added by {actor.display_name}. Not yet heard from."),
         )
         db.commit()
-        return _device_row(device, _merchant_names(db, org.id))
+        return {
+            **_device_row(device, _merchant_names(db, org.id)),
+            "deviceKey": device_secret,
+        }
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error creating device: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/devices/{device_id}/rotate-key")
+async def rotate_device_key(
+    device_id: str,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles(*ADMIN_ROLES)),
+) -> Dict:
+    """Issue a new device credential, invalidating the old one immediately.
+
+    For a lost, decommissioned-and-reissued, or suspected-compromised unit.
+    The old X-Device-Key stops working the moment this commits -- there is
+    no grace period, because a key rotation you can still use with the old
+    key is not a rotation.
+    """
+    try:
+        org = get_or_create_organization(db)
+        device = db.query(Device).filter(
+            Device.id == device_id,
+            Device.organization_id == org.id,
+            Device.deleted_at.is_(None),
+        ).first()
+        if not device:
+            raise HTTPException(status_code=404, detail="Device not found.")
+
+        device_secret = generate_device_secret()
+        device.api_key_hash = hash_password(device_secret)
+        db.commit()
+        log_status_change(
+            db, DeviceStatusLog, org.id, "device_id", device.id,
+            from_status=device.status, to_status=device.status,
+            note=f"Device key rotated by {actor.display_name}.",
+        )
+        db.commit()
+        return {"id": str(device.id), "deviceKey": device_secret}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error rotating device key for {device_id}: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 
@@ -1096,11 +1125,9 @@ async def update_device(
     device_id: str,
     body: UpdateDevice,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*ADMIN_ROLES)),
 ) -> Dict:
     """Update a device's recorded firmware version."""
-    role = _require(x_user_role, ADMIN_ROLES, "Updating a device")
     try:
         org = get_or_create_organization(db)
         device = db.query(Device).filter(
@@ -1119,7 +1146,7 @@ async def update_device(
                 db, DeviceStatusLog, org.id, "device_id", device.id,
                 from_status=device.status, to_status=device.status,
                 note=(f"Firmware {previous} to {body.firmware_version}, recorded by "
-                      f"{_actor(x_user_name, role)}." + (f" {body.note}" if body.note else "")),
+                      f"{actor.display_name}." + (f" {body.note}" if body.note else "")),
             )
             db.commit()
         return _device_row(device, _merchant_names(db, org.id))
@@ -1136,11 +1163,9 @@ async def retire_device(
     device_id: str,
     note: Optional[str] = None,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*ADMIN_ROLES)),
 ) -> Dict:
     """Retire a device. Soft delete: the row stays, the estate loses it."""
-    role = _require(x_user_role, ADMIN_ROLES, "Retiring a device")
     try:
         org = get_or_create_organization(db)
         device = db.query(Device).filter(
@@ -1158,7 +1183,7 @@ async def retire_device(
         log_status_change(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=previous, to_status="retired",
-            note=(note or f"Retired by {_actor(x_user_name, role)}."),
+            note=(note or f"Retired by {actor.display_name}."),
         )
         db.commit()
         return {"id": str(device.id), "status": "retired", "retired": True}
@@ -1199,8 +1224,7 @@ class UpdateMerchant(BaseModel):
 async def create_merchant(
     body: CreateMerchant,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Register a business application.
 
@@ -1208,7 +1232,6 @@ async def create_merchant(
     business directly: approval is a decision someone is accountable for,
     and it has to appear in the status log as one.
     """
-    role = _require(x_user_role, REVIEW_ROLES, "Registering a business")
     try:
         org = get_or_create_organization(db)
         existing = db.query(Merchant).filter(
@@ -1244,7 +1267,7 @@ async def create_merchant(
         log_status_change(
             db, MerchantStatusLog, org.id, "merchant_id", m.id,
             from_status=None, to_status="pending_kyc",
-            note=f"Application registered by {_actor(x_user_name, role)}.",
+            note=f"Application registered by {actor.display_name}.",
         )
         db.commit()
         return _merchant_row(m, _type_labels(db, org.id, "region"),
@@ -1262,15 +1285,13 @@ async def update_merchant(
     merchant_id: str,
     body: UpdateMerchant,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Update a business profile.
 
     Status is deliberately not settable here — it moves only through
     `/status`, so every transition carries a decision and a log row.
     """
-    role = _require(x_user_role, REVIEW_ROLES, "Updating a business")
     try:
         org = get_or_create_organization(db)
         m = db.query(Merchant).filter(
@@ -1297,7 +1318,7 @@ async def update_merchant(
                 db, MerchantStatusLog, org.id, "merchant_id", m.id,
                 from_status=m.status, to_status=m.status,
                 note=f"Profile updated ({', '.join(sorted(changed))}) by "
-                     f"{_actor(x_user_name, role)}.",
+                     f"{actor.display_name}.",
             )
             db.commit()
 
@@ -1316,8 +1337,7 @@ async def close_merchant(
     merchant_id: str,
     note: str = Query(min_length=1),
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Close a business. Soft delete, and the reason is required.
 
@@ -1325,7 +1345,6 @@ async def close_merchant(
     longer trades — a device still assigned to a closed business would show
     up in coverage figures as active reach that does not exist.
     """
-    role = _require(x_user_role, REVIEW_ROLES, "Closing a business")
     try:
         org = get_or_create_organization(db)
         m = db.query(Merchant).filter(
@@ -1353,7 +1372,7 @@ async def close_merchant(
         log_status_change(
             db, MerchantStatusLog, org.id, "merchant_id", m.id,
             from_status=previous, to_status="closed",
-            note=f"{note} Closed by {_actor(x_user_name, role)}."
+            note=f"{note} Closed by {actor.display_name}."
                  + (f" {len(released)} device(s) released." if released else ""),
         )
         for d in released:
@@ -1384,8 +1403,7 @@ async def add_beneficial_owner(
     merchant_id: str,
     body: CreateBeneficialOwner,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Record a beneficial owner.
 
@@ -1394,7 +1412,6 @@ async def add_beneficial_owner(
     above 100% is rejected: it means one of the figures is wrong, and an
     ownership record that does not add up is not a record.
     """
-    role = _require(x_user_role, REVIEW_ROLES, "Recording an owner")
     try:
         org = get_or_create_organization(db)
         m = db.query(Merchant).filter(
@@ -1435,7 +1452,7 @@ async def add_beneficial_owner(
             db, MerchantStatusLog, org.id, "merchant_id", m.id,
             from_status=m.status, to_status=m.status,
             note=f"Beneficial owner recorded ({body.ownership_percent:g}%) by "
-                 f"{_actor(x_user_name, role)}."
+                 f"{actor.display_name}."
                  + (" Flagged politically exposed." if body.is_pep else ""),
         )
         db.commit()
@@ -1459,11 +1476,9 @@ async def remove_beneficial_owner(
     merchant_id: str,
     owner_id: str,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*REVIEW_ROLES)),
 ) -> Dict:
     """Remove an owner record. Soft delete: ownership history is evidence."""
-    role = _require(x_user_role, REVIEW_ROLES, "Removing an owner")
     try:
         org = get_or_create_organization(db)
         owner = db.query(MerchantBeneficialOwner).filter(
@@ -1480,7 +1495,7 @@ async def remove_beneficial_owner(
         log_status_change(
             db, MerchantStatusLog, org.id, "merchant_id", owner.merchant_id,
             from_status=None, to_status="owner_removed",
-            note=f"Beneficial owner record removed by {_actor(x_user_name, role)}.",
+            note=f"Beneficial owner record removed by {actor.display_name}.",
         )
         db.commit()
         return {"id": str(owner.id), "removed": True}

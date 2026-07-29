@@ -54,8 +54,28 @@ class Settings(BaseSettings):
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
 
-    # Used for signing sessions/JWTs once auth (changelog Next Steps) lands.
+    # Signs JWT session tokens (app/core/security.py).
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+
+    # development | production. Gates the startup credential check below --
+    # default DB/RabbitMQ credentials and an empty SECRET_KEY are fine on a
+    # laptop and refused everywhere else.
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+
+    # First admin account, created once on a fresh database if both are set
+    # (app/db/helpers.py ensure_bootstrap_admin). No default password.
+    BOOTSTRAP_ADMIN_EMAIL: str = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "")
+    BOOTSTRAP_ADMIN_PASSWORD: str = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
+
+    # Comma-separated list of frontend origins allowed to call this API.
+    CORS_ALLOWED_ORIGINS: str = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+
+    # NAMQR Code Standards v5.0, Annexure I: fallback ECDSA P-256 public key
+    # for verifying signed QR (tag 66) when the presenting merchant has no
+    # key of its own (merchants.namqr_public_key_pem). Empty means only
+    # merchant-specific keys are honored.
+    NAMQR_ORG_PUBLIC_KEY_PEM: str = os.getenv("NAMQR_ORG_PUBLIC_KEY_PEM", "")
+    NAMQR_REQUIRE_SIGNATURE: bool = os.getenv("NAMQR_REQUIRE_SIGNATURE", "false").lower() == "true"
 
     WAYAME_API_BASE_URL: str = os.getenv("WAYAME_API_BASE_URL", "https://api.wayame.com.na/v1")
     WAYAME_CLIENT_ID: str = os.getenv("WAYAME_CLIENT_ID", "")
@@ -69,3 +89,25 @@ class Settings(BaseSettings):
         case_sensitive = True
 
 settings = Settings()
+
+
+def assert_production_ready(s: "Settings") -> None:
+    """Refuses to start in a shared environment with defaults that only
+    make sense on a laptop. Raises RuntimeError (never a stub that logs and
+    continues) so a misconfigured production deploy fails loudly at boot,
+    not the first time it matters."""
+    if s.ENVIRONMENT != "production":
+        return
+
+    problems = []
+    if not s.SECRET_KEY:
+        problems.append("SECRET_KEY is empty")
+    if s.DB_PASSWORD == "postgres" and "neon.tech" not in (s.DATABASE_URL or ""):
+        problems.append("DB_PASSWORD is still the default 'postgres'")
+    if "guest:guest" in s.RABBITMQ_URL:
+        problems.append("RABBITMQ_URL is still using the default guest:guest credentials")
+    if problems:
+        raise RuntimeError(
+            "Refusing to start with ENVIRONMENT=production and: "
+            + "; ".join(problems)
+        )

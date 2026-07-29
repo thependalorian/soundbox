@@ -97,12 +97,6 @@ const LoginPage: React.FC = () => {
             Sign in
           </Button>
         </form>
-        <div className="mt-32 text-center text-caption font-sohne text-slate space-y-4">
-          <p className="font-450 text-ash mb-8">Demo portals</p>
-          <p>Merchant &middot; merchant@example.com / password</p>
-          <p>Regulator &middot; regulator@bon.com.na / password</p>
-          <p>Admin &middot; admin@wayame.com.na / password</p>
-        </div>
       </Card>
     </div>
   );

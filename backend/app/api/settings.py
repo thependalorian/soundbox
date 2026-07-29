@@ -13,12 +13,14 @@ are still comparable. They are not, and the fingerprint is how the UI says so.
 import logging
 from typing import Dict, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_roles
 from app.data import cache
 from app.db.helpers import get_or_create_organization
+from app.db.models import User
 from app.db.session import get_db
 from app.services import anomaly_rule_config
 from app.services.anomaly_rule_config import RuleConfigError
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 # Who may change the numbers that decide what a person is asked to look at.
 # A merchant can read their own alerts; they cannot set the bar those alerts
 # are raised against, because the bar protects the payer as much as them.
-WRITE_ROLES = {"admin", "regulator"}
+WRITE_ROLES = ("admin", "regulator")
 
 
 class RuleUpdate(BaseModel):
@@ -42,23 +44,6 @@ class RuleUpdate(BaseModel):
 class PolicyUpdate(BaseModel):
     value: float
     note: Optional[str] = Field(default=None, max_length=500)
-
-
-def _actor(x_user_role: Optional[str], x_user_name: Optional[str]) -> str:
-    """The role header is the deployment's auth boundary today.
-
-    Stated plainly rather than implied: this trusts a header, which is
-    appropriate behind the gateway that terminates auth and would not be
-    appropriate if this service were exposed directly. The audit trail
-    records whatever identity it is given, so a weak identity produces a
-    weak trail — not a missing one.
-    """
-    if (x_user_role or "").lower() not in WRITE_ROLES:
-        raise HTTPException(
-            status_code=403,
-            detail="Changing review thresholds is limited to oversight and administrator roles.",
-        )
-    return x_user_name or x_user_role or "unknown"
 
 
 @router.get("/settings/anomaly-rules")
@@ -89,16 +74,14 @@ async def update_anomaly_rule(
     code: str,
     body: RuleUpdate,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*WRITE_ROLES)),
 ) -> Dict:
-    actor = _actor(x_user_role, x_user_name)
     changes = {k: v for k, v in body.model_dump(exclude={"note"}).items() if v is not None}
     if not changes:
         raise HTTPException(status_code=400, detail="No changes supplied.")
     try:
         org = get_or_create_organization(db)
-        rule = anomaly_rule_config.update_rule(db, org.id, code, changes, actor, body.note)
+        rule = anomaly_rule_config.update_rule(db, org.id, code, changes, actor.display_name, body.note)
         # A cached alert rate computed under the previous thresholds is not
         # merely stale, it is misleading — it describes a policy no longer in
         # force.
@@ -121,13 +104,11 @@ async def update_anomaly_policy(
     code: str,
     body: PolicyUpdate,
     db: Session = Depends(get_db),
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_name: Optional[str] = Header(default=None),
+    actor: User = Depends(require_roles(*WRITE_ROLES)),
 ) -> Dict:
-    actor = _actor(x_user_role, x_user_name)
     try:
         org = get_or_create_organization(db)
-        setting = anomaly_rule_config.update_policy(db, org.id, code, body.value, actor, body.note)
+        setting = anomaly_rule_config.update_policy(db, org.id, code, body.value, actor.display_name, body.note)
         cache.invalidate("nps_dashboard")
         rules = anomaly_rule_config.load_rules(db, org.id)
         policy = anomaly_rule_config.load_policy(db, org.id)

@@ -55,7 +55,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // A 401 from /auth/login means "wrong password", not "your session
+    // expired" -- forcing a redirect here would blow away the login form's
+    // own error message before the user could read it.
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -79,10 +83,16 @@ interface ListFilters {
 // mockData; the translation belongs where the merchant list actually lives.
 const resolveMerchantId = (idOrCode?: string): string | undefined => idOrCode || undefined;
 
-/** Identity headers the backend records against the change. */
-const actorHeaders = (role: string, name: string) => ({
-  headers: { 'X-User-Role': role, 'X-User-Name': name },
-});
+/**
+ * Historically sent X-User-Role/X-User-Name so the backend could record who
+ * made a change. The backend now derives that identity itself from the
+ * verified JWT (see AuthContext -- the Authorization header is added
+ * automatically by the request interceptor above), so these are no longer
+ * read for anything. Kept as a no-op so call sites -- which still pass an
+ * `actor` for UI purposes (e.g. optimistic-update messaging) -- don't all
+ * need to change in the same pass as the auth model.
+ */
+const actorHeaders = (_role: string, _name: string) => ({});
 
 /**
  * Live reads.

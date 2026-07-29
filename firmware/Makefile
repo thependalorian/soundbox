@@ -3,8 +3,16 @@
 # Compiler
 CC = gcc
 
+# Real ECDSA P-256/SHA-256 NAMQR signature verification (src/security.c)
+# links mbedTLS -- pkg-config resolves it whether it's a Homebrew install
+# (not on the default include/lib path on Apple Silicon) or a system one.
+# `pkg-config --exists mbedtls` fails loudly at build time rather than
+# silently falling back to a stub if it's missing.
+MBEDTLS_CFLAGS := $(shell pkg-config --cflags mbedtls mbedx509 mbedcrypto 2>/dev/null)
+MBEDTLS_LIBS := $(shell pkg-config --libs mbedtls mbedx509 mbedcrypto 2>/dev/null || echo -lmbedtls -lmbedx509 -lmbedcrypto)
+
 # Compiler flags
-CFLAGS = -Wall -Isrc -std=c99 -D_GNU_SOURCE
+CFLAGS = -Wall -Isrc -std=c99 -D_GNU_SOURCE $(MBEDTLS_CFLAGS)
 
 # Source files
 SRCS = $(wildcard src/*.c)
@@ -19,11 +27,20 @@ TARGET = soundbox_sim
 DEPS = $(OBJS:.o=.d)
 
 # Default target
-all: $(TARGET)
+all: check-mbedtls $(TARGET)
+
+.PHONY: check-mbedtls
+check-mbedtls:
+	@pkg-config --exists mbedtls mbedx509 mbedcrypto || { \
+		echo "error: mbedTLS not found (pkg-config --exists mbedtls mbedx509 mbedcrypto failed)."; \
+		echo "  macOS:  brew install mbedtls"; \
+		echo "  Debian: apt-get install libmbedtls-dev"; \
+		exit 1; \
+	}
 
 # Link object files
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) -lm
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) -lm $(MBEDTLS_LIBS)
 	@echo "Build complete: $(TARGET)"
 
 # Compile source files

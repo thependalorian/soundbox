@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 #include "rtos.h"
 #include "modem.h"
 #include "audio.h"
@@ -19,6 +25,25 @@
 #define MAX_RETRIES 3
 #define HEARTBEAT_INTERVAL_S 300 // 5 minutes
 #define OTA_CHECK_INTERVAL_S 86400 // 24 hours
+
+// DEMO keypair for this simulation only -- generated with
+// backend/scripts/generate_namqr_keypair.py, public key only (the matching
+// private key never ships on the device; only an issuer/merchant signs).
+// Replace before this ever talks to a real merchant's signed QR.
+static const char* NAMQR_DEMO_PUBLIC_KEY_PEM =
+    "-----BEGIN PUBLIC KEY-----\n"
+    "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE6MCR9XE4EXdhFrhXc6Y3gdZ7QCN3\n"
+    "NeoT6G4tfX/Pqhk3B6Lofkiei8wj5LsEQn/ugu/icM8Tx26CN0HZ/D42sQ==\n"
+    "-----END PUBLIC KEY-----\n";
+
+// A NAMQR string genuinely signed with the matching private key (tags 00,
+// 01, 03, 65, then 66=signature, then 63=CRC) -- this is real ECDSA
+// output, not a placeholder, so the verification below either actually
+// passes or actually fails depending on what's loaded above.
+static const char* NAMQR_DEMO_SIGNED_QR =
+    "0002010102110312SBX-DEMO-0016512TVID000000016696MEYCIQD4YNxoNCfh"
+    "CvI/OWCjm6qkwkEOKZjaFdKVIaL8wLdMpgIhAJQncyOYNhCu5bmAHyc6OO1RXEuw"
+    "ZE5sjb19/c9llyuN63049C40";
 
 // Global device state
 typedef struct {
@@ -62,9 +87,13 @@ PaymentNotification* receive_payment_notification() {
         strcpy(notification->amount, "150.00");
         notification->timestamp = 1672531200; // Example timestamp
         notification->status = 1; // Success
-        // A dummy signature would be placed here
-        memset(notification->signature, 'A', 128);
-        
+        // The push notification itself carries no signature in this flow --
+        // authenticity comes from the NAMQR the payer's device presented
+        // (verified in payment_task via namqr_process()), not from this
+        // struct. Left zeroed rather than filled with placeholder bytes
+        // that would look like an unused signature check.
+        memset(notification->signature, 0, sizeof(notification->signature));
+
         should_simulate = 0; // Only simulate once
         return notification;
     }
@@ -73,6 +102,11 @@ PaymentNotification* receive_payment_notification() {
 
 // Main entry point
 int main(void) {
+    // A real device's log sink is a UART, not a buffered file -- each line
+    // should reach it immediately. Also means the simulation's output
+    // isn't silently lost if the process is stopped mid-run.
+    setvbuf(stdout, NULL, _IONBF, 0);
+
     printf("--- SoundBox Firmware Initializing ---\n");
     printf("--- WayaMe SoundBox v%s ---\n", g_state.firmware_version);
 
@@ -82,9 +116,12 @@ int main(void) {
     audio_init();
     display_init();
     security_init();
+    if (security_load_public_key(NAMQR_DEMO_PUBLIC_KEY_PEM) != 0) {
+        printf("[ERROR] Failed to load NAMQR public key -- signed QR will not verify.\n");
+    }
     namqr_init();
     ota_init();
-    
+
     printf("Device ID: %s\n", g_state.device_id);
     printf("Merchant ID: %s\n", g_state.merchant_id);
 
@@ -111,10 +148,8 @@ int main(void) {
         // Simulate a delay
         // In a real RTOS, the scheduler handles this.
         #ifdef _WIN32
-        #include <windows.h>
         Sleep(5000);
         #else
-        #include <unistd.h>
         sleep(5);
         #endif
     }
@@ -131,27 +166,42 @@ void payment_task(void *pvParameters) {
     
     printf("[TASK] Payment task running...\n");
 
-    // Verify payment signature (simulation)
-    if (verify_signature((uint8_t*)notification, sizeof(PaymentNotification) - 128, 
-                         (uint8_t*)notification->signature, get_public_key())) {
+    // Real ECDSA verification of the NAMQR the payer's device presented
+    // (NAMQR Standards v5.0, Annexure I S1.7) -- CRC integrity, then a
+    // genuine signature check via mbedTLS. Nothing here fakes success:
+    // NAMQR_DEMO_SIGNED_QR is signed with the private key matching
+    // NAMQR_DEMO_PUBLIC_KEY_PEM loaded in main(), so this either really
+    // passes or really fails depending on what's loaded.
+    NAMQRResult qr_result;
+    int namqr_status = namqr_process(NAMQR_DEMO_SIGNED_QR, &qr_result);
+
+    // S1.7.7: a present-but-invalid signature declines the transaction; an
+    // absent signature is only a warning, and unsigned static/legacy QR is
+    // still accepted (both map to namqr_status == NAMQR_OK here).
+    if (namqr_status == NAMQR_OK) {
+        if (qr_result.is_signed) {
+            printf("[NAMQR] Signed QR verified -- proceeding without extra prompt.\n");
+        } else {
+            printf("[NAMQR] Unsigned QR -- source could not be verified, proceeding with warning.\n");
+        }
+
         printf("[AUDIO] Playing success sound for amount: %s\n", notification->amount);
         play_audio("payment_success", notification->amount);
-        
+
         printf("[DISPLAY] Showing amount: %s\n", notification->amount);
         display_amount(notification->amount);
-        
-        // Process NAMQR if present
-        NAMQRResult qr_result;
-        if (namqr_process("0000000000000000", &qr_result) == NAMQR_OK) {
-            printf("[NAMQR] QR code validated successfully\n");
-        }
-        
+
         api_client_confirm_payment(notification->transaction_id, g_state.device_id);
+    } else if (namqr_status == NAMQR_SIGNATURE_ERROR) {
+        printf("[NAMQR] QR is tampered or corrupt -- declining.\n");
+        printf("[AUDIO] Playing error sound.\n");
+        play_audio("payment_error", NULL);
     } else {
+        printf("[NAMQR] QR processing failed (status %d).\n", namqr_status);
         printf("[AUDIO] Playing error sound.\n");
         play_audio("payment_error", NULL);
     }
-    
+
     free(notification);
 }
 

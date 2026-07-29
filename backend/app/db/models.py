@@ -111,6 +111,13 @@ class Merchant(Base):
     region_id = ref_id(nullable=True)  # type_definitions(domain='region')
     constituency_id = ref_id(nullable=True)  # type_definitions(domain='constituency')
     local_authority_id = ref_id(nullable=True)  # type_definitions(domain='local_authority')
+    # NAMQR Code Standards v5.0, Annexure I S1.2 "Manage Verified Address
+    # Entries": the merchant's (or its acquirer PSP's, on its behalf)
+    # uploaded ECDSA P-256 public key, used to verify the signature (tag 66)
+    # on QR codes this merchant presents. NULL until the merchant is
+    # onboarded onto signed QR; falls back to Settings.NAMQR_ORG_PUBLIC_KEY_PEM
+    # per S1.7.2(b/c)'s "use parent key" rule.
+    namqr_public_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=True)
     deleted_at = Column(DateTime, nullable=True)
@@ -189,6 +196,55 @@ class TypeDefinition(Base):
 
 
 # ---------------------------------------------------------------------------
+# Identity
+# ---------------------------------------------------------------------------
+
+class User(Base):
+    """A person who can act against this API: admin, regulator, or a
+    merchant's own operator. This is the sole source of authority for role
+    -gated endpoints -- every write endpoint derives `role` and actor
+    identity from a verified JWT issued against this table (app/core/security.py),
+    never from a client-supplied header."""
+
+    __tablename__ = "users"
+
+    id = uuid_pk()
+    organization_id = ref_id()
+    email = Column(String, nullable=False, unique=True, index=True)
+    password_hash = Column(String, nullable=False)
+    display_name = Column(String, nullable=False)
+    role = Column(String, nullable=False)  # type_definitions(domain='user_role'): admin, regulator, merchant
+    # Set only for role='merchant' -- scopes what the token holder can see
+    # (Devices/Transactions/Flagged Alerts filtered to this merchant).
+    merchant_id = ref_id(nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    last_login_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)
+    deleted_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("ix_users_org_role", "organization_id", "role"),
+    )
+
+
+class UserStatusLog(Base):
+    """Append-only companion, created with the table as the rules require.
+    Covers activation/deactivation and role changes."""
+
+    __tablename__ = "user_status_log"
+
+    id = uuid_pk()
+    organization_id = ref_id()
+    user_id = ref_id()
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    actor_user_id = ref_id(nullable=True)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
 # Assets: devices
 # ---------------------------------------------------------------------------
 
@@ -210,6 +266,11 @@ class Device(Base):
     status = Column(String, nullable=False, default="active")
     battery_level = Column(Integer, nullable=False, default=100)
     signal_strength = Column(Integer, nullable=False, default=0)
+    # bcrypt hash of the per-device credential issued once at provisioning
+    # (see POST /devices). NULL means the device cannot authenticate --
+    # /devices/register, /devices/heartbeat, /payments/verify and
+    # /payments/process_qr all require a matching X-Device-Key header.
+    api_key_hash = Column(String, nullable=True)
     registered_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_heartbeat_at = Column(DateTime, nullable=True)
     deleted_at = Column(DateTime, nullable=True)

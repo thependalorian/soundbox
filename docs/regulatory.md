@@ -65,8 +65,13 @@ The SoundBox must comply with the NAMQR Code Standards, finalized on 9 May 2025.
 - Support for both static and dynamic QR Codes
 - Customer-presented and merchant-presented formats
 - Byte Mode encoding only
-- CRC validation (Tag 63)
+- CRC validation (Tag 63) — integrity only, implemented in
+  `namqr_processor.py` / firmware `namqr.c`
 - Token Vault integration for security (Tag 65)
+- Signed QR (Annexure I, Tag 66) — ECDSA P-256/SHA-256, implemented on both
+  backend (`cryptography`) and firmware (mbedTLS). Per S1.7.7, an unsigned
+  QR is a warning, not a rejection, until merchant signing keys are
+  onboarded (`NAMQR_REQUIRE_SIGNATURE`).
 
 **2.2.4 Telecommunications Equipment Type Approval**
 

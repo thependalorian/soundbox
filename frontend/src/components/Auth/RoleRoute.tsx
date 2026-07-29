@@ -13,7 +13,10 @@ interface RoleRouteProps {
  * toggled cards.
  */
 const RoleRoute: React.FC<RoleRouteProps> = ({ allow }) => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  if (isLoading) {
+    return null;
+  }
   if (!user || !allow.includes(user.role)) {
     return <Navigate to="/" replace />;
   }

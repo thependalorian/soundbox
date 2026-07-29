@@ -1,21 +1,56 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from typing import Dict, Optional
 
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import logging
 
+from app.api.deps import get_authenticated_device
+from app.core.config import settings
 from app.services.wayame_api_client import WayaMeAPIClient, get_wayame_api_client
-from app.services.namqr_processor import NAMQRProcessor
+from app.services.namqr_processor import NAMQRProcessor, SIGNATURE_TAG
 from app.db.session import get_db
 from app.events import contracts, publisher
 from app.db.helpers import get_or_create_merchant, get_or_create_organization, log_status_change
-from app.db.models import Transaction, TransactionStatusLog
+from app.db.models import Device, Merchant, Transaction, TransactionStatusLog
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _resolve_namqr_public_key(db: Session, tags: Dict[str, str]) -> Optional[EllipticCurvePublicKey]:
+    """NAMQR Standards S1.7.2: 'List VAE is having the merchant entry and
+    having Signature key, then the key will be used for validating QR' /
+    'No entry in List VAE, use parent key ... (non-verified merchant)'.
+
+    Tag 03 (Merchant Id) resolves to this deployment's Merchant record; its
+    uploaded key wins. Falling back to the org-wide key stands in for the
+    full VAE/ListKeys registry this single-tenant deployment doesn't run.
+    """
+    merchant_id_tag = tags.get("03")
+    if merchant_id_tag:
+        merchant = (
+            db.query(Merchant)
+            .filter(Merchant.merchant_code == merchant_id_tag, Merchant.deleted_at.is_(None))
+            .first()
+        )
+        if merchant and merchant.namqr_public_key_pem:
+            try:
+                return NAMQRProcessor.load_public_key(merchant.namqr_public_key_pem)
+            except Exception:
+                logger.error(f"Malformed NAMQR public key on file for merchant {merchant_id_tag}")
+
+    if settings.NAMQR_ORG_PUBLIC_KEY_PEM:
+        try:
+            return NAMQRProcessor.load_public_key(settings.NAMQR_ORG_PUBLIC_KEY_PEM)
+        except Exception:
+            logger.error("Malformed NAMQR_ORG_PUBLIC_KEY_PEM in configuration.")
+
+    return None
 
 class PaymentVerificationRequest(BaseModel):
     transaction_id: str
@@ -29,6 +64,7 @@ class QrCode(BaseModel):
 async def verify_payment(
     request: PaymentVerificationRequest,
     db: Session = Depends(get_db),
+    device: Device = Depends(get_authenticated_device),
     wayame_client: WayaMeAPIClient = Depends(get_wayame_api_client)
 ):
     """
@@ -126,9 +162,14 @@ async def verify_payment(
     return {"status": "success", "payment_data": payment_data}
 
 @router.post("/payments/process_qr")
-async def process_qr_code(qr_code: QrCode):
+async def process_qr_code(
+    qr_code: QrCode,
+    db: Session = Depends(get_db),
+    device: Device = Depends(get_authenticated_device),
+):
     """
-    Parses and validates a NAMQR code.
+    Parses, CRC-checks, and -- per NAMQR Code Standards v5.0 Annexure I --
+    ECDSA-verifies a NAMQR code's signature (tag 66) when present.
     """
     logger.info("Processing QR code.")
     processor = NAMQRProcessor()
@@ -141,18 +182,41 @@ async def process_qr_code(qr_code: QrCode):
         tags = processor.parse_payload(qr_code.data)
         token_id = processor.extract_token_vault_id(tags)
 
-        # In a real implementation, you would use the public key
-        # to verify the signature if present.
-        # is_valid_sig = processor.verify_signature(tags, public_key)
+        signed = SIGNATURE_TAG in tags
+        signature_valid: Optional[bool] = None
+
+        if signed:
+            public_key = _resolve_namqr_public_key(db, tags)
+            if public_key is None:
+                logger.warning(
+                    "Signed NAMQR received but no verification key is on file "
+                    "(merchant tag %s); treating as unverifiable.", tags.get("03")
+                )
+                signature_valid = False
+            else:
+                signature_valid = processor.verify_signature(qr_code.data, tags, public_key)
+
+            if not signature_valid:
+                # NAMQR Standards S1.7.7(b): tampered/corrupt signature -> decline.
+                raise HTTPException(status_code=400, detail="QR is tampered or corrupt.")
+        elif settings.NAMQR_REQUIRE_SIGNATURE:
+            raise HTTPException(status_code=400, detail="Unsigned QR codes are not accepted on this deployment.")
+        # else: NAMQR Standards S1.7.7(c) -- unsigned is a warning, not a
+        # rejection. `signed: false` in the response is that warning; the
+        # caller (device/app) decides whether to proceed.
 
         return {
             "status": "success",
             "message": "QR Code is valid.",
             "tags": tags,
-            "token_vault_id": token_id
+            "token_vault_id": token_id,
+            "signed": signed,
+            "signature_valid": signature_valid,
         }
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error processing QR code: {e}")
         raise HTTPException(status_code=500, detail="Failed to process QR code.")

@@ -4,6 +4,65 @@ This changelog tracks the implementation progress of the SoundBox project. The b
 
 ---
 
+## [1.19.0] - 2026-07-29 - Security Audit Remediation: Real Auth, Device Keys, Signed NAMQR
+
+A security audit found the API had no real authentication — write endpoints
+trusted a client-supplied `X-User-Role` header with nothing behind it, and
+the frontend's login was a hardcoded mock (`password` for every account).
+Closed end-to-end rather than patched around; five findings, all fixed and
+verified against a running server, not just code review.
+
+#### Fixed — authentication and authorization (critical)
+- `users` table, bcrypt password hashing, JWT sessions (`app/core/security.py`,
+  `app/api/auth.py`: `POST /auth/login`, `GET /auth/me`).
+- `app/api/deps.py`'s `require_roles` replaces every `_require`/`_actor`
+  header-trust function in `resources.py` and `settings.py` — role and actor
+  identity now come from a verified JWT, never a header.
+- Device credential (`Device.api_key_hash`, bcrypt): `POST /devices` issues
+  a per-device secret once; `/devices/register`, `/devices/heartbeat`,
+  `/payments/verify` and `/payments/process_qr` all require it
+  (`X-Device-Code` / `X-Device-Key`, `app/api/deps.py`'s
+  `get_authenticated_device`). `/devices/register` no longer creates a
+  device row from an unauthenticated POST.
+- `ensure_bootstrap_admin()` creates the first login from
+  `BOOTSTRAP_ADMIN_EMAIL`/`BOOTSTRAP_ADMIN_PASSWORD` — no default credential.
+- Frontend `AuthContext` calls the real login endpoint; the "Demo portals"
+  credential hints are gone from `LoginPage`.
+
+#### Fixed — NAMQR signature verification (high)
+- `verify_signature` in `namqr_processor.py` and firmware `security.c` was a
+  placeholder that always returned success. Replaced with real ECDSA
+  P-256/SHA-256 (`cryptography` on the backend, mbedTLS in firmware — both
+  installed and build-verified, not aspirational), per Bank of Namibia
+  NAMQR Code Standards v5.0 Annexure I §1.7. Wired into
+  `POST /payments/process_qr`, which previously didn't call signature
+  verification at all.
+- Fixed two pre-existing bugs this surfaced: `crcmod.mkCrcFunction` (real
+  API is `mkCrcFun` — CRC validation had never actually run) and firmware
+  `main.c`'s `#include <unistd.h>` nested inside a function body (invalid
+  C; the firmware had never compiled).
+- `backend/tests/test_namqr_signature.py` (new): real keypair, real sign,
+  real verify — plus the negative cases a stub would have hidden (wrong
+  key, tampered payload, corrupted signature, malformed base64).
+
+#### Fixed — rate limiting, fail-fast config, headers (medium)
+- `slowapi` rate limiting, `5/minute` on `/auth/login`.
+- `assert_production_ready()` refuses to boot with `ENVIRONMENT=production`
+  and default DB/RabbitMQ credentials or an empty `SECRET_KEY`.
+- Explicit `CORS_ALLOWED_ORIGINS` allow-list (no wildcard) plus a security-
+  headers middleware on every API response.
+- `nginx.conf` / `vercel.json`: CSP, X-Frame-Options, X-Content-Type-Options,
+  Referrer-Policy, Permissions-Policy.
+- `frontend/Dockerfile` now runs nginx as the non-root `nginx` user
+  (listens on 8080; `docker-compose.yml` updated to match).
+
+All of the above verified against a live server (not just unit tests):
+login, wrong-password rejection, the old header-spoofing attack now 401ing,
+device-key auth, rate-limit 429s, CORS origin rejection, and the full
+`docker compose build && up` stack, before this entry was written.
+
+---
+
 ## [1.18.0] - 2026-07-29 - Frontend Copy Audit, Trust/Privacy Merge, Vacancies
 
 A documentation-driven audit against every `.md` file in the repo surfaced
