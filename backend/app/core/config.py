@@ -104,7 +104,11 @@ def assert_production_ready(s: "Settings") -> None:
         problems.append("SECRET_KEY is empty")
     if s.DB_PASSWORD == "postgres" and "neon.tech" not in (s.DATABASE_URL or ""):
         problems.append("DB_PASSWORD is still the default 'postgres'")
-    if "guest:guest" in s.RABBITMQ_URL:
+    # Only load-bearing when publishing is actually on -- EVENTS_ENABLED=false
+    # is a supported production posture (see the comment on RABBITMQ_URL
+    # above), and refusing to boot over an unused broker default would
+    # contradict "a broker outage must never fail a payment."
+    if s.EVENTS_ENABLED and "guest:guest" in s.RABBITMQ_URL:
         problems.append("RABBITMQ_URL is still using the default guest:guest credentials")
     if problems:
         raise RuntimeError(
