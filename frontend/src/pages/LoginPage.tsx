@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
+import RequestAccess from '../components/Public/RequestAccess';
 import Button from '../components/ui/Button';
 import SoundBoxDevice from '../components/Public/SoundBoxDevice';
 import wordmark from '../assets/brand/soundbox-wordmark.png';
@@ -115,6 +116,7 @@ const LoginPage: React.FC = () => {
         >
           Forgot your password?
         </Link>
+        <RequestAccess className="mt-8" />
       </Card>
     </div>
   );

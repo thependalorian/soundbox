@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ButtonLink from '../../components/ui/ButtonLink';
 import PublicShell from '../../components/Public/PublicShell';
+import RequestAccess from '../../components/Public/RequestAccess';
 import PageHero from '../../components/Public/PageHero';
 import AudienceSplit from '../../components/Public/AudienceSplit';
 import ImageSlot from '../../components/ui/ImageSlot';
@@ -187,6 +188,7 @@ const LandingPage: React.FC = () => {
             Sign in to see your devices, your businesses, and your part of the picture.
           </p>
           <ButtonLink to="/login" className="mt-32">Sign in</ButtonLink>
+          <RequestAccess className="mt-20" />
         </div>
       </section>
     </PublicShell>

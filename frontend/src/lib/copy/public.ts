@@ -50,6 +50,41 @@ export const CONTACT = {
   emailSpoken: 'team at justasoundbox dot com',
 } as const;
 
+/**
+ * Getting an account.
+ *
+ * Every closing CTA on the public pages said "Sign in", which is a dead end
+ * for the exact reader each page is written for: a supervisor who has just
+ * read the oversight argument, or a seller who does not have a box yet.
+ * Neither has an account, and neither had a route to one.
+ *
+ * The answer is **request access, not sign up.** Accounts on this platform are
+ * issued by an administrator and never self-created — see the Account
+ * lifecycle section of the README. A sign-up form would contradict that, so
+ * the path is a mail to the team with the audience already stated, which is
+ * also what lets us answer a regulator differently from a market trader.
+ */
+export const ACCESS = {
+  regulator: {
+    prompt: 'Need oversight access?',
+    action: 'Request access',
+    subject: 'Oversight access request',
+  },
+  merchant: {
+    prompt: 'Do not have a box yet?',
+    action: 'Ask about getting one',
+    subject: 'SoundBox enquiry',
+  },
+  general: {
+    prompt: 'No account yet?',
+    action: 'Request access',
+    subject: 'Access request',
+  },
+  /** Said once, plainly, so nobody hunts for a sign-up form that will never
+   *  exist. Accounts are issued deliberately. */
+  note: 'Accounts are issued rather than self-created, so access is arranged with the team.',
+} as const;
+
 export const BRAND = {
   name: 'SoundBox',
   tagline: 'Payments made audible. Trust made instant.',

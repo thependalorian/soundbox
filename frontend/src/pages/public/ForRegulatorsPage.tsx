@@ -2,6 +2,7 @@ import React from 'react';
 import PageHero from '../../components/Public/PageHero';
 import ButtonLink from '../../components/ui/ButtonLink';
 import PublicShell from '../../components/Public/PublicShell';
+import RequestAccess from '../../components/Public/RequestAccess';
 import BrowserFrame from '../../components/Public/BrowserFrame';
 import QuestionHeading from '../../components/Public/QuestionHeading';
 import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
@@ -414,6 +415,9 @@ const ForRegulatorsPage: React.FC = () => (
           dashboards read.
         </p>
         <ButtonLink to="/login?as=regulator" className="mt-32">Sign in for oversight</ButtonLink>
+        {/* A supervisor reading this page has no account. Sign in alone was a
+            dead end for the one reader it is written for. */}
+        <RequestAccess audience="regulator" className="mt-20" />
       </div>
     </section>
   </PublicShell>

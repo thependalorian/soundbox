@@ -2,6 +2,7 @@ import React from 'react';
 import PageHero from '../../components/Public/PageHero';
 import ButtonLink from '../../components/ui/ButtonLink';
 import PublicShell from '../../components/Public/PublicShell';
+import RequestAccess from '../../components/Public/RequestAccess';
 import {
   AUDIENCES,
   PROPOSITION,
@@ -231,6 +232,9 @@ const ForMerchantsPage: React.FC = () => (
           Sign in to see your payments, check your box, and look at what you have taken.
         </p>
         <ButtonLink to="/login?as=merchant" className="mt-32">Sign in to your business</ButtonLink>
+        {/* The heading asks "Already have a box?" -- this is the other half of
+            that question, which the page previously left unanswered. */}
+        <RequestAccess audience="merchant" className="mt-20" />
       </div>
     </section>
   </PublicShell>
