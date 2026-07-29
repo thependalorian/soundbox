@@ -132,6 +132,19 @@ SEED_DATA: Dict[str, List[tuple]] = {
         ("dormant", "Dormant"),
         ("suspended", "Suspended"),
     ],
+    # Analytics assistant threads (app/agents, docs/analytics-chat.md).
+    "conversation_status": [
+        ("active", "Active"),
+        ("archived", "Archived"),
+    ],
+    # Who or what produced a turn. `tool` rows carry the query result the
+    # assistant's next sentence was built from, which is what makes an
+    # answer traceable back to a number.
+    "message_role": [
+        ("user", "User"),
+        ("assistant", "Assistant"),
+        ("tool", "Tool"),
+    ],
     "settlement_status": [
         ("pending", "Pending"),
         ("settled", "Settled"),

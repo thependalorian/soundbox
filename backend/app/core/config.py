@@ -81,9 +81,15 @@ class Settings(BaseSettings):
     WAYAME_CLIENT_ID: str = os.getenv("WAYAME_CLIENT_ID", "")
     WAYAME_CLIENT_SECRET: str = os.getenv("WAYAME_CLIENT_SECRET", "")
 
-    # Powers the "Ask anything" analytics composer (app/services/ask_service.py).
-    # Inert (endpoint returns a clear error) until a real key is set.
+    # Powers the analytics agent (app/agents/). Inert — the endpoint returns a
+    # clear error rather than failing at startup — until a real key is set.
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
+
+    # Agent tracing, exported to Langfuse over OTLP (app/core/observability.py).
+    # Entirely optional: absent keys turn tracing off and change nothing else.
+    LANGFUSE_PUBLIC_KEY: str = os.getenv("LANGFUSE_PUBLIC_KEY", "")
+    LANGFUSE_SECRET_KEY: str = os.getenv("LANGFUSE_SECRET_KEY", "")
+    LANGFUSE_BASE_URL: str = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
 
     class Config:
         case_sensitive = True

@@ -12,6 +12,7 @@ import MerchantDetailPage from './pages/MerchantDetailPage';
 import TransactionsPage from './pages/TransactionsPage';
 import TransactionDetailPage from './pages/TransactionDetailPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import AnalyticsChatPage from './pages/AnalyticsChatPage';
 import FlaggedPage from './pages/FlaggedPage';
 import AnomalyAlertDetailPage from './pages/AnomalyAlertDetailPage';
 import MapPage from './pages/MapPage';
@@ -77,6 +78,11 @@ function App() {
                 <Route path="/merchants" element={<MerchantsPage />} />
                 <Route path="/map" element={<MapPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                {/* The assistant's tools read across every business on the
+                    platform, so it stays on the oversight side of the guard.
+                    Mirrors ASSISTANT_ROLES in backend/app/api/assistant.py —
+                    the route guard is convenience, the server is the boundary. */}
+                <Route path="/ask" element={<AnalyticsChatPage />} />
               </Route>
 
               {/* Merchant detail is reachable by admin/regulator (full/read-only)

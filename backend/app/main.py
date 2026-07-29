@@ -5,6 +5,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.api import (
     analytics,
+    assistant,
     auth,
     devices,
     oversight,
@@ -15,6 +16,7 @@ from app.api import (
 )
 from app.core.config import assert_production_ready, settings
 from app.core.limiter import limiter
+from app.core.observability import configure_langfuse
 from app.db.helpers import ensure_bootstrap_admin
 from app.db.session import engine, SessionLocal
 from app.db.models import Base
@@ -78,6 +80,7 @@ async def security_headers(request: Request, call_next):
 
 # Include routers
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
+app.include_router(assistant.router, prefix=settings.API_V1_STR, tags=["assistant"])
 app.include_router(devices.router, prefix=settings.API_V1_STR, tags=["devices"])
 app.include_router(payments.router, prefix=settings.API_V1_STR, tags=["payments"])
 app.include_router(analytics.router, prefix=settings.API_V1_STR, tags=["analytics"])
@@ -91,6 +94,10 @@ async def startup_event():
     logger.info("Starting up SoundBox API...")
     logger.info(f"Project: {settings.PROJECT_NAME} v{settings.PROJECT_VERSION}")
     logger.info("Database tables created/verified")
+
+    # Optional. Absent Langfuse keys log once and change nothing else — an
+    # observability dependency must never be able to take the API down.
+    configure_langfuse()
 
     db = SessionLocal()
     try:

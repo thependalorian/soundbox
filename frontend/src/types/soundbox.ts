@@ -310,9 +310,3 @@ export interface Psd3Report {
     avg_balance: number;
   };
 }
-
-export interface AskAnalyticsResponse {
-  answer: string;
-  toolsUsed: string[];
-  data?: Record<string, unknown>;
-}

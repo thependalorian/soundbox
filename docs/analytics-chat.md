@@ -3,6 +3,10 @@
 > Design for moving the ask composer onto its own page, giving it a memory,
 > and letting it answer with charts instead of paragraphs.
 >
+> **Status: shipped.** Backend `app/agents/` + `app/api/assistant.py`,
+> migration `b7c3e10d94af`, frontend `/ask`. Where implementation departed
+> from this design, the section says so — see §3.1 and §6.
+>
 > Part of the SoundBox documentation set — see [README.md](README.md).
 
 ---
@@ -15,7 +19,7 @@ dashboards use. But its shape limits it to one kind of answer.
 
 | Piece | Where | What it does |
 |---|---|---|
-| Composer | [`ui/AskComposer.tsx`](../frontend/src/components/ui/AskComposer.tsx) | One question, one answer, then a reset button |
+| Composer | `ui/AskComposer.tsx` (removed in this release) | One question, one answer, then a reset button |
 | Mount point | `pages/DashboardPage.tsx` | A single `isAdmin &&` block above the stat cards |
 | Endpoint | `POST /analytics/ask` (`app/api/analytics.py`) | Validates, delegates, maps errors |
 | Agent | [`services/ask_service.py`](../backend/app/services/ask_service.py) | Claude `tool_runner` loop over nine read-only tools |
@@ -77,20 +81,19 @@ Merchants are deliberately excluded in v1 — see §8.
 
 **No Node tier is introduced, and none is needed.** This was the deciding
 constraint. The frontend is Create React App (`react-scripts 5.0.1`), not
-Next.js, so there is no server tier to host a Node `CopilotRuntime`.
-CopilotKit's React provider connects directly to a backend that speaks the
-**AG-UI protocol**, with `runtimeUrl` pointing at it — so the Python service
-we already run can serve the agent itself.
+Next.js, so there is no server tier to host a Node `CopilotRuntime`. The
+browser talks to a backend that speaks the **AG-UI protocol** directly — so
+the Python service we already run can serve the agent itself.
 
 ```
 browser
-  └── <CopilotKit runtimeUrl="…/api/v1/assistant">   CopilotKit React
+  └── HttpAgent  →  …/api/v1/assistant       @ag-ui/client, src/lib/analyticsAgent.ts
         │  AG-UI over HTTP (streaming)
         ▼
       FastAPI route  ── require_roles("regulator", "admin")
         │
         ▼
-      Pydantic AI agent            app/agents/analytics_agent.py
+      Pydantic AI agent            app/agents/ (agent, tools, prompts, deps)
         │  tools call existing services, never SQL
         ▼
       AnalyticsService · MarketAnalyticsService · RegulatoryReportingEngine
@@ -123,6 +126,37 @@ generation may later be worth confirming before it is filed.
 > came from the published documentation and the workspace's own
 > `PRD-Master-Copilot-Generative-UI-Agentic-Chat.md` §3.2. Do not assume the
 > MCP tooling works; verify against the docs.
+
+### 3.1 Why the chat surface is not CopilotKit
+
+The original plan used CopilotKit's React components on top of AG-UI. It was
+tried and abandoned during implementation, for a reason worth recording so
+nobody re-litigates it from the design doc alone:
+
+- `@copilotkit/react-core/v2` **self-imports a Tailwind v4 stylesheet**. This
+  frontend is Tailwind v3, so CRA's PostCSS pipeline fails the build outright
+  (``@layer base` is used but no matching `@tailwind base` directive``).
+- The CSS-free subpaths (`/v2/headless`, `/v2/context`) do not resolve under
+  this project's TypeScript 4.9 `moduleResolution: "node"`.
+- The v1 provider still expects a Node `CopilotRuntime` at `runtimeUrl` —
+  the tier this deployment does not have.
+
+Making it work needs a CRA→Vite migration plus a Tailwind v3→v4 upgrade,
+which is a rewrite of the token system every existing page and all six public
+marketing pages depend on. That is a far larger change than this feature, and
+it would put the brand palette at risk to gain a chat widget we would then
+have to restyle anyway.
+
+**So the page drives `@ag-ui/client`'s `HttpAgent` directly** — the same
+transport CopilotKit itself uses underneath — and the chat surface is built
+from this product's own components. The protocol is unchanged, the backend is
+untouched, and the answer artifacts reuse the existing charts, which was
+always the plan (§6). Cost: roughly 150 lines of message-state handling in
+`useAnalyticsChat.ts` that CopilotKit would have provided.
+
+If the frontend is ever migrated to Vite and Tailwind v4 for other reasons,
+CopilotKit becomes viable again with no backend change at all — the AG-UI
+endpoint is exactly what it expects.
 
 ---
 
@@ -191,7 +225,7 @@ that payer identifiers are never returned to a screen.
 
 ## 5. Backend
 
-New module `app/agents/analytics_agent.py`.
+New module `app/agents/ (agent, tools, prompts, deps)`.
 
 **Tools call the existing service methods. They do not contain queries.**
 This is the single most important constraint in the backend work — the same
@@ -235,9 +269,11 @@ Other backend notes:
 
 This is the part that makes the page worth building.
 
-Each tool result gets a React renderer registered with
-`useCopilotAction({ name, render })`. The agent calls a tool; the frontend
-renders the component instead of, or alongside, the sentence.
+Each tool result gets a React renderer, dispatched by tool name in
+[`components/Assistant/ToolResult.tsx`](../frontend/src/components/Assistant/ToolResult.tsx).
+The agent calls a tool; the frontend renders the component alongside the
+sentence, and anything without a dedicated renderer falls back to a readable
+key/value table rather than raw JSON.
 
 **Reuse the chart components that already exist.** They are built, they are
 on the brand palette, and they are what the dashboards already use — a chart
@@ -247,13 +283,21 @@ second implementation that drifts.
 | Tool | Renders with |
 |---|---|
 | `get_transaction_trends` | [`Dashboard/TransactionChart.tsx`](../frontend/src/components/Dashboard/TransactionChart.tsx) |
-| `get_geo_breakdown` | [`Analytics/GeoDrilldown.tsx`](../frontend/src/components/Analytics/GeoDrilldown.tsx) |
-| `get_geo_distribution` | [`Map/GeoDistributionMap.tsx`](../frontend/src/components/Map/GeoDistributionMap.tsx) |
-| `get_concentration` | [`Analytics/MarketStructure.tsx`](../frontend/src/components/Analytics/MarketStructure.tsx) |
-| merchant segmentation | [`Analytics/SegmentScatter.tsx`](../frontend/src/components/Analytics/SegmentScatter.tsx) |
-| `get_transaction_summary`, `get_system_health` | `ui/StatCard.tsx`, `ui/Sparkline.tsx`, `ui/Meter.tsx` |
-| `get_anomaly_alerts` | `Dashboard/AnomalyAlertsCard.tsx`, `ui/ConfidenceBadge.tsx` |
-| `generate_psd6_report`, `generate_psd3_report` | New report card, built from `ui/Card.tsx` and the table pattern already used on `ReportsPage` |
+| `get_transaction_summary` | `ui/StatCard.tsx` — four figures |
+| `get_system_health` | `ui/Meter.tsx` + `ui/Tag.tsx`, one bar per component measure |
+| `get_geo_breakdown` | Ranked bar list, `lib/chartTokens.ts` colours |
+| `get_concentration` | `ui/Meter.tsx` — HHI with its band named in words |
+| `get_anomaly_alerts` | Table, worst money-at-risk first |
+| `forecast_activity` | Falls back to the table, and surfaces `insufficient_data` verbatim |
+| everything else | Generic key/value table |
+
+> `Analytics/GeoDrilldown.tsx`, `Analytics/MarketStructure.tsx` and
+> `Analytics/SegmentScatter.tsx` were listed here in the original draft. They
+> cannot be reused as-is: each fetches its own data through react-query and
+> takes no data props, so it would re-query rather than render the tool
+> result the agent already paid for. Making them prop-driven is a worthwhile
+> refactor, and is the obvious next step for this file — but it changes the
+> Analytics page too, so it is deliberately not bundled with this release.
 
 Three rules for the renderers:
 
@@ -286,27 +330,31 @@ The dashboard block is **replaced with a link to the new page**, not simply
 deleted. `ui/PageAction.tsx` is the established pattern for that on this
 page. An entry point that disappears is a feature nobody finds.
 
-`AskComposer.tsx` is retired with `/analytics/ask`, in the same release.
+`AskComposer.tsx` and the `askAnalytics` client are deleted in this release.
+The backend `/analytics/ask` endpoint and `ask_service.py` are left in place
+for one release so nothing calling them breaks silently, and are the next
+thing to remove.
 
 ---
 
 ## 8. Risks, and what is deliberately not being done
 
-- **Auth on the CopilotKit transport.** The axios interceptor in
+- **Auth on the AG-UI transport.** The axios interceptor in
   [`api/api.ts`](../frontend/src/api/api.ts) attaches the bearer token to
-  *its* requests. CopilotKit uses its own transport and will not inherit
-  that. The token has to be passed explicitly, and this is the most likely
-  thing to be missed — the symptom is a 401 that looks like a CORS failure.
+  *its* requests. `HttpAgent` uses `fetch` and will not inherit that, so
+  `lib/analyticsAgent.ts` sets the `Authorization` header explicitly. This is
+  the most likely thing to be missed on a refactor — the symptom is a 401
+  that looks like a CORS failure.
 - **CORS and headers.** `CORS_ALLOWED_ORIGINS` and the allowed-header list
   in `app/main.py` must cover the new route.
-- **Create React App only exposes `REACT_APP_*`.** Any key the browser needs
-  must be named `REACT_APP_COPILOTKIT_…`; a variable without that prefix is
-  silently absent from the bundle at runtime, which presents as an
-  unconfigured client rather than as an error. Note also that anything
-  reaching the browser bundle is public by definition — a publishable
-  (`ck_pub_…`) key is fine there, a secret key is not, and a secret one
-  belongs only in `backend/.env`. Both env files are gitignored; keep the
-  templates in `.env.example` as placeholders.
+- **Create React App only exposes `REACT_APP_*`.** A variable without that
+  prefix is silently absent from the bundle at runtime, which presents as an
+  unconfigured client rather than as an error. The browser needs no API key
+  of its own here: it holds a session JWT and nothing else, and every model
+  credential stays in `backend/.env`. Anything reaching the browser bundle is
+  public by definition, so a secret key must never be given a `REACT_APP_`
+  name. Both env files are gitignored; keep the templates in `.env.example`
+  as placeholders.
 - **Streaming must not be buffered.** AG-UI streams its response. If a proxy
   buffers, answers arrive all at once at the end and the feature feels
   broken rather than slow. Check [`nginx.conf`](../frontend/nginx.conf) and

@@ -1,6 +1,18 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
+# FastAPI and pydantic were raised together to satisfy the analytics agent
+# (app/agents/) — pydantic-ai-slim requires pydantic>=2.12 and
+# starlette>=0.46.2, neither of which the previous fastapi 0.104 pin allowed.
+fastapi==0.139.2
+uvicorn[standard]==0.38.0
+
+# **Pin starlette explicitly, and keep it on 0.x.**
+# fastapi 0.139 declares `starlette>=0.46.0` with no upper bound, so a plain
+# resolve installs starlette 1.x — a major release fastapi has not adapted
+# to. The failure is silent and nasty: `pip check` reports nothing wrong, the
+# app imports cleanly, and every included router is quietly dropped, leaving
+# only /docs and /health. Do not relax this to a range.
+starlette==0.52.1
+
+pydantic==2.13.4
 pydantic-settings==2.1.0
 sqlalchemy==2.0.23
 alembic==1.13.1
@@ -9,6 +21,7 @@ requests==2.31.0
 crcmod==1.7
 python-dotenv==1.0.0
 anthropic==0.117.0
+httpx==0.28.1
 
 # Unsupervised anomaly detection (app/services/anomaly_detection.py,
 # backend/ml/). scikit-learn's IsolationForest is needed at inference time,
@@ -50,3 +63,25 @@ python-multipart==0.0.6
 # Per-IP rate limiting (app/core/limiter.py), applied to /auth/login and the
 # device/payment endpoints that have no other throttle.
 slowapi==0.1.9
+
+# ---------------------------------------------------------------------------
+# Analytics agent (app/agents/) — natural-language analytics with generative
+# UI. See docs/analytics-chat.md for the design and AGENT_MASTER_GUIDE for the
+# stack rules this follows.
+#
+# Pydantic AI only, no LangGraph. The guide's own test (§1.0, §2.1) is whether
+# a turn needs multi-step orchestration: one agent making one model call plus
+# tools per user message is the single-agent path (Part 4.7). This agent reads
+# and reports; it has no guardrail loop, no supervisor, and no human-in-the-
+# loop gate, because nothing it does writes. Add LangGraph if that changes.
+#
+# `ag-ui` extra serves the AG-UI protocol straight from FastAPI, which is what
+# lets the CopilotKit frontend talk to Python without a Node runtime tier.
+# 2.14.1 rather than the current 2.20.0: everything newer is inside the house
+# seven-day cool-down.
+pydantic-ai-slim[anthropic,ag-ui]==2.14.1
+
+# OpenTelemetry instrumentation for the agent, exported to Langfuse over OTLP
+# (app/core/observability.py). Pydantic AI emits spans when the Agent is
+# constructed with instrument=True.
+logfire==4.38.0

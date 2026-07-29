@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { logger } from '../lib/logger';
 import {
-  AskAnalyticsResponse,
   BeneficialOwner,
   Device,
   DeviceHeartbeatPoint,
@@ -960,9 +959,5 @@ export const fetchAvailability = async (days = 30): Promise<Availability> =>
 export const fetchMerchantSegments = async (days = 90): Promise<MerchantSegmentation> =>
   live('merchant segments', async () => (await api.get('/market/segments', { params: { days } })).data);
 
-export const askAnalytics = async (question: string): Promise<AskAnalyticsResponse> => {
-  const res = await api.post('/analytics/ask', { question });
-  return res.data;
-};
 
 export default api;

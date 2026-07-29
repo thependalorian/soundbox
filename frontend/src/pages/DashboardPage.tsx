@@ -18,7 +18,6 @@ import {
 import StatCard from '../components/ui/StatCard';
 import PageAction from '../components/ui/PageAction';
 import Card from '../components/ui/Card';
-import AskComposer from '../components/ui/AskComposer';
 import SystemHealthCard from '../components/Dashboard/SystemHealthCard';
 import AnomalyAlertsCard from '../components/Dashboard/AnomalyAlertsCard';
 import TransactionChart from '../components/Dashboard/TransactionChart';
@@ -109,10 +108,12 @@ const DashboardPage: React.FC = () => {
         <PageAction className="mb-32" to="/analytics" label="Review this week's trend" />
       )}
 
-      {isAdmin && (
-        <div className="mb-32">
-          <AskComposer />
-        </div>
+      {/* The single-turn composer that used to sit here moved to its own page.
+          A conversation that answers with charts needs room and a scroll of
+          its own, and this one was squeezed above the stat cards. Kept as an
+          entry point rather than simply deleted, so the way in is not lost. */}
+      {(isRegulator || isAdmin) && (
+        <PageAction className="mb-32" to="/ask" label="Ask the data a question" />
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">

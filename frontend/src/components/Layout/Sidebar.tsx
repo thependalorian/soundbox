@@ -6,6 +6,7 @@ import {
   BuildingStorefrontIcon,
   CurrencyDollarIcon,
   ChartBarIcon,
+  ChatBubbleLeftRightIcon,
   ExclamationTriangleIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
@@ -54,6 +55,7 @@ const navigation: NavItem[] = [
   { name: 'Businesses', href: '/merchants', icon: BuildingStorefrontIcon, roles: ['regulator', 'admin'] },
   { name: 'Coverage', href: '/map', icon: MapIcon, roles: ['regulator', 'admin'] },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, roles: ['regulator', 'admin'] },
+  { name: 'Ask the data', href: '/ask', icon: ChatBubbleLeftRightIcon, roles: ['regulator', 'admin'] },
   { name: 'Reports', href: '/reports', icon: DocumentTextIcon, roles: ['regulator', 'admin'] },
   // Operations
   { name: 'Devices', href: '/devices', icon: DevicePhoneMobileIcon, roles: ['admin'] },

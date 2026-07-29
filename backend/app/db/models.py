@@ -708,6 +708,99 @@ class MediaAssetStatusLog(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
+class Conversation(Base):
+    """One thread of the analytics assistant (app/agents, docs/analytics-chat.md).
+
+    A thread is the unit an oversight officer returns to. "What did we ask
+    about the coast last quarter, and what did the model say?" needs to be
+    answerable months later, which is why this is a table and not a browser
+    session.
+
+    Retention is deliberately not enforced here. Questions are working notes,
+    not payment records, so the soft-delete column is the only lifecycle this
+    schema commits to; a policy sweep can be added without a migration.
+    """
+
+    __tablename__ = "conversations"
+
+    id = uuid_pk()
+    organization_id = ref_id()
+    user_id = ref_id()
+    # First line of the opening question until the assistant proposes better.
+    # Nullable rather than defaulted: an untitled thread is honest, an
+    # invented title is not.
+    title = Column(Text, nullable=True)
+    # type_definitions domain 'conversation_status': active, archived.
+    status = Column(String, nullable=False, default="active")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        # Leading tenancy column, partial on active rows: the list view only
+        # ever asks for one user's live threads, newest first.
+        Index(
+            "ix_conversations_org_user_active",
+            "organization_id",
+            "user_id",
+            "updated_at",
+            postgresql_where=Column("deleted_at").is_(None),
+        ),
+    )
+
+
+class ConversationStatusLog(Base):
+    """Append-only companion, created with the table as the rules require."""
+
+    __tablename__ = "conversation_status_log"
+
+    id = uuid_pk()
+    organization_id = ref_id()
+    conversation_id = ref_id()
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    actor_user_id = ref_id(nullable=True)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class ConversationMessage(Base):
+    """One turn in a thread. Immutable: no `updated_at`, never UPDATEd.
+
+    This is the point of keeping it. A regulator acting on an answer needs to
+    be able to show the exact question asked, the exact figures returned, and
+    which tools produced them. An editable transcript would be worth nothing
+    as evidence, so corrections are new rows and the record only grows.
+
+    `tool_calls` holds the tool name, arguments and result for each call the
+    turn made — the audit trail from a sentence back to the query behind it,
+    and what the frontend re-renders charts from on reload.
+    """
+
+    __tablename__ = "conversation_messages"
+
+    id = uuid_pk()
+    organization_id = ref_id()
+    conversation_id = ref_id()
+    # type_definitions domain 'message_role': user, assistant, tool.
+    role_code = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    tool_calls = Column(JSONB, nullable=True)
+    # Which model produced an assistant turn. An answer read a year from now
+    # is only interpretable if you know what wrote it.
+    model_name = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index(
+            "ix_conversation_messages_org_conv_at",
+            "organization_id",
+            "conversation_id",
+            "created_at",
+        ),
+    )
+
+
 class AnomalyRuleConfigLog(Base):
     """Immutable record of every anomaly rule and policy change.
 
