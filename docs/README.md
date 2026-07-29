@@ -28,6 +28,7 @@ cannot do to a payment. Everything else assumes that.
 | [`privacy.md`](privacy.md) | Personal data held, the GDPR/POPIA standard we hold ourselves to, and consumer protection for sellers | Touching payer data, or answering a regulator on privacy |
 | [`regulatory.md`](regulatory.md) | Namibian payment-system obligations, standards, contacts | Compliance work. Internal vocabulary — the public site deliberately avoids it |
 | [`device.md`](device.md) | Device specification summary and analytics capability sequence | Hardware or roadmap detail |
+| [`analytics-chat.md`](analytics-chat.md) | Design for the natural-language analytics page: Pydantic AI over AG-UI, CopilotKit generative UI, conversation persistence | Building or changing the assistant, or wiring a new tool into it |
 | [`../backend/ml/README.md`](../backend/ml/README.md) | Why the anomaly model is unsupervised, why IsolationForest, why geography is a feature | Touching scoring |
 | [`../changelog.md`](../changelog.md) | What has actually been built, dated | Catching up |
 
