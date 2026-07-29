@@ -239,7 +239,15 @@ export const SELLER_ROADMAP = [
   },
 ] as const;
 
-/** What the oversight side can answer. Each is a real, implemented view. */
+/** What the oversight side can answer. Each is a real, implemented view.
+ *
+ *  Only items 0-2 (LandingPage's "What the country gets") and 3-4
+ *  (ForRegulatorsPage's inclusion/retention cards) are rendered anywhere.
+ *  Settlement timing, agent float, and forecasting used to be single cards
+ *  here too, but each now has its own full section on ForRegulatorsPage
+ *  with its content rewritten as prose specific to that section — kept
+ *  this array to exactly the entries something still reads, rather than
+ *  carrying three cards nothing renders. */
 export const OVERSIGHT_CAPABILITIES = [
   {
     title: 'Where the money is, and where it is not',
@@ -265,21 +273,6 @@ export const OVERSIGHT_CAPABILITIES = [
     title: 'Who has stopped',
     detail:
       'Businesses approved but never trading, and businesses that have gone quiet. Both are counted in coverage figures elsewhere, which makes networks look larger than they are.',
-  },
-  {
-    title: 'How long money takes to arrive',
-    detail:
-      'The wait at the counter and the settlement cycle that follows are reported separately, because a seller is only ever waiting on the first.',
-  },
-  {
-    title: 'Whether agents are running out of cash',
-    detail:
-      'An agent paying out more than they take in eventually has nothing left to pay with. On a map that looks identical to a place that was never reached.',
-  },
-  {
-    title: 'What next month looks like',
-    detail:
-      'Expected volume and value, with the weekly pattern shown separately so it can be argued with. Fraud is deliberately left out: a pattern can be forecast, but someone actively trying to beat detection cannot — a number for that would only measure how well they are succeeding.',
   },
 ] as const;
 
@@ -361,6 +354,58 @@ export const OBSERVER_BOUNDARIES = {
 /** What a mistake actually costs, stated identically wherever it appears. */
 export const SCORING_ERROR_COST =
   'A scoring error costs an analyst a few minutes — never a seller their sale.';
+
+/**
+ * The seven business questions the models answer — the regulator page's
+ * whole argument, and the reason that page exists.
+ *
+ * Copied verbatim from `docs/business-plan.md` §1.7, which is itself
+ * sourced from `backend/app/services/*.py`. Kept here rather than inline
+ * in the page for the reason this module exists: the page and the business
+ * plan must not drift, and a single export makes that a one-file check.
+ * Section order on the page follows this object's order, which follows
+ * §1.7's numbering.
+ *
+ * `label` names the model doing the work; `question` is what a regulator
+ * actually wants answered. The label is deliberately plain English —
+ * "Anomaly scoring", not a scheme code — so it stays readable to someone
+ * who does not already know the internals.
+ */
+export const BUSINESS_QUESTIONS = {
+  alerts: {
+    label: 'Anomaly scoring',
+    question: 'Which alerts deserve a person’s time first, and why?',
+  },
+  concentration: {
+    label: 'Market concentration',
+    question:
+      'Is the network becoming dangerously dependent on a few businesses or one region?',
+  },
+  adoption: {
+    label: 'Distribution, inclusion, retention',
+    question:
+      'Is adoption actually reaching people, or is a rising average hiding who is still left out?',
+  },
+  agentFloat: {
+    label: 'Agent float risk',
+    question: 'Are cash agents running out of money to pay people with?',
+  },
+  forecasting: {
+    label: 'Forecasting',
+    question:
+      'How much volume should we plan capacity and agent float for next month — without pretending we can predict fraud?',
+  },
+  returns: {
+    label: 'Regulatory reporting',
+    question:
+      'Do the numbers we file with the regulator match the numbers the dashboards show?',
+  },
+  ask: {
+    label: 'Natural-language analytics',
+    question:
+      'Can an operator get a correct answer to a question nobody built a report for in advance?',
+  },
+} as const;
 
 /**
  * Regulator page framing. No scheme codes and no named strategy documents:

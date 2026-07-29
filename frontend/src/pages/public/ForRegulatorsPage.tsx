@@ -3,12 +3,14 @@ import PageHero from '../../components/Public/PageHero';
 import ButtonLink from '../../components/ui/ButtonLink';
 import PublicShell from '../../components/Public/PublicShell';
 import BrowserFrame from '../../components/Public/BrowserFrame';
+import QuestionHeading from '../../components/Public/QuestionHeading';
 import Card from '../../components/ui/Card';
 import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
 import Meter from '../../components/ui/Meter';
 import Roadmap from '../../components/Public/Roadmap';
 import {
   ASK_ANYTHING,
+  BUSINESS_QUESTIONS,
   OVERSIGHT_CAPABILITIES,
   REGULATOR,
   OBSERVER_BOUNDARIES,
@@ -26,12 +28,14 @@ import StatusPill from '../../components/ui/StatusPill';
  * back at them reads as posturing. Describe what the system can answer;
  * let them map it to their obligations.
  *
- * Structured around the seven business questions this platform's models
- * actually answer (docs/business-plan.md SS1.7, itself sourced from
- * backend/app/services/*.py) — each gets its own section and its own
- * literal-question heading, rather than a single summary grid. The
- * boundary, ownership, and safeguard sections around them aren't
- * themselves one of the seven; they're the framing that makes the seven
+ * **Structured as the seven business questions the models answer**, in the
+ * same order as `docs/business-plan.md` §1.7 (itself sourced from
+ * `backend/app/services/*.py`). Each question gets its own section, headed
+ * by the model doing the work and the question it answers — copy lives in
+ * `BUSINESS_QUESTIONS` so the page and the business plan cannot drift.
+ *
+ * The boundary, ownership and safeguard sections around them are not
+ * themselves one of the seven; they are the framing that makes the seven
  * credible. One action throughout: sign in, in the closing section only.
  */
 
@@ -122,15 +126,97 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Question 3: is adoption reaching people, or is an average hiding
-        who's excluded. Coverage is the visible evidence; the two cards
-        below add the inclusion/retention half of the same question. */}
+    {/* 1 — Anomaly scoring. The page's one emphasis band, and it leads:
+        this is the most concrete thing the platform does for oversight.
+        LandingPage puts its emphasis band immediately after the hero too. */}
+    <section className="bg-brand-gradient-aa py-128">
+      <div className="max-w-content mx-auto px-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center">
+          <BrowserFrame label="Alert — why it was raised" className="lg:order-2">
+            <div className="space-y-16">
+              <div className="flex items-baseline justify-between">
+                <span className="text-body font-sohne text-ink">Outapi Cash Agent</span>
+                <StatusPill label="HIGH" tone="danger" />
+              </div>
+              {[
+                { l: 'Trading pace', d: '27 payments in one hour. This business normally does 3.' },
+                { l: 'Payment size', d: 'N$2,583 against a usual average of N$630.' },
+                { l: 'Time of day', d: 'Taken at 03:00, outside normal trading hours.' },
+              ].map((r) => (
+                <div key={r.l}>
+                  <p className="text-caption font-sohne text-ink">{r.l}</p>
+                  <p className="text-caption font-sohne text-slate mt-4">{r.d}</p>
+                </div>
+              ))}
+              <p className="text-caption font-sohne text-ash pt-12 border-t border-mist">
+                Amount at risk: N$2,324.85
+              </p>
+            </div>
+          </BrowserFrame>
+          <div className="lg:order-1">
+            <QuestionHeading
+              tone="onGradient"
+              label={BUSINESS_QUESTIONS.alerts.label}
+              question={BUSINESS_QUESTIONS.alerts.question}
+            />
+            <p className="text-body font-sohne text-paper opacity-90 mt-16">
+              Every alert states what triggered it, in the business&apos;s own numbers. Nobody has
+              to take a score on faith, and an analyst can disagree with it on the spot.
+            </p>
+            <p className="text-body font-sohne text-paper opacity-90 mt-16">
+              Alerts are ordered by how much money is actually exposed, not by how confident the
+              system feels. A likely problem on a large amount matters more than a near-certain
+              one on a small amount.
+            </p>
+            <p className="text-body font-sohne text-paper opacity-90 mt-16">
+              Every score carries the exact settings that produced it, so a score from before a
+              threshold changed is never quietly compared against one from after.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* 2 — Market concentration. */}
+    <section className="bg-paper py-96">
+      <div className="max-w-content mx-auto px-24">
+        <QuestionHeading
+          label={BUSINESS_QUESTIONS.concentration.label}
+          question={BUSINESS_QUESTIONS.concentration.question}
+        />
+        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
+          A network that depends on three merchants for half its volume is a systemic risk the
+          moment one of them has a bad month. Concentration is measured with the same index
+          competition regulators already use elsewhere, split by both merchant and region — a
+          network can look healthy nationally while depending dangerously on a single town.
+        </p>
+        <div className="mt-40 max-w-[480px]">
+          <BrowserFrame label="Market concentration">
+            <div className="space-y-8 mt-20 pt-20 border-t border-mist">
+              {CONCENTRATION.map((r) => (
+                <div key={r.l} className="flex items-baseline justify-between gap-16">
+                  <span className="text-caption font-sohne text-ink">{r.l}</span>
+                  <span className="text-caption font-sohne text-ash tabular-nums">{r.v}</span>
+                </div>
+              ))}
+              <p className="text-caption font-sohne text-ash pt-12 border-t border-mist">
+                Under 1,500 is unconcentrated; over 2,500 is highly concentrated.
+              </p>
+            </div>
+          </BrowserFrame>
+        </div>
+      </div>
+    </section>
+
+    {/* 3 — Distribution, inclusion, retention. Coverage is the visible
+        evidence; the two cards below add the inclusion/retention half of
+        the same question. */}
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          Is adoption actually reaching people, or is a rising average hiding who is still left
-          out?
-        </h2>
+        <QuestionHeading
+          label={BUSINESS_QUESTIONS.adoption.label}
+          question={BUSINESS_QUESTIONS.adoption.question}
+        />
         <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
           National totals hide the places where nothing is happening. Because every device is
           tied to a real location, the map shows activity down to constituency level — and an
@@ -170,14 +256,14 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Question 4: agent float risk, pulled out of the old "Coverage"
-        section into its own -- it's a distinct question, not a subplot of
-        coverage, and the photo belongs here, not there. */}
+    {/* 4 — Agent float risk. Its own question, not a subplot of coverage:
+        the failure mode is invisible on a map, which is the whole point. */}
     <section className="bg-paper py-96">
       <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          Are cash agents running out of money to pay people with?
-        </h2>
+        <QuestionHeading
+          label={BUSINESS_QUESTIONS.agentFloat.label}
+          question={BUSINESS_QUESTIONS.agentFloat.question}
+        />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-start mt-40">
           <ImageSlot
             ratio="4:3"
@@ -203,93 +289,14 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Question 2: concentration, new section (previously one card in a
-        shared grid, never its own topic on this page). */}
+    {/* 5 — Forecasting, with the fraud-exclusion reasoning stated directly
+        rather than left implied. */}
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          Is the network becoming dangerously dependent on a few businesses or one region?
-        </h2>
-        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
-          A network that depends on three merchants for half its volume is a systemic risk the
-          moment one of them has a bad month. Concentration is measured with the same index
-          competition regulators already use elsewhere, split by both merchant and region — a
-          network can look healthy nationally while depending dangerously on a single town.
-        </p>
-        <div className="mt-40 max-w-[480px]">
-          <BrowserFrame label="Market concentration">
-            <div className="space-y-8 mt-20 pt-20 border-t border-mist">
-              {CONCENTRATION.map((r) => (
-                <div key={r.l} className="flex items-baseline justify-between gap-16">
-                  <span className="text-caption font-sohne text-ink">{r.l}</span>
-                  <span className="text-caption font-sohne text-ash tabular-nums">{r.v}</span>
-                </div>
-              ))}
-              <p className="text-caption font-sohne text-ash pt-12 border-t border-mist">
-                Under 1,500 is unconcentrated; over 2,500 is highly concentrated.
-              </p>
-            </div>
-          </BrowserFrame>
-        </div>
-      </div>
-    </section>
-
-    {/* Question 1: alerts — the page's one emphasis band, unchanged in
-        substance, retitled to the literal question. */}
-    <section className="bg-brand-gradient-aa py-128">
-      <div className="max-w-content mx-auto px-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center">
-          <BrowserFrame label="Alert — why it was raised" className="lg:order-2">
-            <div className="space-y-16">
-              <div className="flex items-baseline justify-between">
-                <span className="text-body font-sohne text-ink">Outapi Cash Agent</span>
-                <StatusPill label="HIGH" tone="danger" />
-              </div>
-              {[
-                { l: 'Trading pace', d: '27 payments in one hour. This business normally does 3.' },
-                { l: 'Payment size', d: 'N$2,583 against a usual average of N$630.' },
-                { l: 'Time of day', d: 'Taken at 03:00, outside normal trading hours.' },
-              ].map((r) => (
-                <div key={r.l}>
-                  <p className="text-caption font-sohne text-ink">{r.l}</p>
-                  <p className="text-caption font-sohne text-slate mt-4">{r.d}</p>
-                </div>
-              ))}
-              <p className="text-caption font-sohne text-ash pt-12 border-t border-mist">
-                Amount at risk: N$2,324.85
-              </p>
-            </div>
-          </BrowserFrame>
-          <div className="lg:order-1">
-            <h2 className="text-heading font-signifier text-paper">
-              Which alerts deserve a person&apos;s time first, and why?
-            </h2>
-            <p className="text-body font-sohne text-paper opacity-90 mt-16">
-              Every alert states what triggered it, in the business&apos;s own numbers. Nobody has
-              to take a score on faith, and an analyst can disagree with it on the spot.
-            </p>
-            <p className="text-body font-sohne text-paper opacity-90 mt-16">
-              Alerts are ordered by how much money is actually exposed, not by how confident the
-              system feels. A likely problem on a large amount matters more than a near-certain
-              one on a small amount.
-            </p>
-            <p className="text-body font-sohne text-paper opacity-90 mt-16">
-              Every score carries the exact settings that produced it, so a score from before a
-              threshold changed is never quietly compared against one from after.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {/* Question 5: forecasting, new section, with the fraud-exclusion
-        reasoning stated directly rather than left in a capability card. */}
-    <section className="bg-blush py-96">
-      <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          How much volume should we plan capacity and agent float for next month — without
-          pretending we can predict fraud?
-        </h2>
+        <QuestionHeading
+          label={BUSINESS_QUESTIONS.forecasting.label}
+          question={BUSINESS_QUESTIONS.forecasting.question}
+        />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-40">
           <div>
             <p className="text-body font-sohne text-slate">
@@ -317,43 +324,15 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Question 7: ask anything, its own section now rather than a
-        sub-block — the same content, just given the standing the other
-        six questions already have. */}
+    {/* 6 — Regulatory reporting. The alignment and roadmap subsections stay
+        nested here rather than becoming their own sections: both are
+        expansions of the returns argument, not separate questions. */}
     <section className="bg-paper py-96">
       <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          Can an operator get a correct answer to a question nobody built a report for in
-          advance?
-        </h2>
-        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">{ASK_ANYTHING.body[0]}</p>
-        <div className="mt-40 max-w-[480px]">
-          <BrowserFrame label="Ask — live query">
-            <div className="space-y-16">
-              <div>
-                <p className="text-caption font-sohne text-ash">Question</p>
-                <p className="text-body font-sohne text-ink mt-4">{ASK_ANYTHING.example.question}</p>
-              </div>
-              <div className="pt-12 border-t border-mist">
-                <p className="text-caption font-sohne text-ash">Answer</p>
-                <p className="text-body font-sohne text-ink mt-4">{ASK_ANYTHING.example.answer}</p>
-              </div>
-            </div>
-          </BrowserFrame>
-        </div>
-        <p className="text-body font-sohne text-slate mt-40 max-w-[620px]">{ASK_ANYTHING.body[1]}</p>
-      </div>
-    </section>
-
-    {/* Question 6: reconciled returns, plus strategy alignment and the
-        roadmap — these two stay nested here rather than becoming their
-        own sections, since both are expansions of "here's the returns
-        argument," not separate business questions of their own. */}
-    <section className="bg-blush py-96">
-      <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          Do the numbers we file with the regulator match the numbers the dashboards show?
-        </h2>
+        <QuestionHeading
+          label={BUSINESS_QUESTIONS.returns.label}
+          question={BUSINESS_QUESTIONS.returns.question}
+        />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-24">
           <p className="text-body font-sohne text-slate">
             The monthly submissions you already require are produced from the same record the
@@ -405,6 +384,32 @@ const ForRegulatorsPage: React.FC = () => (
           </p>
           <Roadmap className="mt-32" items={NEXT_STAGES.map((r) => ({ ...r }))} />
         </div>
+      </div>
+    </section>
+
+    {/* 7 — Natural-language analytics. */}
+    <section className="bg-blush py-96">
+      <div className="max-w-content mx-auto px-24">
+        <QuestionHeading
+          label={BUSINESS_QUESTIONS.ask.label}
+          question={BUSINESS_QUESTIONS.ask.question}
+        />
+        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">{ASK_ANYTHING.body[0]}</p>
+        <div className="mt-40 max-w-[480px]">
+          <BrowserFrame label="Ask — live query">
+            <div className="space-y-16">
+              <div>
+                <p className="text-caption font-sohne text-ash">Question</p>
+                <p className="text-body font-sohne text-ink mt-4">{ASK_ANYTHING.example.question}</p>
+              </div>
+              <div className="pt-12 border-t border-mist">
+                <p className="text-caption font-sohne text-ash">Answer</p>
+                <p className="text-body font-sohne text-ink mt-4">{ASK_ANYTHING.example.answer}</p>
+              </div>
+            </div>
+          </BrowserFrame>
+        </div>
+        <p className="text-body font-sohne text-slate mt-40 max-w-[620px]">{ASK_ANYTHING.body[1]}</p>
       </div>
     </section>
 
@@ -494,14 +499,16 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Closing — the page's one action */}
+    {/* Closing — the page's one action. The list mirrors the seven
+        questions above, in the same order. */}
     <section className="bg-paper py-96 text-center">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink">Open the oversight view</h2>
-        <p className="text-body font-sohne text-slate mt-16 max-w-[500px] mx-auto">
-          Coverage down to constituency level, market structure, the monthly returns, and a
-          direct line to ask anything else — all produced from the same record the dashboards
-          read.
+        <p className="text-body font-sohne text-slate mt-16 max-w-[560px] mx-auto">
+          Which alerts to review first, where the risk concentrates, who adoption still misses,
+          whether agents are running dry, what next month looks like, whether the returns
+          reconcile — and a direct line to ask anything else. All from the same record the
+          dashboards read.
         </p>
         <ButtonLink to="/login?as=regulator" className="mt-32">Sign in for oversight</ButtonLink>
       </div>
