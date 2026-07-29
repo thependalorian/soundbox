@@ -192,6 +192,10 @@ const ForRegulatorsPage: React.FC = () => (
               system feels. A likely problem on a large amount matters more than a near-certain
               one on a small amount.
             </p>
+            <p className="text-body font-sohne text-paper opacity-90 mt-16">
+              Every score carries the exact settings that produced it, so a score from before a
+              threshold changed is never quietly compared against one from after.
+            </p>
           </div>
         </div>
       </div>

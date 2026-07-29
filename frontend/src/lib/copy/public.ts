@@ -354,12 +354,19 @@ export const OBSERVER_BOUNDARIES = {
 export const SCORING_ERROR_COST =
   'A scoring error costs an analyst a few minutes — never a seller their sale.';
 
-/** Regulator page framing. No scheme codes: those belong in the returns. */
+/**
+ * Regulator page framing. No scheme codes and no named strategy documents:
+ * those belong in the returns, not the pitch. The credibility comes from
+ * specific, checkable methodology (per-10,000-adults against census,
+ * denominators shown alongside every ratio, concentration measured the way
+ * competition regulators measure it elsewhere) — not from citing a document,
+ * which goes stale the moment that document is revised or renamed.
+ */
 export const REGULATOR = {
   heroHeading: 'Evidence from the counter',
   heroSupport:
     'Every confirmed payment is a data point about the part of the economy that has always been hardest to see.',
-  alignmentHeading: 'Built against the national payment strategy',
+  alignmentHeading: 'Measured the way a regulator would measure it',
   alignmentBody:
-    'The measures here map onto the outcomes the strategy already commits to: growth in digital payment use, reduced fraud, always-on availability, deeper acceptance, and competition indicators.',
+    'Reach is counted per ten thousand adults against the census, not against a number we chose ourselves. Concentration is scored the same way competition authorities score it anywhere. Every ratio here carries the count it was built from, so a figure from eleven transactions is never shown the same way as one from eleven thousand — and where there is not yet enough to say something, the answer is that plainly, not a guess dressed up as a number.',
 } as const;

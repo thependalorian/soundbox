@@ -4,6 +4,29 @@ This changelog tracks the implementation progress of the SoundBox project. The b
 
 ---
 
+## [1.19.2] - 2026-07-29 - Regulator Page: Replace Generic Strategy Claim with Specific Methodology
+
+`REGULATOR.alignmentBody` (`lib/copy/public.ts`) was the one genuinely vague
+passage on the site — a bare list of outcome categories ("growth in digital
+payment use, reduced fraud...") restated from the strategy rather than
+backed by anything checkable, the same register the rest of the copy
+deliberately avoids. Replaced with the actual methodology already running
+in `backend/app/services/nps_metrics.py` and `market_analytics.py`: reach
+counted per ten thousand adults against the census (not a self-chosen
+denominator), concentration measured the way competition authorities
+measure it elsewhere, every ratio shown with the count it was built from,
+and an explicit "not enough data yet" answer where that's true rather than
+a guess. No named strategy document or scheme code — deliberately: citing
+a document goes stale the moment it's revised, citing a method doesn't.
+
+Added one line to "Alerts you can question" (`ForRegulatorsPage.tsx`)
+making the existing rule-config/model-version attribution (already real,
+in `anomaly_scoring.py`'s `rule_config_fingerprint`) visible on the page:
+a score is never silently compared against one produced under different
+settings.
+
+---
+
 ## [1.19.1] - 2026-07-29 - Deployment: Frontend Live on Vercel, Backend Paused on Fly.io
 
 - `frontend/` was already linked to Vercel project `justasoundbox.com`
