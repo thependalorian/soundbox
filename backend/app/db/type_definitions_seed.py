@@ -132,6 +132,26 @@ SEED_DATA: Dict[str, List[tuple]] = {
         ("dormant", "Dormant"),
         ("suspended", "Suspended"),
     ],
+    # Who can act against this API. `users.role` has always carried a comment
+    # pointing at this domain, but the rows were never seeded — so the list
+    # existed only in that comment and in scattered role checks. Seeded now
+    # that accounts can be created through the API: the set of roles an
+    # administrator may assign has to be data, not a literal in a form.
+    "user_role": [
+        ("admin", "Administrator"),
+        ("regulator", "Regulator"),
+        ("merchant", "Business operator"),
+    ],
+    # Lifecycle of a password reset grant. `superseded` is what happens to an
+    # outstanding token when a newer one is issued for the same account —
+    # requesting a second reset must invalidate the first, or an old email
+    # left in an inbox stays live.
+    "password_reset_status": [
+        ("issued", "Issued"),
+        ("used", "Used"),
+        ("expired", "Expired"),
+        ("superseded", "Superseded"),
+    ],
     # Analytics assistant threads (app/agents, docs/analytics-chat.md).
     "conversation_status": [
         ("active", "Active"),

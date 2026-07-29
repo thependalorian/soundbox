@@ -85,6 +85,20 @@ class Settings(BaseSettings):
     # clear error rather than failing at startup — until a real key is set.
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 
+    # Transactional email (app/services/email_service.py). Today this sends
+    # exactly one thing: the password reset link. Absent keys disable sending
+    # and are logged once at startup -- the reset endpoint still answers
+    # normally, because its response must not reveal whether an address is
+    # registered.
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
+    RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "")
+
+    # Where the console is reachable, used to build the link in that email.
+    # Must be the public origin, not the API's -- the recipient clicks it in
+    # a browser. Wrong value here produces a link that 404s, so it is checked
+    # by assert_production_ready below.
+    APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:3000")
+
     # Agent tracing, exported to Langfuse over OTLP (app/core/observability.py).
     # Entirely optional: absent keys turn tracing off and change nothing else.
     LANGFUSE_PUBLIC_KEY: str = os.getenv("LANGFUSE_PUBLIC_KEY", "")
@@ -116,6 +130,11 @@ def assert_production_ready(s: "Settings") -> None:
     # contradict "a broker outage must never fail a payment."
     if s.EVENTS_ENABLED and "guest:guest" in s.RABBITMQ_URL:
         problems.append("RABBITMQ_URL is still using the default guest:guest credentials")
+    # The password-reset email embeds this. Left at the laptop default in
+    # production it produces a link to the recipient's own machine, which
+    # fails in a way that looks like the email never arrived.
+    if "localhost" in s.APP_BASE_URL:
+        problems.append("APP_BASE_URL still points at localhost")
     if problems:
         raise RuntimeError(
             "Refusing to start with ENVIRONMENT=production and: "

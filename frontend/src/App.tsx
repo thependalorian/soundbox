@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import RoleRoute from './components/Auth/RoleRoute';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import DevicesPage from './pages/DevicesPage';
 import DeviceDetailPage from './pages/DeviceDetailPage';
@@ -59,6 +61,10 @@ function App() {
           <Route path="/demo" element={<Navigate to="/how-it-works#run-it" replace />} />
 
           <Route path="/login" element={<LoginPage />} />
+          {/* Unauthenticated by necessity: someone who cannot sign in has to
+              be able to reach these. Both are rate-limited server-side. */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { logger } from '../lib/logger';
 import {
+  AccountUser,
   BeneficialOwner,
   Device,
   DeviceHeartbeatPoint,
@@ -959,5 +960,50 @@ export const fetchAvailability = async (days = 30): Promise<Availability> =>
 export const fetchMerchantSegments = async (days = 90): Promise<MerchantSegmentation> =>
   live('merchant segments', async () => (await api.get('/market/segments', { params: { days } })).data);
 
+
+// ---------------------------------------------------------------------------
+// Accounts and passwords
+//
+// The two forgot/reset calls are the only unauthenticated writes in this file.
+// They deliberately surface the server's own message rather than a generic one:
+// the server is careful to answer identically whether or not an address is
+// registered, and re-wording it here would risk reintroducing the distinction
+// the backend works to remove.
+// ---------------------------------------------------------------------------
+
+export const fetchUsers = async (): Promise<AccountUser[]> =>
+  live('users', async () => (await api.get('/users')).data);
+
+export const fetchAssignableRoles = async (): Promise<string[]> =>
+  live('assignable roles', async () => (await api.get('/users/roles')).data.roles);
+
+export const createUser = async (body: {
+  email: string;
+  display_name: string;
+  role: string;
+  password: string;
+  merchant_id?: string | null;
+}): Promise<AccountUser> =>
+  live('create user', async () => (await api.post('/users', body)).data);
+
+export const setUserActive = async (id: string, isActive: boolean): Promise<AccountUser> =>
+  live('set user active', async () => (await api.put(`/users/${id}/active`, { is_active: isActive })).data);
+
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  await api.post('/auth/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+};
+
+export const requestPasswordReset = async (email: string): Promise<string> =>
+  live('forgot password', async () => (await api.post('/auth/forgot-password', { email })).data.detail);
+
+export const resetPassword = async (
+  id: string,
+  token: string,
+  newPassword: string,
+): Promise<string> =>
+  (await api.post('/auth/reset-password', { id, token, new_password: newPassword })).data.detail;
 
 export default api;

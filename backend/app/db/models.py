@@ -220,6 +220,12 @@ class User(Base):
     merchant_id = ref_id(nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     last_login_at = Column(DateTime, nullable=True)
+    # When the password last changed. Load-bearing for session invalidation:
+    # JWTs are stateless and cannot be revoked, so every token carries an
+    # `iat` and app/api/deps.py refuses any token issued before this instant.
+    # Without it, a password reset would leave a stolen session valid for the
+    # remainder of its 12 hours — which defeats the point of resetting.
+    password_changed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=True)
     deleted_at = Column(DateTime, nullable=True)
@@ -238,6 +244,65 @@ class UserStatusLog(Base):
     id = uuid_pk()
     organization_id = ref_id()
     user_id = ref_id()
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    actor_user_id = ref_id(nullable=True)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class PasswordResetToken(Base):
+    """A single-use, expiring grant to set a new password.
+
+    Only the *hash* of the token is stored, the same way a device credential
+    is (`devices.api_key_hash`). The plaintext exists once, in the email that
+    carries it. A database dump therefore does not let anyone reset an
+    account, which is the whole reason to hash it rather than store it.
+
+    Rows are kept after use rather than deleted. "Was a reset requested for
+    this account, when, and was it used?" is a question worth being able to
+    answer months later — an attacker probing for accounts leaves a trail
+    here, and a deleted row leaves none.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id = uuid_pk()
+    organization_id = ref_id()
+    user_id = ref_id()
+    token_hash = Column(String, nullable=False)
+    # type_definitions domain 'password_reset_status': issued, used, expired,
+    # superseded. Adding a state is an INSERT, not a migration.
+    status = Column(String, nullable=False, default="issued")
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    # Who asked. Recorded for abuse investigation, not for rate limiting —
+    # that happens at the edge (app/core/limiter.py).
+    requested_ip = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index(
+            "ix_password_reset_tokens_org_user",
+            "organization_id", "user_id", "created_at",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
+
+
+class PasswordResetTokenStatusLog(Base):
+    """Append-only companion, created with the table as the rules require.
+
+    A password reset is a security event, so its history is immutable: no
+    `updated_at`, and a correction is a new row.
+    """
+
+    __tablename__ = "password_reset_token_status_log"
+
+    id = uuid_pk()
+    organization_id = ref_id()
+    password_reset_token_id = ref_id()
     from_status = Column(String, nullable=True)
     to_status = Column(String, nullable=False)
     actor_user_id = ref_id(nullable=True)

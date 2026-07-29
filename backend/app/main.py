@@ -13,6 +13,7 @@ from app.api import (
     reports,
     resources,
     settings as settings_api,
+    users,
 )
 from app.core.config import assert_production_ready, settings
 from app.core.limiter import limiter
@@ -81,6 +82,7 @@ async def security_headers(request: Request, call_next):
 # Include routers
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 app.include_router(assistant.router, prefix=settings.API_V1_STR, tags=["assistant"])
+app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
 app.include_router(devices.router, prefix=settings.API_V1_STR, tags=["devices"])
 app.include_router(payments.router, prefix=settings.API_V1_STR, tags=["payments"])
 app.include_router(analytics.router, prefix=settings.API_V1_STR, tags=["analytics"])

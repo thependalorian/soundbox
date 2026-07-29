@@ -44,6 +44,46 @@ def generate_device_secret() -> str:
     return secrets.token_urlsafe(32)
 
 
+# How long a reset link stays usable. Short on purpose: the link is a
+# bearer credential sitting in an inbox, and the person who asked for it is
+# almost always looking at their mail right now.
+PASSWORD_RESET_TTL_MINUTES = 60
+
+# Length, not composition rules. Character-class requirements push people
+# toward "Password1!" — long passphrases are stronger and easier to keep.
+MIN_PASSWORD_LENGTH = 12
+
+
+class WeakPassword(ValueError):
+    """Raised by `validate_password`. Carries a message safe to show a user."""
+
+
+def validate_password(password: str) -> None:
+    """Reject passwords that are trivially weak. Raises WeakPassword.
+
+    Deliberately minimal: a length floor and a check that it is not entirely
+    one repeated character. Anything more elaborate is theatre, and this is
+    the whole policy rather than a first line of several.
+    """
+    if not password or len(password) < MIN_PASSWORD_LENGTH:
+        raise WeakPassword(
+            f"Choose a password of at least {MIN_PASSWORD_LENGTH} characters."
+        )
+    if len(set(password)) < 4:
+        raise WeakPassword("Choose a password with more variety of characters.")
+
+
+def generate_reset_token() -> str:
+    """A single-use password reset grant.
+
+    Only its hash is persisted (`password_reset_tokens.token_hash`), so the
+    plaintext exists once — in the email. 32 bytes of `secrets` entropy is
+    not guessable, which matters because this value alone can take over an
+    account.
+    """
+    return secrets.token_urlsafe(32)
+
+
 def create_access_token(
     subject: str,
     role: str,
@@ -52,8 +92,19 @@ def create_access_token(
 ) -> str:
     if not settings.SECRET_KEY:
         raise RuntimeError("SECRET_KEY is not configured; cannot issue session tokens.")
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload: Dict[str, Any] = {"sub": subject, "role": role, "name": name, "exp": expire}
+    now = datetime.utcnow()
+    expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    # `iat` is what makes a password change able to end existing sessions.
+    # A JWT cannot be revoked, so app/api/deps.py compares this against
+    # users.password_changed_at and refuses anything older. Truncated to whole
+    # seconds because that is the resolution the JWT spec stores.
+    payload: Dict[str, Any] = {
+        "sub": subject,
+        "role": role,
+        "name": name,
+        "exp": expire,
+        "iat": now.replace(microsecond=0),
+    }
     if merchant_id:
         payload["merchant_id"] = merchant_id
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=JWT_ALGORITHM)

@@ -5,6 +5,9 @@ import Avatar from '../components/ui/Avatar';
 import StatusPill from '../components/ui/StatusPill';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
+import ChangePassword from '../components/Settings/ChangePassword';
+import UserManagement from '../components/Settings/UserManagement';
+import { ACCOUNTS } from '../lib/copy/accounts';
 import { BRAND } from '../lib/copy/public';
 import AnomalyRulesSection from '../components/Settings/AnomalyRulesSection';
 
@@ -223,12 +226,22 @@ const SettingsPage: React.FC = () => {
         </Card>
       </Section>
 
+      <Section title={ACCOUNTS.change.title}>
+        <ChangePassword />
+      </Section>
+
+      {isAdmin && (
+        <Section title={ACCOUNTS.users.title}>
+          <UserManagement />
+        </Section>
+      )}
+
       <Section title="Session">
         <Card variant="neutral" className="p-24">
           <div className="flex flex-wrap items-center justify-between gap-16">
             <p className="text-caption font-sohne text-slate max-w-[420px]">
-              Sign-in is a demonstration only in this build. Real accounts, sessions and device
-              credentials are the next piece of work.
+              Signed in as {user?.name} ({user?.role}). Sessions last twelve hours, and changing
+              your password ends every other one.
             </p>
             <Button variant="ghost" onClick={() => window.location.assign('/login')}>
               Sign out

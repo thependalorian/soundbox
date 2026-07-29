@@ -310,3 +310,19 @@ export interface Psd3Report {
     avg_balance: number;
   };
 }
+
+/**
+ * An account on this deployment. Mirrors UserSummary in
+ * backend/app/api/users.py — snake_case because it is the wire shape, not a
+ * remapped one.
+ */
+export interface AccountUser {
+  id: string;
+  email: string;
+  display_name: string;
+  role: string;
+  merchant_id?: string | null;
+  is_active: boolean;
+  last_login_at?: string | null;
+  created_at?: string | null;
+}

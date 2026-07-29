@@ -10,6 +10,7 @@ bcrypt-verified secret issued once at provisioning (POST /devices), sent as
 X-Device-Code / X-Device-Key on every subsequent call.
 """
 
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import Depends, Header, HTTPException, status
@@ -44,6 +45,31 @@ def get_current_user(
             detail="Invalid or inactive account.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # A JWT cannot be revoked, so changing a password would otherwise leave
+    # every already-issued session valid for the rest of its twelve hours --
+    # including whoever's access prompted the change. Refusing tokens issued
+    # before the password moved is what actually makes a reset take effect.
+    if user.password_changed_at is not None:
+        issued_at = payload.get("iat")
+        if issued_at is None:
+            # Predates this check. Treated as stale rather than trusted:
+            # failing open here would make the whole mechanism optional.
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session no longer valid. Sign in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        issued = datetime.utcfromtimestamp(int(issued_at))
+        # One second of slack: `iat` is stored whole-second, so a token minted
+        # in the same second as the change would otherwise reject itself --
+        # which is exactly what happens to the session that just reset it.
+        if issued < user.password_changed_at.replace(microsecond=0) - timedelta(seconds=1):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Your password changed. Sign in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     return user
 
 

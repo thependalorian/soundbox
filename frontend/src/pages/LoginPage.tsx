@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -105,6 +105,16 @@ const LoginPage: React.FC = () => {
             Sign in
           </Button>
         </form>
+
+        {/* No sign-up link, deliberately: accounts on this platform are issued
+            by an administrator, not requested. Offering one would send people
+            to a page that cannot exist. */}
+        <Link
+          to="/forgot-password"
+          className="inline-block mt-20 text-caption font-sohne text-slate underline"
+        >
+          Forgot your password?
+        </Link>
       </Card>
     </div>
   );
