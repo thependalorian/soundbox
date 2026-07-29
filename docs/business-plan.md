@@ -96,6 +96,49 @@ pay-point model, but it is our own inference from how the model works, not a
 reported incident — copy should keep it a secondary point, not present it as
 a documented failure.
 
+### 1.6 Why Bank of Namibia Chooses SoundBox
+
+The predictive analytics platform (§1.3) is the reason BoN would evaluate
+SoundBox at all. These are the three reasons a regulator — not just a
+merchant — would choose *this* vendor over an alternative device or over
+building nothing.
+
+**We grow the rails' own user base, not a competitor to them.** Every
+SoundBox deployed to a market trader, taxi driver, or agent is one more
+counter where digital payment is trusted enough to replace cash. The device
+reads WayaMe/NAMQR confirmations and speaks them aloud; it does not
+introduce a competing payment method or a second QR standard. Adoption in
+the informal sector — the segment hardest to reach and the one the NPS's own
+stated goals depend on — is exactly what a national payments programme needs
+help with, and SoundBox is built to supply that help without asking anyone
+to trust a second system.
+
+**We do not take a cut of the payment.** SoundBox's revenue comes from the
+device, the connectivity and maintenance subscription, and the analytics
+platform — never a per-transaction fee (see §5.1.1). That is a deliberate
+choice, not an oversight, for two reasons a regulator will recognize
+immediately: it removes the standard conflict of interest a payments
+intermediary carries (earning more as more money moves is misaligned with
+consumer protection), and it keeps SoundBox unambiguously an *observer* of
+the rails rather than a participant in them — the same architectural
+boundary the platform enforces end-to-end (see
+[docs/architecture.md](architecture.md)). A vendor that cannot profit from a
+payment happening more, or more often, has nothing to gain from encouraging
+a payment that shouldn't happen.
+
+**The device is the entry point; the relationship is the asset.** A one-off
+device sale ends the day it ships. A contract to supply, install, and
+maintain SoundBox devices at scale — paired with the analytics layer BoN
+already has a demonstrated appetite for (§1.3), and with local job creation
+through Namibian assembly and field-service technicians (§5.2.2) — is a
+different kind of engagement: a standing operational relationship with the
+institution running the NPS, renewed every maintenance cycle and deepened
+every time a new analytics capability ships. That is the actual prize on
+offer here, not a hardware sale: becoming infrastructure the NPS depends on
+and keeps re-contracting, with SoundBox's continued relevance measured by
+how much it keeps contributing to outcomes BoN and IPN are already
+accountable for — not by how many boxes were sold in year one.
+
 ---
 
 
@@ -110,11 +153,16 @@ a documented failure.
 | Revenue Stream | Description | Projected Margin |
 |----------------|-------------|------------------|
 | Device Sales | One-time sale of SoundBox devices | 30-40% |
-| Monthly Subscription | Ongoing service fee (connectivity, updates) | 60-70% |
-| Transaction Fees | Per-transaction fee (optional model) | 10-20% |
+| Monthly Subscription | Ongoing service fee (connectivity, updates, maintenance) | 60-70% |
 | Data Analytics | Merchant insights and reporting | 50-60% |
 | RegTech Subscription | Regulatory reporting and analytics platform | 60-70% |
 | Replacement Parts | Battery, charger, accessories | 40-50% |
+
+**Deliberately excluded: a per-transaction fee.** An earlier draft of this
+model listed one as optional. Dropped, not deferred — see §1.6 for why
+taking a cut of the payment undermines the exact positioning (observer of
+the rails, not a participant in them) that makes SoundBox worth contracting
+in the first place.
 
 **5.1.2 Pricing Strategy**
 
@@ -394,6 +442,8 @@ PSD-8 provides the framework for administrative penalties. To avoid penalties:
 5. **Affordable Pricing**: Accessible to informal sector merchants
 6. **Data Monetization**: Predictive analytics platform for regulators
 7. **First-Mover Advantage**: Establish market leadership early
+8. **No Fee Conflict**: No per-transaction fee keeps SoundBox an observer of the rails, not a participant in them — see §1.6
+9. **Contract, Not a Sale**: Supply + maintenance + analytics + local jobs, structured as a standing relationship BoN re-contracts, not a one-time device order
 
 ### 10.2 Immediate Next Steps
 
@@ -414,5 +464,7 @@ The SoundBox is not just a hardware device—it is a catalyst for digital financ
 By pivoting to a predictive analytics startup, you become an essential partner in the modernization of Namibia's entire financial system. The regulators are ready, the technology is available, and your SoundBox network provides the perfect data foundation.
 
 With the Bank of Namibia's commitment to the NPS Vision 2030 and the Instant Payment Programme positioned as a national public good, the SoundBox & Predictive Analytics Platform is uniquely positioned to drive adoption and contribute to **"Inclusive Payments, Shared Prosperity"** .
+
+The device is what gets SoundBox in the room; it is not the reason the relationship lasts. What lasts is a supply, maintenance, and analytics contract renewed on its own merits year after year, growing local employment through Namibian assembly and field service (§5.2.2) as it does, with no per-transaction fee ever putting SoundBox's interests at odds with the payer's. That is the shape of a partner the NPS keeps, not a vendor it replaces at the next tender.
 
 ---
