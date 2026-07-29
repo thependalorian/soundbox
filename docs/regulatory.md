@@ -240,6 +240,93 @@ margin.
 
 ---
 
+## What the Bank publishes today
+
+> Informative only. This section exists so anyone working on the platform
+> understands what payment-system data currently exists in Namibia and what
+> shape it takes. **It is not marketing material and does not belong in
+> public copy** — quoting a regulator's own statistics back at them reads as
+> posturing, the same reason this file's other vocabulary stays off the
+> public site.
+
+Source: the National Payment System statistics workbook published by the
+Bank of Namibia (NPS Department), kept alongside this file as
+[`reference/bon-nps-statistics-2015-2026H1.xlsx`](reference/bon-nps-statistics-2015-2026H1.xlsx)
+so every figure below can be checked rather than taken on trust (it was
+downloaded with a GUID filename; renamed, not altered). Five sheets — disclaimer and
+legend, InterBank, IntraBank, Domestic Settlement System (NISS), Regional
+Settlement System (SADC-RTGS) — covering 2015 through H1 2026. Cheque was
+phased out by the industry in June 2019 and its series ends there.
+
+**The shape of it matters more than any single figure.** The workbook
+carries exactly two measures — volume and value — broken down by
+instrument, reported **monthly** and **nationally**. It answers how much
+moved, through which pipe, in which month. Nothing in it is per
+transaction, per merchant, per region, or per use case.
+
+Average ticket size separates the instruments into what are effectively
+three different economies:
+
+| Instrument | Average ticket (H1 2026) | What it represents |
+|---|---|---|
+| EFT Credit | ~N$22,198 | Salaries, business payments |
+| EFT Debit | ~N$2,401 | Debit orders |
+| **Card** | **~N$494** | Payments at a counter |
+
+Card is the only instrument operating at counter scale, and it is the one
+this platform sits beside. Two observations from its series:
+
+- **Volume grew from 16.6 million to 108.7 million transactions a year
+  between 2015 and 2025** — roughly 6.5x in a decade.
+- **Average ticket fell over the same period**: N$528 (2015) → N$508
+  (2025) → N$494 (H1 2026). Volume rising while ticket size falls means
+  digital payment is moving *down-market*, into progressively smaller
+  everyday purchases. That is the cash frontier receding, and it is
+  receding into precisely the segment this product serves.
+
+Like-for-like H1 2025 → H1 2026: card +4.6% by volume, EFT debit +8.8%,
+EFT credit +2.5%. Do not annualise these — December is seasonally high in
+every card series in the workbook.
+
+Two caveats that must travel with any figure taken from here:
+
+1. **Interbank only.** These are transactions cleared through Namclear
+   between two institutions. On-us card activity, where payer and payee
+   bank with the same institution, is not included — so the card figures
+   understate total card usage in the country.
+2. **There is no instant-payment series in the workbook at all.** The
+   sheets cover interbank EFT and card, intrabank EFT, NISS and SADC-RTGS.
+   Nothing else. This is therefore the **pre-instant-payment baseline** —
+   the series against which adoption on the new rails will eventually be
+   measured.
+
+### Why this matters for what we build
+
+The contrast is dimensional, not a question of accuracy. Today the
+published record is:
+
+```
+volume × value × instrument × month × national
+```
+
+Data observed on the rails carries, for the same payments:
+
+```
+per transaction × region / constituency × use case × payer instrument
+              × merchant × time of day × outcome
+```
+
+Set against the seven business questions in
+[`business-plan.md`](business-plan.md) §1.7, five cannot be answered from
+the currently published data at all — which alerts to review first, whether
+the market is concentrating, whether adoption is reaching people, whether
+agents are running dry, and any ad hoc question. Forecasting is only partly
+served: a national monthly series can be forecast in aggregate, but not by
+region or segment. The reconciliation question is not a gap at all — that
+published workbook *is* the filing, rather than a check on one.
+
+---
+
 ## The indicator set
 
 `GET /nps/dashboard` returns every measure below in one response, grouped by
