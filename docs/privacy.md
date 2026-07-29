@@ -42,6 +42,32 @@ choice, ahead of any legal requirement to do so.**
 | `transactions` | `payer_info` (JSONB) | Whatever the rails return about the payer | **High if unminimised** |
 | `transactions` | `payee_info` (JSONB) | The receiving business | Business, low |
 | `anomaly_alert_status_log` | Reviewer name | Who made a decision, and when | Staff, low |
+| `users` | Email, display name | Identifies a person who can act against the API | Staff, low |
+| `users` | `password_hash`, `password_changed_at` | Authentication; the timestamp ends stale sessions | Credential, **never readable** |
+| `password_reset_tokens` | `token_hash`, `requested_ip` | Proving a reset request, and investigating abuse of it | Credential + network identifier, moderate |
+| `conversation_messages` | Question text, tool results | The transcript behind an oversight figure | Staff, low — but see below |
+
+### On the three added since this table was written
+
+**No credential is stored in a readable form.** Passwords are bcrypt hashes,
+and a password reset token is stored as a hash too — the plaintext exists once,
+in the email that carries it. A database dump therefore does not let anyone log
+in or reset an account, which is the entire reason to hash the token rather
+than store it.
+
+**`password_reset_tokens.requested_ip` is a network identifier**, held because
+an attacker probing for accounts leaves a trail there and a deleted row leaves
+none. Reset rows are deliberately retained after use for that reason. It is
+never returned by any endpoint and never reaches a browser. It is the one field
+added here that a retention policy should eventually age out; there is no sweep
+today, and saying so is more useful than implying one exists.
+
+**Assistant transcripts are working notes, not payment records.** They can
+quote figures about businesses, so they carry the same tenancy and soft-delete
+rules as everything else and are readable only by the account that created
+them. `conversation_messages` is immutable by design — an answer acted on has
+to be reproducible — which means a correction is a new turn rather than an
+edit, and that is a deliberate trade against the ability to redact one.
 
 ### The two that matter
 
@@ -145,6 +171,9 @@ than features:
   enforced by code rather than convention.
 - A subject access process — how a person asks what is held about them, and
   who answers.
+- A retention sweep for `password_reset_tokens`. Rows are kept after use on
+  purpose — a reset trail is what shows someone probing an account — but the
+  `requested_ip` on them is a network identifier with no expiry today.
 
 None of these are blocked by the absence of a law. They are blocked only on
 the work being scheduled.

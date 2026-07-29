@@ -45,14 +45,21 @@ The project is organized into the following directories:
     login on an empty database; skipped if either is unset), and
     `NAMQR_ORG_PUBLIC_KEY_PEM` if you want signed-QR verification to have
     something to verify against (`backend/scripts/generate_namqr_keypair.py`
-    generates a keypair).
+    generates a keypair). Set `APP_BASE_URL` to the origin the console is
+    served from — it is embedded in password-reset links, and a production
+    deploy refuses to start while it still says localhost. `RESEND_API_KEY` /
+    `RESEND_FROM_EMAIL` are optional: without them reset mail is skipped and
+    logged, and every other flow behaves normally.
 4.  Run the migrations: `alembic upgrade head`
 5.  Run the server: `uvicorn app.main:app --reload`
 
-There is no fallback login. Every write endpoint requires a real JWT
-(`POST /api/v1/auth/login`) or, for the device-facing endpoints, a
-provisioned device key (`X-Device-Code` / `X-Device-Key`, issued once by
-`POST /api/v1/devices` — see [docs/architecture.md](docs/architecture.md)).
+There is no fallback login and no self-service sign-up. Every write endpoint
+requires a real JWT (`POST /api/v1/auth/login`) or, for the device-facing
+endpoints, a provisioned device key (`X-Device-Code` / `X-Device-Key`, issued
+once by `POST /api/v1/devices` — see
+[docs/architecture.md](docs/architecture.md)). Further accounts are created by
+an administrator; a forgotten password is recovered by an emailed single-use
+link. See [Account lifecycle](#account-lifecycle).
 
 ### Firmware
 
@@ -179,3 +186,61 @@ NAMQR QR codes (`app/services/namqr_processor.py`) are ECDSA P-256/SHA-256
 verified per Bank of Namibia NAMQR Code Standards v5.0 Annexure I — CRC
 alone is integrity, not authenticity, and only the signature check proves a
 QR came from the merchant it claims to.
+
+### Account lifecycle
+
+**Accounts are issued, not requested.** There is no self-service sign-up and
+none is planned: on a platform whose purpose is oversight, an account someone
+can create for themselves is a defect. The login page has no sign-up link
+because there is nothing behind one.
+
+| Flow | Endpoint | Who |
+|---|---|---|
+| Create an account | `POST /users` | admin |
+| List accounts | `GET /users` | admin |
+| Assignable roles | `GET /users/roles` | admin |
+| Deactivate / reactivate | `PUT /users/{id}/active` | admin |
+| Change own password | `POST /auth/change-password` | any signed-in user |
+| Request a reset link | `POST /auth/forgot-password` | unauthenticated |
+| Set a new password | `POST /auth/reset-password` | unauthenticated, token-bearing |
+
+Roles come from `type_definitions` (domain `user_role`), so adding one is an
+INSERT. `users.role` had always carried a comment pointing at that domain,
+but the rows were never seeded — the list existed only in the comment.
+
+Access is removed by **deactivating, never deleting**. The row is what makes a
+name in a status log still resolve months later; "who approved this business?"
+has no answer if the approver's account was erased.
+
+Four properties worth stating because each is load-bearing:
+
+- **A password change ends every other session.** JWTs are stateless and
+  cannot be revoked, so every token carries an `iat` and `app/api/deps.py`
+  refuses any issued before `users.password_changed_at`. Without this a reset
+  would leave a stolen session valid for the rest of its twelve hours —
+  through the very reset intended to end it.
+- **The reset response never reveals whether an address is registered.**
+  `POST /auth/forgot-password` answers identically for a registered address,
+  an unregistered one, a deactivated account, and an undeliverable email.
+  Anything else turns the form into a way to enumerate who holds an account
+  here, and on this platform those are named regulators and businesses.
+- **Only the hash of a reset token is stored**, the same way a device
+  credential is. The plaintext exists once, in the email. Requesting a second
+  reset supersedes the first, so an older link left in an inbox stops working
+  rather than widening the window.
+- **The first password is shown to the administrator, not emailed.** The mail
+  path exists only for resets, where the recipient is already proven to
+  control the address. Sending a working credential to an unverified address
+  is how accounts reach the wrong person.
+
+Password reset mail goes out through Resend (`app/services/email_service.py`).
+A send failure is logged and never surfaced — the caller must not be able to
+tell "not sent" from "no such account". `APP_BASE_URL` is the origin embedded
+in that link, and `assert_production_ready` refuses to boot if it is still
+localhost: a reset link pointing at the recipient's own machine fails in a way
+that looks like the email never arrived.
+
+Generate the fallback NAMQR org keypair with
+`PYTHONPATH=. python scripts/generate_namqr_keypair.py`. Only the public half
+belongs in `.env` — nothing in this service signs, so it never needs the
+private one.
