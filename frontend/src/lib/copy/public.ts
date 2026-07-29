@@ -338,15 +338,6 @@ export const AUDIENCE_SPLIT = {
   },
 } as const;
 
-/** Questions the oversight side actually asks. Centralized so the claim
- *  about cash-lite adoption exists in exactly one place. */
-export const REGULATOR_QUESTIONS = [
-  'Which regions are being left behind as the country goes cash-lite?',
-  'Where is unusual activity concentrating, and in which kind of business?',
-  'Is a single operator carrying too much of one region’s volume?',
-  'Did last month’s totals reconcile, and can we show our working?',
-] as const;
-
 /**
  * The observer boundary: what the platform does, and what it never touches.
  * Previously declared independently on the trust page and the regulators
@@ -380,7 +371,7 @@ export const SCORING_ERROR_COST =
  * which goes stale the moment that document is revised or renamed.
  */
 export const REGULATOR = {
-  heroHeading: 'The Business Questions Our Models Actually Answer',
+  heroHeading: 'Business questions our models answer',
   heroSupport:
     'Every confirmed payment adds a fact to a part of the economy nobody has been able to count until now.',
   alignmentHeading: 'Measured the way regulators already measure this elsewhere',

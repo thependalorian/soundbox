@@ -11,7 +11,6 @@ import {
   ASK_ANYTHING,
   OVERSIGHT_CAPABILITIES,
   REGULATOR,
-  REGULATOR_QUESTIONS,
   OBSERVER_BOUNDARIES,
   SCORING_ERROR_COST,
 } from '../../lib/copy/public';
@@ -27,7 +26,13 @@ import StatusPill from '../../components/ui/StatusPill';
  * back at them reads as posturing. Describe what the system can answer;
  * let them map it to their obligations.
  *
- * Nine sections, one action: sign in, in the closing section only.
+ * Structured around the seven business questions this platform's models
+ * actually answer (docs/business-plan.md SS1.7, itself sourced from
+ * backend/app/services/*.py) — each gets its own section and its own
+ * literal-question heading, rather than a single summary grid. The
+ * boundary, ownership, and safeguard sections around them aren't
+ * themselves one of the seven; they're the framing that makes the seven
+ * credible. One action throughout: sign in, in the closing section only.
  */
 
 const COVERAGE = [
@@ -36,6 +41,18 @@ const COVERAGE = [
   { region: 'Erongo', merchants: 3, share: 55 },
   { region: 'Kavango East', merchants: 2, share: 38 },
   { region: 'Kavango West', merchants: 0, share: 0 },
+];
+
+const CONCENTRATION = [
+  { l: 'Top 3 businesses', v: '58% of value' },
+  { l: 'Top 10 businesses', v: '81% of value' },
+  { l: 'Concentration index (merchant)', v: '1,840' },
+];
+
+const FORECAST = [
+  { l: 'This week', v: '2,180 – 2,340 payments' },
+  { l: 'Next week', v: '2,260 – 2,430 payments' },
+  { l: 'Month-end week', v: '2,890 – 3,120 payments' },
 ];
 
 const DEVICE_FLEET = [
@@ -105,12 +122,14 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Coverage, and where the risk concentrates — one argument: a map is
-        only useful once you can see both what is empty and what is busy. */}
+    {/* Question 3: is adoption reaching people, or is an average hiding
+        who's excluded. Coverage is the visible evidence; the two cards
+        below add the inclusion/retention half of the same question. */}
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[620px]">
-          Coverage gaps stay visible
+        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
+          Is adoption actually reaching people, or is a rising average hiding who is still left
+          out?
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
           National totals hide the places where nothing is happening. Because every device is
@@ -135,21 +154,48 @@ const ForRegulatorsPage: React.FC = () => (
               ))}
             </div>
           </BrowserFrame>
+          <ImageSlot
+            ratio="4:3"
+            slot="Coverage gap"
+            brief="A quiet rural constituency with a single active device — a place being reached, not one that's empty."
+            direction="A real small-town street or stall, not a stock photo of 'rural Africa'. The point is under-served, not undeveloped."
+          />
+        </div>
+        <TitleDetailCardGrid
+          items={[OVERSIGHT_CAPABILITIES[3], OVERSIGHT_CAPABILITIES[4]]}
+          gridClassName="grid grid-cols-1 md:grid-cols-2 gap-16 mt-40"
+          cardVariant="neutral"
+          titleClassName="text-body font-sohne font-450 text-ink"
+        />
+      </div>
+    </section>
+
+    {/* Question 4: agent float risk, pulled out of the old "Coverage"
+        section into its own -- it's a distinct question, not a subplot of
+        coverage, and the photo belongs here, not there. */}
+    <section className="bg-paper py-96">
+      <div className="max-w-content mx-auto px-24">
+        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
+          Are cash agents running out of money to pay people with?
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-start mt-40">
+          <ImageSlot
+            ratio="4:3"
+            slot="Cash agent counter"
+            brief="A cash agent counting notes across a counter after a wallet withdrawal."
+            direction="A real agent kiosk in a town, not a bank branch. Hands and cash in focus; faces optional and only with consent."
+          />
           <div>
-            <ImageSlot
-              ratio="4:3"
-              slot="Cash agent counter"
-              brief="A cash agent counting notes across a counter after a wallet withdrawal."
-              direction="A real agent kiosk in a town, not a bank branch. Hands and cash in focus; faces optional and only with consent."
-            />
-            <h3 className="text-subheading font-signifier text-ink mt-24">
-              Where the risk concentrates
-            </h3>
-            <p className="text-body font-sohne text-slate mt-8">
+            <p className="text-body font-sohne text-slate">
+              An agent paying out more than they take in eventually has nothing left to pay
+              with — and on a coverage map, that looks identical to a place that was never
+              reached at all.
+            </p>
+            <p className="text-body font-sohne text-slate mt-16">
               Cash agents turn wallet balances into notes across a counter, with no branch and no
-              card. It is the most useful service in a rural town and the easiest to misuse, which
-              is why most alerts in this system come from that one segment. Seeing it as a counter
-              rather than a category is the difference between a policy discussion and an
+              card. It is the most useful service in a rural town and the easiest to misuse,
+              which is why most alerts in this system come from that one segment. Seeing it as a
+              counter rather than a category is the difference between a policy discussion and an
               enforcement one.
             </p>
           </div>
@@ -157,7 +203,39 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Alerts that explain themselves — the page's one emphasis band */}
+    {/* Question 2: concentration, new section (previously one card in a
+        shared grid, never its own topic on this page). */}
+    <section className="bg-blush py-96">
+      <div className="max-w-content mx-auto px-24">
+        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
+          Is the network becoming dangerously dependent on a few businesses or one region?
+        </h2>
+        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
+          A network that depends on three merchants for half its volume is a systemic risk the
+          moment one of them has a bad month. Concentration is measured with the same index
+          competition regulators already use elsewhere, split by both merchant and region — a
+          network can look healthy nationally while depending dangerously on a single town.
+        </p>
+        <div className="mt-40 max-w-[480px]">
+          <BrowserFrame label="Market concentration">
+            <div className="space-y-8 mt-20 pt-20 border-t border-mist">
+              {CONCENTRATION.map((r) => (
+                <div key={r.l} className="flex items-baseline justify-between gap-16">
+                  <span className="text-caption font-sohne text-ink">{r.l}</span>
+                  <span className="text-caption font-sohne text-ash tabular-nums">{r.v}</span>
+                </div>
+              ))}
+              <p className="text-caption font-sohne text-ash pt-12 border-t border-mist">
+                Under 1,500 is unconcentrated; over 2,500 is highly concentrated.
+              </p>
+            </div>
+          </BrowserFrame>
+        </div>
+      </div>
+    </section>
+
+    {/* Question 1: alerts — the page's one emphasis band, unchanged in
+        substance, retitled to the literal question. */}
     <section className="bg-brand-gradient-aa py-128">
       <div className="max-w-content mx-auto px-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center">
@@ -183,7 +261,9 @@ const ForRegulatorsPage: React.FC = () => (
             </div>
           </BrowserFrame>
           <div className="lg:order-1">
-            <h2 className="text-heading font-signifier text-paper">Alerts you can question</h2>
+            <h2 className="text-heading font-signifier text-paper">
+              Which alerts deserve a person&apos;s time first, and why?
+            </h2>
             <p className="text-body font-sohne text-paper opacity-90 mt-16">
               Every alert states what triggered it, in the business&apos;s own numbers. Nobody has
               to take a score on faith, and an analyst can disagree with it on the spot.
@@ -202,37 +282,52 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Questions it can answer — a single section: what oversight asks, and
-        the views that answer it. Two sections previously asked the same
-        question in different words; this is the one place that drift
-        matters least to leave standing. */}
+    {/* Question 5: forecasting, new section, with the fraud-exclusion
+        reasoning stated directly rather than left in a capability card. */}
+    <section className="bg-blush py-96">
+      <div className="max-w-content mx-auto px-24">
+        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
+          How much volume should we plan capacity and agent float for next month — without
+          pretending we can predict fraud?
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-40">
+          <div>
+            <p className="text-body font-sohne text-slate">
+              Expected volume and value, with the weekly pattern shown separately so it can be
+              argued with. The range widens the further out it looks, because uncertainty does
+              too.
+            </p>
+            <p className="text-body font-sohne text-slate mt-16">
+              Fraud is deliberately left out: a pattern can be forecast, but someone actively
+              trying to beat detection cannot — a number for that would only measure how well
+              they are succeeding.
+            </p>
+          </div>
+          <BrowserFrame label="Expected — next 4 weeks">
+            <div className="space-y-8 mt-20 pt-20 border-t border-mist">
+              {FORECAST.map((r) => (
+                <div key={r.l} className="flex items-baseline justify-between gap-16">
+                  <span className="text-caption font-sohne text-ink">{r.l}</span>
+                  <span className="text-caption font-sohne text-ash tabular-nums">{r.v}</span>
+                </div>
+              ))}
+            </div>
+          </BrowserFrame>
+        </div>
+      </div>
+    </section>
+
+    {/* Question 7: ask anything, its own section now rather than a
+        sub-block — the same content, just given the standing the other
+        six questions already have. */}
     <section className="bg-paper py-96">
       <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[620px]">
-          Questions it can answer
+        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
+          Can an operator get a correct answer to a question nobody built a report for in
+          advance?
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-40 gap-y-8 mt-24 max-w-[820px]">
-          {REGULATOR_QUESTIONS.map((q) => (
-            <p key={q} className="text-body font-sohne text-ink">
-              {q}
-            </p>
-          ))}
-        </div>
-        <p className="text-body font-sohne text-slate mt-24 max-w-[620px]">
-          Answered from views like these — each a fresh query against the live record.
-        </p>
-        <TitleDetailCardGrid
-          items={OVERSIGHT_CAPABILITIES}
-          gridClassName="grid grid-cols-1 md:grid-cols-2 gap-16 mt-32"
-          cardVariant="neutral"
-          titleClassName="text-body font-sohne font-450 text-ink"
-        />
-
-        {/* The same capability, asked for directly rather than read off a
-            fixed view -- kept in this section rather than a new one, since
-            it is the same topic ("what can this tell me") stated a second
-            way, not a different topic. */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-64 pt-64 border-t border-mist">
+        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">{ASK_ANYTHING.body[0]}</p>
+        <div className="mt-40 max-w-[480px]">
           <BrowserFrame label="Ask — live query">
             <div className="space-y-16">
               <div>
@@ -245,81 +340,19 @@ const ForRegulatorsPage: React.FC = () => (
               </div>
             </div>
           </BrowserFrame>
-          <div>
-            <h3 className="text-subheading font-signifier text-ink">{ASK_ANYTHING.heading}</h3>
-            {ASK_ANYTHING.body.map((para) => (
-              <p key={para.slice(0, 24)} className="text-body font-sohne text-slate mt-16">
-                {para}
-              </p>
-            ))}
-          </div>
         </div>
+        <p className="text-body font-sohne text-slate mt-40 max-w-[620px]">{ASK_ANYTHING.body[1]}</p>
       </div>
     </section>
 
-    {/* Businesses and devices that report on themselves. The former
-        "Business record" panel here showed invented beneficial-owner names
-        and an identity-verified date on a public page, while the product's
-        own promise is that identity documents are never returned to any
-        screen — a public page is exactly where that promise has to hold, so
-        the panel is cut and its argument kept in prose instead. */}
+    {/* Question 6: reconciled returns, plus strategy alignment and the
+        roadmap — these two stay nested here rather than becoming their
+        own sections, since both are expansions of "here's the returns
+        argument," not separate business questions of their own. */}
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          Businesses and devices that report on themselves
-        </h2>
-        <p className="text-body font-sohne text-slate mt-16 max-w-[680px]">
-          A device that goes quiet shows up before the seller has to phone anyone, and an
-          ownership question has an answer that can be queried rather than one that has to be
-          read from a file.
-        </p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-start mt-40">
-          <BrowserFrame label="Device fleet">
-            <div className="space-y-16">
-              {DEVICE_FLEET.map((d) => (
-                <div key={d.code}>
-                  <div className="flex items-baseline justify-between gap-16">
-                    <div className="min-w-0">
-                      <p className="text-caption font-sohne text-ink">{d.code}</p>
-                      <p className="text-caption font-sohne text-ash truncate">{d.site}</p>
-                    </div>
-                    <div className="flex items-center gap-8 shrink-0">
-                      <span className="text-caption font-sohne text-ash tabular-nums">{d.seen}</span>
-                      <StatusPill label={d.state} tone={d.tone} />
-                    </div>
-                  </div>
-                  <Meter className="mt-8" tone={d.battery < 20 ? 'warning' : 'accent'} value={d.battery} label={`${d.code} battery ${d.battery} percent`} />
-                </div>
-              ))}
-            </div>
-          </BrowserFrame>
-          <div>
-            <h3 className="text-subheading font-signifier text-ink">
-              Who is actually behind each business
-            </h3>
-            <p className="text-body font-sohne text-slate mt-8">
-              Ownership is captured as structured records against the business, not free text in
-              a notes field — so a question about who benefits from an account has an answer that
-              can be queried, not one that has to be read.
-            </p>
-            <p className="text-body font-sohne text-slate mt-16">
-              Every review decision is appended to the business&apos;s history with who made it
-              and when, so an approval remains reconstructable years later. An owner&apos;s
-              identity documents are checked once and never returned to any screen — a reviewer
-              sees that the check was done, not the number.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {/* Returns, alignment with the national strategy, and what comes next —
-        one argument: the numbers you already require, why they map to the
-        strategy, and the order in which the rest is being built. */}
-    <section className="bg-paper py-96">
-      <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[620px]">
-          Returns that show their working
+          Do the numbers we file with the regulator match the numbers the dashboards show?
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-24">
           <p className="text-body font-sohne text-slate">
@@ -371,6 +404,64 @@ const ForRegulatorsPage: React.FC = () => (
             enough to be worth trusting.
           </p>
           <Roadmap className="mt-32" items={NEXT_STAGES.map((r) => ({ ...r }))} />
+        </div>
+      </div>
+    </section>
+
+    {/* Businesses and devices that report on themselves. Not one of the
+        seven business questions -- supporting evidence for the identity
+        and ownership claims the rest of the page leans on. The former
+        "Business record" panel here showed invented beneficial-owner names
+        and an identity-verified date on a public page, while the product's
+        own promise is that identity documents are never returned to any
+        screen — a public page is exactly where that promise has to hold, so
+        the panel is cut and its argument kept in prose instead. */}
+    <section className="bg-paper py-96">
+      <div className="max-w-content mx-auto px-24">
+        <h2 className="text-heading font-signifier text-ink max-w-[680px]">
+          Businesses and devices that report on themselves
+        </h2>
+        <p className="text-body font-sohne text-slate mt-16 max-w-[680px]">
+          A device that goes quiet shows up before the seller has to phone anyone, and an
+          ownership question has an answer that can be queried rather than one that has to be
+          read from a file.
+        </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-start mt-40">
+          <BrowserFrame label="Device fleet">
+            <div className="space-y-16">
+              {DEVICE_FLEET.map((d) => (
+                <div key={d.code}>
+                  <div className="flex items-baseline justify-between gap-16">
+                    <div className="min-w-0">
+                      <p className="text-caption font-sohne text-ink">{d.code}</p>
+                      <p className="text-caption font-sohne text-ash truncate">{d.site}</p>
+                    </div>
+                    <div className="flex items-center gap-8 shrink-0">
+                      <span className="text-caption font-sohne text-ash tabular-nums">{d.seen}</span>
+                      <StatusPill label={d.state} tone={d.tone} />
+                    </div>
+                  </div>
+                  <Meter className="mt-8" tone={d.battery < 20 ? 'warning' : 'accent'} value={d.battery} label={`${d.code} battery ${d.battery} percent`} />
+                </div>
+              ))}
+            </div>
+          </BrowserFrame>
+          <div>
+            <h3 className="text-subheading font-signifier text-ink">
+              Who is actually behind each business
+            </h3>
+            <p className="text-body font-sohne text-slate mt-8">
+              Ownership is captured as structured records against the business, not free text in
+              a notes field — so a question about who benefits from an account has an answer that
+              can be queried, not one that has to be read.
+            </p>
+            <p className="text-body font-sohne text-slate mt-16">
+              Every review decision is appended to the business&apos;s history with who made it
+              and when, so an approval remains reconstructable years later. An owner&apos;s
+              identity documents are checked once and never returned to any screen — a reviewer
+              sees that the check was done, not the number.
+            </p>
+          </div>
         </div>
       </div>
     </section>
