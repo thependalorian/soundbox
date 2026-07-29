@@ -40,6 +40,7 @@ class AnalyticsService:
 
             active_devices = self.db.query(Device).filter(
                 Device.organization_id == org_id,
+                Device.deleted_at.is_(None),
                 Device.status == "active"
             ).count()
 
@@ -116,6 +117,7 @@ class AnalyticsService:
             # was persisted.
             alerts = self.db.query(AnomalyAlert).filter(
                 AnomalyAlert.organization_id == self.organization.id,
+                AnomalyAlert.deleted_at.is_(None),
                 AnomalyAlert.detected_at >= start_time
             ).all()
 
@@ -166,11 +168,13 @@ class AnalyticsService:
 
             total_devices = self.db.query(Device).filter(
                 Device.organization_id == org_id,
+                Device.deleted_at.is_(None),
                 Device.status == "active"
             ).count()
             one_hour_ago = datetime.utcnow() - timedelta(hours=1)
             online_devices = self.db.query(Device).filter(
                 Device.organization_id == org_id,
+                Device.deleted_at.is_(None),
                 Device.status == "active",
                 Device.last_heartbeat_at >= one_hour_ago
             ).count()
@@ -264,14 +268,14 @@ class AnalyticsService:
             device_counts = {
                 merchant_id: count
                 for merchant_id, count in self.db.query(Device.merchant_id, func.count(Device.id))
-                .filter(Device.organization_id == org_id)
+                .filter(Device.organization_id == org_id, Device.deleted_at.is_(None))
                 .group_by(Device.merchant_id)
                 .all()
             }
             txn_counts = {
                 merchant_id: count
                 for merchant_id, count in self.db.query(Transaction.merchant_id, func.count(Transaction.id))
-                .filter(Transaction.organization_id == org_id)
+                .filter(Transaction.organization_id == org_id, Transaction.deleted_at.is_(None))
                 .group_by(Transaction.merchant_id)
                 .all()
             }

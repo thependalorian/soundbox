@@ -152,6 +152,7 @@ def record_turn(
         db.query(Conversation).filter(
             Conversation.id == conversation_id,
             Conversation.organization_id == organization_id,
+            Conversation.deleted_at.is_(None),
         ).update({"updated_at": now})
         db.commit()
     except Exception:

@@ -456,14 +456,53 @@ Three things were changed once the rails scope was clear.
   rule changes; a moved threshold makes a cached flag rate misleading rather
   than merely old.
 
-A correctness defect surfaced alongside this work and is fixed in the same
-change: nineteen query blocks across `analytics_service`, `anomaly_scoring`
-and `regulatory_reporting` counted soft-deleted payments, because they query
-`Transaction` directly instead of going through the repository that enforces
-the filter. Four of them were in `regulatory_reporting` — a withdrawn payment
-was landing in the PSD-6 return. Every one now filters `deleted_at IS NULL`.
-The underlying cause is unchanged and worth naming: **three services bypass
-`PaymentRepository`.** Routing them through it is the durable fix.
+### 8.4 Closed: withdrawn records were still being counted
+
+A correctness defect surfaced alongside the scale work and is the more
+serious of the two.
+
+Soft deletes are the only deletion this schema has, which makes
+`deleted_at IS NULL` load-bearing on every read: a withdrawn record that is
+not filtered does not disappear, it silently keeps counting. **Thirty-eight
+tenant-scoped query blocks omitted it**, across `analytics_service`,
+`anomaly_scoring` and `regulatory_reporting` — the three services that query
+the ORM directly rather than through `PaymentRepository`, which exists to
+enforce exactly this.
+
+It affected every soft-deletable entity, not just payments:
+
+| Entity | Effect of the omission |
+|---|---|
+| `Transaction` | Withdrawn payments counted in totals, health, and **the PSD-6 return** |
+| `EMoneyWallet` | Withdrawn wallets counted in **the PSD-3 float balance** |
+| `AnomalyAlert` | Withdrawn alerts inflated flag counts and the review queue |
+| `Device` | Withdrawn devices counted as deployed fleet |
+| `Settlement` | Withdrawn settlements counted in settlement value |
+
+Nothing about this failed loudly. Every individual query read correctly, the
+totals were plausible, and the only way to see it was to withdraw a record
+and check whether the number moved. Verified after the fix by inserting live
+and withdrawn rows side by side: payments report 10 of 15, devices 4 of 6,
+alerts 4 of 6, and PSD-3 reports 4 wallets at N$100.00 rather than 6 at
+N$20,098.00.
+
+**Two sites deliberately do not filter**, and are documented at the call
+site: the `device_code` and `merchant_code` uniqueness pre-checks in
+`api/resources.py`. Both columns are `UNIQUE` at the database level, so a
+withdrawn row still holds its code; filtering there would report the code as
+free and then fail on INSERT with an integrity error the caller cannot act
+on. Those are uniqueness checks, not record lookups.
+
+**The recurrence guard is `backend/tests/test_soft_delete_filters.py`.** It
+reads the source, finds every query block constraining
+`<Model>.organization_id` for a model carrying `deleted_at`, and fails unless
+the block also constrains `deleted_at` or is listed as an exemption with a
+reason. It was verified to fail by reintroducing the PSD-6 bug, and it names
+the offending file and line. This matters more than the fix itself: the
+underlying cause — three services bypassing `PaymentRepository` — is
+unchanged, so without a guard the same defect returns the next time someone
+adds a query. Routing those services through the repository remains the
+durable structural fix; the guard is what makes its absence safe.
 
 ---
 

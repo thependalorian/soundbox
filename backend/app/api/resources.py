@@ -1018,6 +1018,11 @@ async def create_device(
     """
     try:
         org = get_or_create_organization(db)
+        # Deliberately does NOT filter deleted_at. `device_code` is UNIQUE at
+        # the database level, so a withdrawn device still occupies its code.
+        # Filtering soft-deleted rows out here would report the code as free
+        # and then fail on INSERT with an integrity error the caller cannot
+        # act on. This is a uniqueness check, not a record lookup.
         existing = db.query(Device).filter(
             Device.organization_id == org.id,
             Device.device_code == body.device_code,
@@ -1234,6 +1239,9 @@ async def create_merchant(
     """
     try:
         org = get_or_create_organization(db)
+        # Deliberately does NOT filter deleted_at — `merchant_code` is UNIQUE
+        # at the database level, so a withdrawn business still holds its code.
+        # See the equivalent check in create_device above.
         existing = db.query(Merchant).filter(
             Merchant.organization_id == org.id,
             Merchant.merchant_code == body.merchant_code,

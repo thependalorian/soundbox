@@ -89,6 +89,7 @@ class RegulatoryReportingEngine:
                 func.sum(Settlement.amount).label("settlement_value"),
             ).filter(
                 Settlement.organization_id == self.organization_id,
+                Settlement.deleted_at.is_(None),
                 Settlement.settlement_date >= start_date,
                 Settlement.settlement_date < end_date,
             ).group_by(
@@ -100,10 +101,12 @@ class RegulatoryReportingEngine:
             # Device summary
             total_devices = self.db.query(Device).filter(
                 Device.organization_id == self.organization_id,
+                Device.deleted_at.is_(None),
                 Device.registered_at < end_date,
             ).count()
             active_devices = self.db.query(Device).filter(
                 Device.organization_id == self.organization_id,
+                Device.deleted_at.is_(None),
                 Device.registered_at < end_date,
                 Device.status == "active",
             ).count()
@@ -159,10 +162,12 @@ class RegulatoryReportingEngine:
                 func.avg(EMoneyWallet.balance).label("avg_balance"),
             ).filter(
                 EMoneyWallet.organization_id == self.organization_id,
+                EMoneyWallet.deleted_at.is_(None),
             ).first()
 
             active_wallets = self.db.query(EMoneyWallet).filter(
                 EMoneyWallet.organization_id == self.organization_id,
+                EMoneyWallet.deleted_at.is_(None),
                 EMoneyWallet.status == "active",
             ).count()
 
@@ -170,6 +175,7 @@ class RegulatoryReportingEngine:
             six_months_ago = datetime.utcnow() - timedelta(days=180)
             dormant_wallets = self.db.query(EMoneyWallet).filter(
                 EMoneyWallet.organization_id == self.organization_id,
+                EMoneyWallet.deleted_at.is_(None),
                 EMoneyWallet.last_transaction_at < six_months_ago,
                 EMoneyWallet.status == "active",
             ).count()
@@ -221,6 +227,7 @@ class RegulatoryReportingEngine:
                 func.avg(AnomalyAlert.anomaly_score).label("avg_probability"),
             ).filter(
                 AnomalyAlert.organization_id == self.organization_id,
+                AnomalyAlert.deleted_at.is_(None),
                 AnomalyAlert.detected_at >= start_date,
             ).group_by(
                 month_bucket
@@ -234,6 +241,7 @@ class RegulatoryReportingEngine:
                 func.sum(AnomalyAlert.amount).label("total_value"),
             ).filter(
                 AnomalyAlert.organization_id == self.organization_id,
+                AnomalyAlert.deleted_at.is_(None),
                 AnomalyAlert.detected_at >= start_date,
             ).group_by(
                 AnomalyAlert.signal_type
@@ -296,19 +304,23 @@ class RegulatoryReportingEngine:
 
             total_devices = self.db.query(Device).filter(
                 Device.organization_id == self.organization_id,
+                Device.deleted_at.is_(None),
             ).count()
             active_devices = self.db.query(Device).filter(
                 Device.organization_id == self.organization_id,
+                Device.deleted_at.is_(None),
                 Device.status == "active",
             ).count()
 
             anomaly_alerts = self.db.query(AnomalyAlert).filter(
                 AnomalyAlert.organization_id == self.organization_id,
+                AnomalyAlert.deleted_at.is_(None),
                 AnomalyAlert.detected_at >= thirty_days_ago,
             ).count()
 
             high_risk_alerts = self.db.query(AnomalyAlert).filter(
                 AnomalyAlert.organization_id == self.organization_id,
+                AnomalyAlert.deleted_at.is_(None),
                 AnomalyAlert.detected_at >= thirty_days_ago,
                 AnomalyAlert.risk_level == "HIGH",
             ).count()

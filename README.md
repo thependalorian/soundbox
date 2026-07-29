@@ -114,6 +114,7 @@ python -m tests.test_weekday_baseline                    # seasonal fairness
 python -m tests.test_injection_validation                # detector sensitivity
 python -m tests.test_census_figures                      # access denominators
 python -m tests.test_namqr_signature                     # real ECDSA sign/verify round-trip
+python -m tests.test_soft_delete_filters                 # withdrawn records stay uncounted
 ```
 
 ```
@@ -126,6 +127,14 @@ by weekday — a busy Saturday is not an unusual one. `test_injection_validation
 follows the BIS WP 1188 method: it manipulates copies of real behaviour and
 measures whether the scorer separates them. Neither is a fraud detection rate;
 no confirmed cases exist, and none is claimed. See `backend/ml/README.md`.
+
+`test_soft_delete_filters` is a structural guard rather than a behavioural
+one. Soft deletes are the only deletion this schema has, so a read that
+forgets `deleted_at IS NULL` does not lose a record — it keeps counting one
+that was withdrawn. That happened across thirty-eight query blocks and put
+withdrawn payments into the PSD-6 return; the test reads the source and fails
+if any tenant-scoped query omits the filter without a documented reason. See
+`docs/architecture.md` §8.4.
 
 ## The API surface
 
