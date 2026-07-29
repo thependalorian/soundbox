@@ -40,8 +40,15 @@ const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err) {
-      setError('Invalid email or password');
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 429) {
+        setError('Too many attempts. Wait a minute and try again.');
+      } else if (status === 401) {
+        setError('Invalid email or password');
+      } else {
+        setError('Could not reach the server. Check your connection and try again.');
+      }
     }
   };
 
@@ -63,13 +70,14 @@ const LoginPage: React.FC = () => {
             height={106}
           />
           <p className="text-caption font-sohne text-slate mt-8">{BRAND.tagline}</p>
-          {arrival && (
+          {arrival ? (
             <div className="mt-24 text-center">
               <h1 className="text-heading-sm font-signifier text-ink">{arrival.title}</h1>
               <p className="text-caption font-sohne text-slate mt-4">{arrival.detail}</p>
             </div>
+          ) : (
+            <p className="text-body font-sohne text-slate mt-4">Sign in to manage your devices</p>
           )}
-          <p className="text-body font-sohne text-slate mt-4">Sign in to manage your devices</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-20">
           <div>

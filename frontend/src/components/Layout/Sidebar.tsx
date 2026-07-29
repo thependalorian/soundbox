@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { fetchPendingMerchantCount } from '../../api/api';
+import { BRAND } from '../../lib/copy/public';
 
 interface NavItem {
   name: string;
@@ -95,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
       } fixed inset-y-0 left-0 z-50 w-[256px] shrink-0 bg-paper border-r border-mist transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}
     >
       <div className="flex items-center justify-between h-64 px-20 border-b border-mist">
-        <span className="text-heading-sm font-signifier text-ink">WayaMe</span>
+        <span className="text-heading-sm font-signifier text-ink">{BRAND.name}</span>
         <button onClick={() => setOpen(false)} className="lg:hidden text-ink">
           <XMarkIcon className="w-20 h-20" />
         </button>
