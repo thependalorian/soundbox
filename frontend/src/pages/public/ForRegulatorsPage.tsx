@@ -4,53 +4,60 @@ import ButtonLink from '../../components/ui/ButtonLink';
 import PublicShell from '../../components/Public/PublicShell';
 import BrowserFrame from '../../components/Public/BrowserFrame';
 import QuestionHeading from '../../components/Public/QuestionHeading';
-import Card from '../../components/ui/Card';
 import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
-import Meter from '../../components/ui/Meter';
-import Roadmap from '../../components/Public/Roadmap';
 import {
   ASK_ANYTHING,
   BUSINESS_QUESTIONS,
   OVERSIGHT_CAPABILITIES,
   REGULATOR,
-  OBSERVER_BOUNDARIES,
-  SCORING_ERROR_COST,
+  WHY_THIS_MATTERS,
 } from '../../lib/copy/public';
 import ImageSlot from '../../components/ui/ImageSlot';
 import StatusPill from '../../components/ui/StatusPill';
 
 /**
- * The oversight-facing page.
+ * The oversight-facing page: the seven business questions the models
+ * answer, and nothing else.
  *
- * Same substance as the internal compliance work, but stated in plain
- * terms. Regulation clause numbers are deliberately absent: the reader
- * knows their own rulebook better than we do, and quoting section numbers
- * back at them reads as posturing. Describe what the system can answer;
- * let them map it to their obligations.
+ * Order and wording follow `docs/business-plan.md` §1.7 (itself sourced
+ * from `backend/app/services/*.py`), with the copy held in
+ * `BUSINESS_QUESTIONS` so page and business plan cannot drift.
  *
- * **Structured as the seven business questions the models answer**, in the
- * same order as `docs/business-plan.md` §1.7 (itself sourced from
- * `backend/app/services/*.py`). Each question gets its own section, headed
- * by the model doing the work and the question it answers — copy lives in
- * `BUSINESS_QUESTIONS` so the page and the business plan cannot drift.
+ * Regulation clause numbers are deliberately absent: the reader knows
+ * their own rulebook better than we do, and quoting section numbers back
+ * at them reads as posturing. Describe what the system can answer; let
+ * them map it to their obligations.
  *
- * The boundary, ownership and safeguard sections around them are not
- * themselves one of the seven; they are the framing that makes the seven
- * credible. One action throughout: sign in, in the closing section only.
+ * **Every section carries a visual that illustrates its own question** —
+ * a product artifact showing that measure, not a generic screenshot. A
+ * frame of coverage data under a question about value distribution would
+ * be decoration; the whole argument of this page is that the numbers
+ * exist, so each one has to show the number it claims.
+ *
+ * One action: sign in, in the closing section only.
  */
-
-const COVERAGE = [
-  { region: 'Khomas', merchants: 5, share: 100 },
-  { region: 'Oshana', merchants: 3, share: 62 },
-  { region: 'Erongo', merchants: 3, share: 55 },
-  { region: 'Kavango East', merchants: 2, share: 38 },
-  { region: 'Kavango West', merchants: 0, share: 0 },
-];
 
 const CONCENTRATION = [
   { l: 'Top 3 businesses', v: '58% of value' },
   { l: 'Top 10 businesses', v: '81% of value' },
   { l: 'Concentration index (merchant)', v: '1,840' },
+];
+
+/** Q3. Median against mean is the point: an average alone hides the shape. */
+const ADOPTION = [
+  { l: 'Median payment', v: 'N$85' },
+  { l: 'Mean payment', v: 'N$210' },
+  { l: 'Wallet-funded share', v: '63%' },
+  { l: 'Acceptance points per 10,000 adults', v: '4.2' },
+  { l: 'Still trading after three months', v: '71%' },
+];
+
+/** Q4. Paying out far more than is taken in is the failure mode — the
+ *  agent runs dry, and the map still shows a covered town. */
+const AGENT_FLOAT = [
+  { site: 'Rundu Mobile Agent', flow: 'N$18,400 out · N$4,200 in', state: 'Draining', tone: 'danger' as const },
+  { site: 'Katima Mulilo Agent', flow: 'N$12,600 out · N$11,900 in', state: 'Watch', tone: 'warning' as const },
+  { site: 'Oshakati Cash Agent', flow: 'N$9,100 out · N$8,700 in', state: 'Balanced', tone: 'success' as const },
 ];
 
 const FORECAST = [
@@ -59,76 +66,12 @@ const FORECAST = [
   { l: 'Month-end week', v: '2,890 – 3,120 payments' },
 ];
 
-const DEVICE_FLEET = [
-  { code: 'SB-0142', site: 'Katutura Fresh Market', state: 'Online', tone: 'success' as const, battery: 87, seen: '2 min ago' },
-  { code: 'SB-0198', site: 'Oshakati Cash Agent', state: 'Online', tone: 'success' as const, battery: 64, seen: '5 min ago' },
-  { code: 'SB-0211', site: 'Rundu Mobile Agent', state: 'Silent', tone: 'warning' as const, battery: 12, seen: '4 hours ago' },
-];
-
-const NEXT_STAGES = [
-  {
-    phase: 'live' as const,
-    title: 'Coverage and explainable alerts',
-    detail:
-      'Activity down to constituency level, alerts that state their reasons, and returns produced from the same record the dashboards read.',
-  },
-  {
-    phase: 'live' as const,
-    title: 'Market structure and behavioural segments',
-    detail:
-      'Concentration by business and by region, reach measured against census population, and businesses grouped by how they actually trade rather than by a category entered at sign-up.',
-  },
-  {
-    phase: 'building' as const,
-    title: 'Comparison against the right peers',
-    detail:
-      'Feeding those behavioural groups back into the scoring, so a market stall is judged against other market stalls rather than against every business in the region.',
-  },
-  {
-    phase: 'planned' as const,
-    title: 'Published detection accuracy',
-    detail:
-      'Once enough alerts have been confirmed or dismissed by reviewers, we can report how often the system is right — measured, not asserted.',
-  },
-];
-
 const ForRegulatorsPage: React.FC = () => (
   <PublicShell>
     <PageHero tone="oversight" title={REGULATOR.heroHeading} lead={REGULATOR.heroSupport} />
 
-    {/* What this is, and is not. Placed before anything else a regulator
-        reads: the first question oversight asks of a new participant is
-        what it can do to the money, and the answer here is nothing. */}
-    <section className="bg-paper py-96">
-      <div className="max-w-content mx-auto px-24">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-24 max-w-[900px] mx-auto">
-          <Card variant="neutral" className="p-32">
-            <p className="text-caption font-sohne text-ash">What it does</p>
-            <ul className="mt-16 space-y-12">
-              {OBSERVER_BOUNDARIES.does.map((x) => (
-                <li key={x} className="text-body font-sohne text-ink">
-                  {x}
-                </li>
-              ))}
-            </ul>
-          </Card>
-          <Card variant="accent" className="p-32">
-            <p className="text-caption font-sohne">What it never touches</p>
-            <ul className="mt-16 space-y-12">
-              {OBSERVER_BOUNDARIES.neverTouches.map((x) => (
-                <li key={x} className="text-body font-sohne">
-                  {x}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </div>
-      </div>
-    </section>
-
     {/* 1 — Anomaly scoring. The page's one emphasis band, and it leads:
-        this is the most concrete thing the platform does for oversight.
-        LandingPage puts its emphasis band immediately after the hero too. */}
+        the most concrete thing the platform does for oversight. */}
     <section className="bg-brand-gradient-aa py-128">
       <div className="max-w-content mx-auto px-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center">
@@ -172,6 +115,12 @@ const ForRegulatorsPage: React.FC = () => (
               Every score carries the exact settings that produced it, so a score from before a
               threshold changed is never quietly compared against one from after.
             </p>
+            <p className="text-body font-sohne text-paper opacity-90 mt-16">
+              An alert counts a payment someone was asked to examine — never a confirmed case,
+              and the two are never reported as one number. Only a reviewer&apos;s verdict makes
+              it a finding, and those verdicts accumulate into something that does not exist yet:
+              a record of what was actually fraud, rather than what merely looked unusual.
+            </p>
           </div>
         </div>
       </div>
@@ -208,9 +157,10 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* 3 — Distribution, inclusion, retention. Coverage is the visible
-        evidence; the two cards below add the inclusion/retention half of
-        the same question. */}
+    {/* 3 — Distribution, inclusion, retention. The frame carries all three
+        measures the question names: median against mean (distribution),
+        wallet share and reach per population (inclusion), and whether a
+        business is still trading months later (retention). */}
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
         <QuestionHeading
@@ -218,26 +168,40 @@ const ForRegulatorsPage: React.FC = () => (
           question={BUSINESS_QUESTIONS.adoption.question}
         />
         <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
-          National totals hide the places where nothing is happening. Because every device is
-          tied to a real location, the map shows activity down to constituency level — and an
-          empty region stands out as a result rather than disappearing into an average. That is
-          the difference between knowing adoption is growing and knowing where it is not.
+          An average transaction size across a market stall and a fuel station describes neither.
+          Reach is counted against real census population rather than a number we chose, and a
+          business onboarded three months ago only counts if it is still trading — a network that
+          signs up fast and loses businesses just as fast is not growing.
+        </p>
+        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
+          Growth is reported by region, by constituency and by kind of business, never as one
+          national figure. A country-wide total can climb while the businesses this exists to
+          reach stay exactly where they were — an average is where exclusion goes to hide.
+        </p>
+        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
+          Every ratio arrives with the count behind it. A rate over eleven payments is arithmetic
+          and a rate over eleven thousand is evidence, so the figure says which it is — and where
+          the base is too thin to carry a ratio at all, that is the answer rather than a number
+          that looks like every other number.
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-start mt-40">
-          <BrowserFrame label="Coverage by region">
+          <BrowserFrame label="Value, inclusion and retention">
             <div className="space-y-8 mt-20 pt-20 border-t border-mist">
-              {COVERAGE.map((r) => (
-                <div key={r.region} className="flex items-baseline justify-between gap-16">
-                  <span className="text-caption font-sohne text-ink">{r.region}</span>
-                  <span
-                    className={`text-caption font-sohne tabular-nums ${
-                      r.merchants === 0 ? 'text-status-warning' : 'text-ash'
-                    }`}
-                  >
-                    {r.merchants === 0 ? 'no activity' : `${r.merchants} businesses`}
-                  </span>
+              {ADOPTION.map((r) => (
+                <div key={r.l} className="flex items-baseline justify-between gap-16">
+                  <span className="text-caption font-sohne text-ink">{r.l}</span>
+                  <span className="text-caption font-sohne text-ash tabular-nums">{r.v}</span>
                 </div>
               ))}
+              <div className="flex items-baseline justify-between gap-16 pt-12 border-t border-mist">
+                <span className="text-caption font-sohne text-ink">Regions with no activity</span>
+                <span className="text-caption font-sohne text-status-warning tabular-nums">
+                  1 of 14
+                </span>
+              </div>
+              <p className="text-caption font-sohne text-ash pt-12">
+                The mean sits well above the median: a few large payments, many small ones.
+              </p>
             </div>
           </BrowserFrame>
           <ImageSlot
@@ -256,35 +220,44 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* 4 — Agent float risk. Its own question, not a subplot of coverage:
-        the failure mode is invisible on a map, which is the whole point. */}
+    {/* 4 — Agent float risk. Previously carried only a photograph, which
+        showed an agent but not the failure. The frame is the point: cash
+        out against cash in, per agent, with the one running dry marked. */}
     <section className="bg-paper py-96">
       <div className="max-w-content mx-auto px-24">
         <QuestionHeading
           label={BUSINESS_QUESTIONS.agentFloat.label}
           question={BUSINESS_QUESTIONS.agentFloat.question}
         />
+        <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
+          An agent paying out more than they take in eventually has nothing left to pay with —
+          and on a coverage map, that looks identical to a place that was never reached at all.
+          Cash agents are the most useful service in a rural town and the easiest to misuse,
+          which is why most alerts come from that one segment.
+        </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-start mt-40">
+          <BrowserFrame label="Net cash position at agents — last 7 days">
+            <div className="space-y-16">
+              {AGENT_FLOAT.map((a) => (
+                <div key={a.site} className="flex items-baseline justify-between gap-16">
+                  <div className="min-w-0">
+                    <p className="text-caption font-sohne text-ink">{a.site}</p>
+                    <p className="text-caption font-sohne text-ash tabular-nums mt-4">{a.flow}</p>
+                  </div>
+                  <StatusPill label={a.state} tone={a.tone} />
+                </div>
+              ))}
+              <p className="text-caption font-sohne text-ash pt-12 border-t border-mist">
+                Draining means the till is being emptied faster than it is refilled.
+              </p>
+            </div>
+          </BrowserFrame>
           <ImageSlot
             ratio="4:3"
             slot="Cash agent counter"
             brief="A cash agent counting notes across a counter after a wallet withdrawal."
             direction="A real agent kiosk in a town, not a bank branch. Hands and cash in focus; faces optional and only with consent."
           />
-          <div>
-            <p className="text-body font-sohne text-slate">
-              An agent paying out more than they take in eventually has nothing left to pay
-              with — and on a coverage map, that looks identical to a place that was never
-              reached at all.
-            </p>
-            <p className="text-body font-sohne text-slate mt-16">
-              Cash agents turn wallet balances into notes across a counter, with no branch and no
-              card. It is the most useful service in a rural town and the easiest to misuse,
-              which is why most alerts in this system come from that one segment. Seeing it as a
-              counter rather than a category is the difference between a policy discussion and an
-              enforcement one.
-            </p>
-          </div>
         </div>
       </div>
     </section>
@@ -309,6 +282,11 @@ const ForRegulatorsPage: React.FC = () => (
               trying to beat detection cannot — a number for that would only measure how well
               they are succeeding.
             </p>
+            <p className="text-body font-sohne text-slate mt-16">
+              Under four weeks of trading it returns no forecast at all. A projection built on
+              three weeks looks exactly like one built on three years, and the reader cannot tell
+              them apart unless we refuse to draw it.
+            </p>
           </div>
           <BrowserFrame label="Expected — next 4 weeks">
             <div className="space-y-8 mt-20 pt-20 border-t border-mist">
@@ -324,16 +302,14 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* 6 — Regulatory reporting. The alignment and roadmap subsections stay
-        nested here rather than becoming their own sections: both are
-        expansions of the returns argument, not separate questions. */}
+    {/* 6 — Regulatory reporting. */}
     <section className="bg-paper py-96">
       <div className="max-w-content mx-auto px-24">
         <QuestionHeading
           label={BUSINESS_QUESTIONS.returns.label}
           question={BUSINESS_QUESTIONS.returns.question}
         />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-40">
           <p className="text-body font-sohne text-slate">
             The monthly submissions you already require are produced from the same record the
             dashboards read, so the figure in a report and the figure on a screen cannot
@@ -358,32 +334,6 @@ const ForRegulatorsPage: React.FC = () => (
             </div>
           </BrowserFrame>
         </div>
-
-        <div className="mt-64 pt-64 border-t border-mist">
-          <h3 className="text-subheading font-signifier text-ink max-w-[620px]">
-            {REGULATOR.alignmentHeading}
-          </h3>
-          <p className="text-body font-sohne text-slate mt-16 max-w-prose">
-            {REGULATOR.alignmentBody}
-          </p>
-          <div className="mt-32 max-w-[760px]">
-            <ImageSlot
-              ratio="16:9"
-              slot="Strategy alignment diagram"
-              brief="A simple mapping of national payment strategy outcomes to the measures this platform produces, with the gaps shown as gaps."
-              direction="Two columns, strategy outcomes on the left and measures on the right, connected only where a real link exists. Outcomes with no line are left visibly unconnected rather than omitted — the honesty of the diagram is the point."
-            />
-          </div>
-        </div>
-
-        <div className="mt-64 pt-64 border-t border-mist">
-          <h3 className="text-subheading font-signifier text-ink max-w-[560px]">What comes next</h3>
-          <p className="text-body font-sohne text-slate mt-16 max-w-[600px]">
-            The sequence matters: each stage needs the one before it to have been running long
-            enough to be worth trusting.
-          </p>
-          <Roadmap className="mt-32" items={NEXT_STAGES.map((r) => ({ ...r }))} />
-        </div>
       </div>
     </section>
 
@@ -395,7 +345,7 @@ const ForRegulatorsPage: React.FC = () => (
           question={BUSINESS_QUESTIONS.ask.question}
         />
         <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">{ASK_ANYTHING.body[0]}</p>
-        <div className="mt-40 max-w-[480px]">
+        <div className="mt-40 max-w-[560px]">
           <BrowserFrame label="Ask — live query">
             <div className="space-y-16">
               <div>
@@ -413,95 +363,29 @@ const ForRegulatorsPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Businesses and devices that report on themselves. Not one of the
-        seven business questions -- supporting evidence for the identity
-        and ownership claims the rest of the page leans on. The former
-        "Business record" panel here showed invented beneficial-owner names
-        and an identity-verified date on a public page, while the product's
-        own promise is that identity documents are never returned to any
-        screen — a public page is exactly where that promise has to hold, so
-        the panel is cut and its argument kept in prose instead. */}
+    {/* Why this matters — the synthesis. Placed after the seven questions,
+        not before: a reader who has just seen seven working measures is
+        ready for the argument about what they are for. */}
     <section className="bg-paper py-96">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink max-w-[680px]">
-          Businesses and devices that report on themselves
+          {WHY_THIS_MATTERS.heading}
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[680px]">
-          A device that goes quiet shows up before the seller has to phone anyone, and an
-          ownership question has an answer that can be queried rather than one that has to be
-          read from a file.
+          {WHY_THIS_MATTERS.lead}
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-start mt-40">
-          <BrowserFrame label="Device fleet">
-            <div className="space-y-16">
-              {DEVICE_FLEET.map((d) => (
-                <div key={d.code}>
-                  <div className="flex items-baseline justify-between gap-16">
-                    <div className="min-w-0">
-                      <p className="text-caption font-sohne text-ink">{d.code}</p>
-                      <p className="text-caption font-sohne text-ash truncate">{d.site}</p>
-                    </div>
-                    <div className="flex items-center gap-8 shrink-0">
-                      <span className="text-caption font-sohne text-ash tabular-nums">{d.seen}</span>
-                      <StatusPill label={d.state} tone={d.tone} />
-                    </div>
-                  </div>
-                  <Meter className="mt-8" tone={d.battery < 20 ? 'warning' : 'accent'} value={d.battery} label={`${d.code} battery ${d.battery} percent`} />
-                </div>
-              ))}
-            </div>
-          </BrowserFrame>
-          <div>
-            <h3 className="text-subheading font-signifier text-ink">
-              Who is actually behind each business
-            </h3>
-            <p className="text-body font-sohne text-slate mt-8">
-              Ownership is captured as structured records against the business, not free text in
-              a notes field — so a question about who benefits from an account has an answer that
-              can be queried, not one that has to be read.
-            </p>
-            <p className="text-body font-sohne text-slate mt-16">
-              Every review decision is appended to the business&apos;s history with who made it
-              and when, so an approval remains reconstructable years later. An owner&apos;s
-              identity documents are checked once and never returned to any screen — a reviewer
-              sees that the check was done, not the number.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {/* Safeguards — these are strengths, not caveats, so they read as such. */}
-    <section className="bg-blush py-96">
-      <div className="max-w-content mx-auto px-24">
-        <h2 className="text-heading font-signifier text-ink max-w-[560px]">Safeguards by design</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40">
-          {[
-            {
-              t: 'It cannot deny anyone their money',
-              d: `Because it sits outside the payment path, no fault here can hold or refuse a payment. ${SCORING_ERROR_COST}`,
-            },
-            {
-              t: 'Rural sellers are judged fairly',
-              d: 'Each business is compared with others nearby rather than with the capital, so a small trader is never flagged simply for being small.',
-            },
-            {
-              t: 'A person always decides',
-              d: 'Alerts are raised for review after the fact. Nothing acts on a business automatically.',
-            },
-          ].map((c) => (
-            <Card key={c.t} variant="elevated" className="p-24">
-              <h3 className="text-body font-sohne font-450 text-ink">{c.t}</h3>
-              <p className="text-caption font-sohne text-slate mt-8">{c.d}</p>
-            </Card>
-          ))}
-        </div>
+        <TitleDetailCardGrid
+          items={WHY_THIS_MATTERS.points}
+          gridClassName="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40"
+          cardVariant="elevated"
+          titleClassName="text-body font-sohne font-450 text-ink"
+        />
       </div>
     </section>
 
     {/* Closing — the page's one action. The list mirrors the seven
         questions above, in the same order. */}
-    <section className="bg-paper py-96 text-center">
+    <section className="bg-blush py-96 text-center">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink">Open the oversight view</h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[560px] mx-auto">

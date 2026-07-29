@@ -277,9 +277,9 @@ export const OVERSIGHT_CAPABILITIES = [
 ] as const;
 
 /** The "ask anything" analytics capability — a live query, not a canned
- *  report. The example Q/A is illustrative, matching how COVERAGE,
- *  DEVICE_FLEET and the alert example on ForRegulatorsPage are already
- *  invented-but-representative numbers, not real figures. */
+ *  report. The example Q/A is illustrative, matching how CONCENTRATION,
+ *  ADOPTION, AGENT_FLOAT and the alert example on ForRegulatorsPage are
+ *  already invented-but-representative numbers, not real figures. */
 export const ASK_ANYTHING = {
   heading: 'Or ask it directly',
   body: [
@@ -329,26 +329,6 @@ export const AUDIENCE_SPLIT = {
     cta: 'For regulators',
     href: '/for-regulators',
   },
-} as const;
-
-/**
- * The observer boundary: what the platform does, and what it never touches.
- * Previously declared independently on the trust page and the regulators
- * page, in near-identical wording that could drift apart. One list.
- */
-export const OBSERVER_BOUNDARIES = {
-  does: [
-    'Listens for payments already completed on the national payment rails',
-    'Announces the outcome on the device',
-    'Records what it observed, and where',
-    'Flags unusual patterns for a person to review afterwards',
-  ],
-  neverTouches: [
-    'Start a payment',
-    'Stop, hold or reverse a payment',
-    'Touch anyone’s money or hold a balance',
-    'Change what the rails recorded',
-  ],
 } as const;
 
 /** What a mistake actually costs, stated identically wherever it appears. */
@@ -408,18 +388,62 @@ export const BUSINESS_QUESTIONS = {
 } as const;
 
 /**
+ * Why the seven questions matter to the institution reading them.
+ *
+ * Placed after the questions rather than before: the questions are the
+ * evidence, this is what the evidence is for. A reader who has just seen
+ * seven working measures is ready for the argument; one who has not is
+ * being asked to take it on trust.
+ *
+ * The substance comes from what the Bank has publicly committed to
+ * demonstrating by 2030 — growth across user segments, a sustained
+ * reduction in payment fraud, shareable intelligence between parties. None
+ * of that is cited by name here, per the rule above: a claim that rests on
+ * a document goes stale when the document is revised, and the point lands
+ * without it.
+ *
+ * The fraud argument is the one worth getting right. Not being able to
+ * publish a fraud rate reads as a limitation until you notice that a
+ * *reduction* cannot be shown without a baseline, and no baseline exists
+ * for the informal economy. Refusing to invent one is what makes the
+ * series credible when it finally exists.
+ */
+export const WHY_THIS_MATTERS = {
+  heading: 'Why this matters',
+  lead: 'The Bank is the sole regulator and overseer of the national payment system. It does not only set the direction — it has to be able to show the direction was reached, in numbers that hold up when someone checks them.',
+  points: [
+    {
+      title: 'The rails are visible. The counter is not.',
+      detail:
+        'Settlement records say what cleared. They cannot say whether a trader in a market will accept digital at all, whether an agent has run dry by Thursday, or whether a business onboarded in March is still trading in June. That is where inclusion is won or lost, and it is the hardest place in the economy to measure — nobody installs an instrument in an informal stall. This one is already there, because the seller wants it there.',
+    },
+    {
+      title: 'A reduction needs a baseline nobody has yet.',
+      detail:
+        'Showing that payment fraud is falling requires a series to measure the fall against, and none exists for this part of the economy. Every verdict a reviewer records here — confirmed, dismissed, sent back for more — is one entry in the first honest version of that series. It is why we will not publish a fraud rate we cannot defend: the baseline is worth more than the headline, and inventing the headline destroys the baseline.',
+    },
+    {
+      title: 'We move the number we measure.',
+      detail:
+        'Every box on a counter makes one more cash-preferring business willing to accept digital payment. The evidence is a by-product of a device that earns its place for an entirely different reason — the seller needing to know the money arrived. And because nothing here takes a fee on a payment, there is no version of this where we profit from a figure we also report.',
+    },
+  ],
+} as const;
+
+/**
  * Regulator page framing. No scheme codes and no named strategy documents:
- * those belong in the returns, not the pitch. The credibility comes from
- * specific, checkable methodology (per-10,000-adults against census,
- * denominators shown alongside every ratio, concentration measured the way
- * competition regulators measure it elsewhere) — not from citing a document,
- * which goes stale the moment that document is revised or renamed.
+ * those belong in the returns, not the pitch (`docs/regulatory.md` opens by
+ * saying so — "the public site deliberately avoids this vocabulary").
+ *
+ * The credibility comes instead from checkable methodology, and that claim
+ * is now made inside the question it belongs to rather than in one
+ * general-purpose block: reach against census population sits under the
+ * inclusion question, concentration-measured-the-standard-way under the
+ * concentration question, and so on. A methodology section that floats free
+ * of any question is the kind of thing a reader skips.
  */
 export const REGULATOR = {
   heroHeading: 'Business questions our models answer',
   heroSupport:
     'Every confirmed payment adds a fact to a part of the economy nobody has been able to count until now.',
-  alignmentHeading: 'Measured the way regulators already measure this elsewhere',
-  alignmentBody:
-    'Reach is counted per ten thousand adults against the census — not a number we chose ourselves. Concentration is scored exactly the way competition regulators score it anywhere. Every ratio here carries the count behind it, so a figure from eleven transactions is never shown the same way as one from eleven thousand. And where there is not yet enough evidence, that is the answer — not a guess dressed up as a number.',
 } as const;
