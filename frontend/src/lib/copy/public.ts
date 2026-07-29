@@ -279,9 +279,26 @@ export const OVERSIGHT_CAPABILITIES = [
   {
     title: 'What next month looks like',
     detail:
-      'Expected volume and value, with the weekly pattern shown separately so it can be argued with. Nothing is forecast that cannot honestly be forecast.',
+      'Expected volume and value, with the weekly pattern shown separately so it can be argued with. Fraud is deliberately left out: a pattern can be forecast, but someone actively trying to beat detection cannot — a number for that would only measure how well they are succeeding.',
   },
 ] as const;
+
+/** The "ask anything" analytics capability — a live query, not a canned
+ *  report. The example Q/A is illustrative, matching how COVERAGE,
+ *  DEVICE_FLEET and the alert example on ForRegulatorsPage are already
+ *  invented-but-representative numbers, not real figures. */
+export const ASK_ANYTHING = {
+  heading: 'Or ask it directly',
+  body: [
+    'Every figure above is also a live query. An analyst can ask a question in plain language and get an answer sourced the same way — nothing invented, nothing off the record.',
+    'It can only call the same fixed set of views the dashboards use — it cannot write its own queries, and it cannot answer with a number the data does not actually contain.',
+  ],
+  example: {
+    question: 'Which region has the highest share of wallet-funded payments this month?',
+    answer:
+      'Kavango East, at 78% — against a national average of 41%. Based on 1,240 payments recorded in the last 30 days.',
+  },
+} as const;
 
 /** Landing page. The vision, stated once. */
 export const LANDING = {
@@ -363,7 +380,7 @@ export const SCORING_ERROR_COST =
  * which goes stale the moment that document is revised or renamed.
  */
 export const REGULATOR = {
-  heroHeading: 'Evidence from the counter',
+  heroHeading: 'The Business Questions Our Models Actually Answer',
   heroSupport:
     'Every confirmed payment adds a fact to a part of the economy nobody has been able to count until now.',
   alignmentHeading: 'Measured the way regulators already measure this elsewhere',

@@ -8,6 +8,7 @@ import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
 import Meter from '../../components/ui/Meter';
 import Roadmap from '../../components/Public/Roadmap';
 import {
+  ASK_ANYTHING,
   OVERSIGHT_CAPABILITIES,
   REGULATOR,
   REGULATOR_QUESTIONS,
@@ -226,6 +227,33 @@ const ForRegulatorsPage: React.FC = () => (
           cardVariant="neutral"
           titleClassName="text-body font-sohne font-450 text-ink"
         />
+
+        {/* The same capability, asked for directly rather than read off a
+            fixed view -- kept in this section rather than a new one, since
+            it is the same topic ("what can this tell me") stated a second
+            way, not a different topic. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-64 items-center mt-64 pt-64 border-t border-mist">
+          <BrowserFrame label="Ask — live query">
+            <div className="space-y-16">
+              <div>
+                <p className="text-caption font-sohne text-ash">Question</p>
+                <p className="text-body font-sohne text-ink mt-4">{ASK_ANYTHING.example.question}</p>
+              </div>
+              <div className="pt-12 border-t border-mist">
+                <p className="text-caption font-sohne text-ash">Answer</p>
+                <p className="text-body font-sohne text-ink mt-4">{ASK_ANYTHING.example.answer}</p>
+              </div>
+            </div>
+          </BrowserFrame>
+          <div>
+            <h3 className="text-subheading font-signifier text-ink">{ASK_ANYTHING.heading}</h3>
+            {ASK_ANYTHING.body.map((para) => (
+              <p key={para.slice(0, 24)} className="text-body font-sohne text-slate mt-16">
+                {para}
+              </p>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
 
@@ -380,8 +408,9 @@ const ForRegulatorsPage: React.FC = () => (
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink">Open the oversight view</h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[500px] mx-auto">
-          Coverage down to constituency level, market structure, and the monthly returns —
-          produced from the same record the dashboards read.
+          Coverage down to constituency level, market structure, the monthly returns, and a
+          direct line to ask anything else — all produced from the same record the dashboards
+          read.
         </p>
         <ButtonLink to="/login?as=regulator" className="mt-32">Sign in for oversight</ButtonLink>
       </div>
