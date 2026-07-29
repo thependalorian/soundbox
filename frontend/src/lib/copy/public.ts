@@ -321,7 +321,12 @@ export const AUDIENCE_SPLIT = {
     title: 'Selling something today',
     detail: 'Never wonder again whether the payment actually came through.',
     cta: 'For sellers',
-    href: '/for-sellers',
+    // The route is /for-merchants; the label is "For sellers" because that
+    // is the word the reader uses. These were out of step and the link
+    // pointed at a route that does not exist, so the landing page's main
+    // seller call to action silently bounced back to the home page through
+    // the catch-all redirect.
+    href: '/for-merchants',
   },
   regulators: {
     title: 'Overseeing the rails',

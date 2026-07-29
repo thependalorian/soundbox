@@ -115,7 +115,13 @@ later than to honour now:
 Backend schema, scoring, analytics and reporting are built and deployed
 against a live database. The operator interface and public site are built.
 The anomaly scorer runs on transparent rules; the anomaly model is written and
-waiting on real transaction history. No device has been manufactured, and
-CRAN type approval has not been filed — see
+waiting on real transaction history. No device has been manufactured yet.
+CRAN type approval is underway — engagement has started; the filing itself
+still to come. See
 [`docs/hardware-and-approvals.md`](docs/hardware-and-approvals.md) for the
 sequence that has to happen before a pilot.
+
+Keep this section and the public pages in step. The privacy page describes
+regulatory approvals as underway, and an internal status that contradicts a
+public one is the version of this that causes trouble — whichever of the two
+is right.
