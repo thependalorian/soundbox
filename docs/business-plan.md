@@ -139,6 +139,80 @@ and keeps re-contracting, with SoundBox's continued relevance measured by
 how much it keeps contributing to outcomes BoN and IPN are already
 accountable for — not by how many boxes were sold in year one.
 
+### 1.7 The Business Questions Our Models Actually Answer
+
+§1.3 says regulators want data-driven tooling; this is what the models
+underneath the platform actually do, stated as the specific question each
+one answers for a specific stakeholder — not a features list of what the
+technology can do in the abstract.
+
+**1. "Which alerts deserve a person's time first, and why?"** *(Anomaly
+scoring)* A regional office cannot review every transaction. This does not
+ask "is this fraud" — there are no confirmed fraud cases yet to learn that
+from, and claiming otherwise would be a number nobody could defend. It asks
+a narrower, answerable question instead: is this unusual *for this specific
+business*, on *this specific day of the week*, against its own history — not
+against one national threshold that would flag every busy Saturday at a
+market stall as if it were an ordinary Tuesday. Every flagged transaction
+states the actual numbers behind it ("27 payments today; this business
+normally takes 8 on a Saturday") and is queued by money actually at risk,
+not by how confident the model feels — a likely problem on a large amount is
+reviewed before a near-certain one on pocket change.
+
+**2. "Is the network becoming dangerously dependent on a few businesses or
+one region?"** *(Market concentration)* A national payments network that
+quietly depends on three merchants for half its volume is a systemic risk
+the moment one of them has a bad month. Measured with the same concentration
+index competition regulators already use elsewhere, split by both merchant
+and region — a network can look healthy nationally while depending
+dangerously on a single town.
+
+**3. "Is adoption actually reaching people, or is a rising average hiding
+who is still left out?"** *(Distribution, inclusion, retention)* An average
+transaction size across a market stall and a fuel station describes neither;
+median and percentile figures, plus a Gini coefficient, say how value is
+actually spread. Separately: what share of payments are wallet-funded — the
+clearest available signal of reaching someone without a bank account —
+counted per ten thousand adults against real census population, not an
+invented denominator. And whether a business onboarded three months ago is
+still trading, because a cumulative merchant count hides churn completely; a
+network that onboards fast and loses businesses just as fast is not actually
+growing.
+
+**4. "Are cash agents running out of money to pay people with?"** *(Agent
+float risk)* An agent paying out more cash than they take in eventually has
+nothing left to pay with — and on a coverage map, that looks identical to a
+place that was never reached at all. Oversight needs a separate signal for
+that failure mode, not a symptom hidden inside "coverage looks fine."
+
+**5. "How much volume should we plan capacity and agent float for next
+month — without pretending we can predict fraud"** *(Forecasting)* Payment
+volume has real, stable weekly seasonality (market days, month-end) that a
+decomposition model captures honestly, with every component — trend,
+seasonal effect — inspectable and arguable rather than buried inside fitted
+coefficients an analyst has to take on faith. Fraud is deliberately excluded
+from what gets forecast: fraud is adversarial, it changes the moment it is
+detected, so a forecast of it would be a confident number about someone
+actively trying to make that number wrong. That is question 1's problem, not
+a forecasting one, and the platform draws that line rather than blur it to
+look more capable than it is.
+
+**6. "Do the numbers we file with the regulator match the numbers the
+dashboards show?"** *(Regulatory reporting)* Every generated return is
+produced from, and persisted alongside, the same record the live dashboards
+read, so a filed figure and a screen figure cannot quietly drift apart
+months later. Each report runs its own reconciliation check before it is
+issued and says plainly if one fails, rather than shipping a number that
+merely looks right.
+
+**7. "Can an operator get a correct answer to a question nobody built a
+report for in advance?"** *(Natural-language analytics)* A fixed set of
+report views cannot anticipate every question an analyst asks mid-review.
+This answers ad hoc questions against live data through the same fixed set
+of query functions the dashboards already use — it cannot write or run
+arbitrary SQL, and it cannot invent a number the underlying data does not
+actually contain.
+
 ---
 
 
