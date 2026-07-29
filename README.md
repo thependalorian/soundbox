@@ -11,6 +11,29 @@ The project is organized into the following directories:
 -   `frontend/`: Contains the React-based web application for the merchant and regulator dashboards.
 -   `docs/`: Contains the complete business plan, technical specifications, and other project documentation.
 
+## Deployment status
+
+- **Frontend**: linked to Vercel project `justasoundbox.com`
+  (`frontend/.vercel/project.json`). A preview deploy is live; promoting to
+  the production domains (`justasoundbox.com`, `www.justasoundbox.com`) is a
+  manual `vercel deploy --prod` (or promote-in-dashboard) once the backend
+  below is reachable — the frontend still points `REACT_APP_API_URL` at
+  `http://localhost:8000/api/v1` (see `frontend/.env.local`), so a
+  production promote before the backend is live only works from a machine
+  running the backend locally.
+- **Backend**: not deployed yet. Target is Fly.io — the GitHub app (`fly.io
+  → thependalorian/soundbox`, working directory `backend`, branch `main`)
+  is connected, but the Fly account needs a payment method attached before
+  any deploy (including the first one) will run; paused there by choice.
+  Once unblocked: `fly deploy` from `backend/`, then `fly secrets set` for
+  every value in `backend/.env` (`DATABASE_URL`, `SECRET_KEY`,
+  `BOOTSTRAP_ADMIN_EMAIL`/`PASSWORD`, `CORS_ALLOWED_ORIGINS` updated to the
+  real frontend origin, `NAMQR_ORG_PUBLIC_KEY_PEM`, `REDIS_URL`, and set
+  `ENVIRONMENT=production`), then point `REACT_APP_API_URL` at the Fly
+  hostname and redeploy the frontend.
+- **DNS**: not configured. Once the backend has a stable Fly hostname, a
+  Namecheap CNAME (e.g. `api` → `<app>.fly.dev`) is the remaining step.
+
 ## Getting Started
 
 ### Backend

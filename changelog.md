@@ -4,6 +4,31 @@ This changelog tracks the implementation progress of the SoundBox project. The b
 
 ---
 
+## [1.19.1] - 2026-07-29 - Deployment: Frontend Live on Vercel, Backend Paused on Fly.io
+
+- `frontend/` was already linked to Vercel project `justasoundbox.com`
+  (custom domains `justasoundbox.com` / `www.justasoundbox.com`, live
+  since before this session). Pushed a preview deploy of the post-audit
+  frontend (`vercel deploy`) rather than promoting straight to the
+  production domains, since a live custom domain is not the place to land
+  a first deploy unreviewed.
+- Backend deployment target picked: Fly.io. GitHub app connected
+  (`thependalorian/soundbox`, working directory `backend`, branch `main`),
+  first deploy attempted and failed — the Fly account has no payment
+  method attached, which blocks every deploy on that account regardless of
+  app config. Paused there by choice; no card details entered. See
+  [README.md](README.md#deployment-status) for the exact resume steps
+  (`fly deploy`, then `fly secrets set` for the full `backend/.env` list,
+  then repoint `REACT_APP_API_URL` and redeploy the frontend).
+- Fixed a real bug this surfaced: `assert_production_ready()`
+  (`app/core/config.py`) would have refused to boot in
+  `ENVIRONMENT=production` over the unused `RABBITMQ_URL` guest/guest
+  default even with `EVENTS_ENABLED=false` — the one config this
+  deployment will actually run with, since there's no hosted broker yet.
+  Now only checked when publishing is on.
+
+---
+
 ## [1.19.0] - 2026-07-29 - Security Audit Remediation: Real Auth, Device Keys, Signed NAMQR
 
 A security audit found the API had no real authentication — write endpoints
