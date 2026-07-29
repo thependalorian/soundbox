@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import { GeoDistributionPoint } from '../../types/soundbox';
+import { STATUS, DATA } from '../../lib/chartTokens';
 
 const NAMIBIA_CENTER: [number, number] = [-22.9576, 17.0832];
 const DEFAULT_ZOOM = 6;
@@ -52,11 +53,14 @@ const HeatLayer: React.FC<HeatLayerProps> = ({ points, visible }) => {
   return null;
 };
 
+/** No-activity grey is not a status colour — nothing happened, so nothing to
+ *  flag. The three active tiers reuse the canonical status/data tokens
+ *  rather than a second, off-palette green/amber pair. */
 const activityColor = (transactionCount: number): string => {
   if (transactionCount === 0) return '#9CA3AF';
-  if (transactionCount < 5) return '#10B981';
-  if (transactionCount < 20) return '#F59E0B';
-  return '#E6136C';
+  if (transactionCount < 5) return STATUS.success;
+  if (transactionCount < 20) return STATUS.warning;
+  return DATA;
 };
 
 interface GeoDistributionMapProps {

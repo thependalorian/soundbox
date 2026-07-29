@@ -1,6 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TransactionTrendPoint } from '../../types/soundbox';
+import { AXIS, GRID, DATA } from '../../lib/chartTokens';
 
 interface TransactionChartProps {
   data?: TransactionTrendPoint[];
@@ -14,11 +15,11 @@ const TransactionChart: React.FC<TransactionChartProps> = ({ data }) => {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data}>
-        <XAxis dataKey="date" stroke="#675C62" fontSize={13} tickLine={false} axisLine={{ stroke: '#F6F1F2' }} />
-        <YAxis stroke="#675C62" fontSize={13} tickLine={false} axisLine={false} />
-        <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #F6F1F2' }} />
+        <XAxis dataKey="date" stroke={AXIS} fontSize={13} tickLine={false} axisLine={{ stroke: GRID }} />
+        <YAxis stroke={AXIS} fontSize={13} tickLine={false} axisLine={false} />
+        <Tooltip contentStyle={{ borderRadius: 12, border: `1px solid ${GRID}` }} />
         <Legend />
-        <Line type="monotone" dataKey="count" stroke="#E6136C" strokeWidth={2} dot={false} name="Transactions" />
+        <Line type="monotone" dataKey="count" stroke={DATA} strokeWidth={2} dot={false} name="Transactions" />
       </LineChart>
     </ResponsiveContainer>
   );

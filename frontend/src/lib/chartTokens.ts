@@ -20,6 +20,9 @@
 /** The single data colour, for charts showing one measure. */
 export const DATA = '#E6136C';
 
+/** Brand plum, for on-track lines and text in inline SVG diagrams. */
+export const PLUM = '#3D1152';
+
 /** A muted companion, for a baseline or a comparison series. */
 export const DATA_MUTED = '#C0B2B8';
 

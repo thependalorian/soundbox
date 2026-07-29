@@ -7,6 +7,7 @@ import PaymentDemo from '../../components/Public/PaymentDemo';
 import Card from '../../components/ui/Card';
 import Meter from '../../components/ui/Meter';
 import ButtonLink from '../../components/ui/ButtonLink';
+import { SCORING_ERROR_COST } from '../../lib/copy/public';
 
 /**
  * How it works, and the demo that used to live on its own thin page.
@@ -102,9 +103,10 @@ const HowItWorksPage: React.FC = () => {
             <Card variant="elevated" className="p-24">
               <h3 className="text-subheading font-signifier text-ink">Many customers have no screen to show</h3>
               <p className="text-caption font-sohne text-slate mt-8">
-                A customer can also pay by dialling a short code from a basic handset — no app,
-                no data. That path exists to reach people without smartphones, and on it there is
-                no confirmation screen for them to hold up.
+                A customer can also pay by dialling a short code tied to your proxy payment
+                number from a feature phone — no app, no data. That path exists for people paying
+                by short code instead of a banking app, and on it there is no confirmation screen
+                for them to hold up.
               </p>
             </Card>
           </div>
@@ -208,8 +210,7 @@ const HowItWorksPage: React.FC = () => {
             </ol>
             <p className="text-caption font-sohne text-ash mt-24 max-w-prose">
               We report what the system flagged, and will publish an accuracy figure once it has
-              been earned. Because the system only ever reads what already happened, a scoring
-              error costs a reviewer a few minutes — never a seller their sale.
+              been earned. The system only ever reads what already happened. {SCORING_ERROR_COST}
             </p>
           </div>
         </div>

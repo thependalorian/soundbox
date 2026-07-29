@@ -190,7 +190,7 @@ const SettingsPage: React.FC = () => {
             </Row>
             <Row
               label="Include regions with no activity"
-              hint="A region at zero is a finding, so it stays visible rather than dropping out of the list."
+              hint="A region with no activity stays visible in the list rather than dropping out of it."
             >
               <StatusPill label="Always" tone="success" />
             </Row>

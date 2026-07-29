@@ -83,8 +83,9 @@ const MarketStructure: React.FC = () => {
         <h3 className="text-subheading font-signifier text-ink">Market structure</h3>
         <p className="text-caption font-sohne text-slate mt-4 mb-20 max-w-[560px]">
           Whether the value flowing through the network depends on a handful of businesses, or
-          on one part of the country. The score below is the standard measure used for this, so
-          it can be compared with figures held elsewhere.
+          on one part of the country. The score below is the Herfindahl-Hirschman Index (HHI) —
+          the same concentration measure competition regulators use — so it can be compared
+          directly with figures held elsewhere.
         </p>
 
         {c?.status !== 'ok' ? (

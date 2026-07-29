@@ -1,5 +1,6 @@
 import React from 'react';
 import { RailStage, RailVariant } from './PaymentRailDiagram';
+import { AXIS, GRID, DATA, PLUM } from '../../lib/chartTokens';
 
 /**
  * The complete payment sequence, drawn as a proper sequence diagram.
@@ -113,13 +114,13 @@ const PaymentSequenceDiagram: React.FC<{ stage: RailStage; variant?: RailVariant
     >
       <defs>
         <marker id="arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="#3D1152" />
+          <path d="M0,0 L10,5 L0,10 z" fill={PLUM} />
         </marker>
         <marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="#675C62" />
+          <path d="M0,0 L10,5 L0,10 z" fill={AXIS} />
         </marker>
         <marker id="arrow-obs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="#E6136C" />
+          <path d="M0,0 L10,5 L0,10 z" fill={DATA} />
         </marker>
       </defs>
 
@@ -127,7 +128,7 @@ const PaymentSequenceDiagram: React.FC<{ stage: RailStage; variant?: RailVariant
       <line
         x1={PAD_X + LANE_W * 4} y1={8}
         x2={PAD_X + LANE_W * 4} y2={HEIGHT - 8}
-        stroke="#F6F1F2" strokeWidth={2} strokeDasharray="2 6"
+        stroke={GRID} strokeWidth={2} strokeDasharray="2 6"
       />
 
       {/* Lane headers + lifelines */}
@@ -141,11 +142,11 @@ const PaymentSequenceDiagram: React.FC<{ stage: RailStage; variant?: RailVariant
               fill={lane.observer ? '#FDEEF2' : '#F6F1F2'}
             />
             <text x={x} y={26} textAnchor="middle" fontSize="13" fontWeight="500"
-                  fill={lane.observer ? '#E6136C' : '#3D1152'} fontFamily="Inter, sans-serif">
+                  fill={lane.observer ? DATA : PLUM} fontFamily="Inter, sans-serif">
               {lane.label[variant]}
             </text>
             <text x={x} y={42} textAnchor="middle" fontSize="11"
-                  fill={lane.observer ? '#E6136C' : '#705C67'} fontFamily="Inter, sans-serif">
+                  fill={lane.observer ? DATA : '#705C67'} fontFamily="Inter, sans-serif">
               {lane.sub[variant]}
             </text>
             <line x1={x} y1={HEAD_H - 8} x2={x} y2={HEIGHT - 12}
@@ -159,7 +160,7 @@ const PaymentSequenceDiagram: React.FC<{ stage: RailStage; variant?: RailVariant
         const y = HEAD_H + STEP_H * i + 18;
         const on = done(stage, s.at);
         const observer = s.from === 'box' || s.to === 'box';
-        const stroke = !on ? '#675C62' : observer ? '#E6136C' : '#3D1152';
+        const stroke = !on ? AXIS : observer ? DATA : PLUM;
         const marker = !on ? 'arrow-off' : observer ? 'arrow-obs' : 'arrow-on';
         const x1 = laneX(s.from);
         const x2 = laneX(s.to);

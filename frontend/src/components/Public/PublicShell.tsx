@@ -31,7 +31,6 @@ const FOOTER_GROUPS: { title: string; links: { name: string; href: string }[] }[
       { name: 'For sellers', href: '/for-merchants' },
       { name: 'For regulators', href: '/for-regulators' },
       { name: 'How it works', href: '/how-it-works' },
-      { name: 'Live demo', href: '/how-it-works#run-it' },
     ],
   },
   {
@@ -135,7 +134,6 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               />
               <p className="text-caption font-sohne text-slate mt-4">{BRAND.tagline}</p>
               <div className="mt-16 flex flex-wrap items-center gap-x-16 gap-y-4">
-                <span className="text-caption font-sohne text-slate">{CONTACT.site}</span>
                 <ObfuscatedEmail
                   user={CONTACT.emailUser}
                   domain={CONTACT.emailDomain}

@@ -4,9 +4,16 @@ import ButtonLink from '../../components/ui/ButtonLink';
 import PublicShell from '../../components/Public/PublicShell';
 import BrowserFrame from '../../components/Public/BrowserFrame';
 import Card from '../../components/ui/Card';
+import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
 import Meter from '../../components/ui/Meter';
 import Roadmap from '../../components/Public/Roadmap';
-import { OVERSIGHT_CAPABILITIES, REGULATOR } from '../../lib/copy/public';
+import {
+  OVERSIGHT_CAPABILITIES,
+  REGULATOR,
+  REGULATOR_QUESTIONS,
+  OBSERVER_BOUNDARIES,
+  SCORING_ERROR_COST,
+} from '../../lib/copy/public';
 import ImageSlot from '../../components/ui/ImageSlot';
 import StatusPill from '../../components/ui/StatusPill';
 
@@ -28,13 +35,6 @@ const COVERAGE = [
   { region: 'Erongo', merchants: 3, share: 55 },
   { region: 'Kavango East', merchants: 2, share: 38 },
   { region: 'Kavango West', merchants: 0, share: 0 },
-];
-
-const QUESTIONS = [
-  'Which regions are being left behind as the country moves off cash?',
-  'Where is unusual activity concentrating, and in which kind of business?',
-  'Is a single operator carrying too much of one region’s volume?',
-  'Did last month’s totals reconcile, and can we show our working?',
 ];
 
 const DEVICE_FLEET = [
@@ -83,12 +83,7 @@ const ForRegulatorsPage: React.FC = () => (
           <Card variant="neutral" className="p-32">
             <p className="text-caption font-sohne text-ash">What it does</p>
             <ul className="mt-16 space-y-12">
-              {[
-                'Listens for payments already completed on the national instant payment rails',
-                'Announces them out loud so the seller knows the money arrived',
-                'Keeps a record of what it heard, and where',
-                'Flags unusual patterns for a person to review afterwards',
-              ].map((x) => (
+              {OBSERVER_BOUNDARIES.does.map((x) => (
                 <li key={x} className="text-body font-sohne text-ink">
                   {x}
                 </li>
@@ -98,21 +93,12 @@ const ForRegulatorsPage: React.FC = () => (
           <Card variant="accent" className="p-32">
             <p className="text-caption font-sohne">What it never touches</p>
             <ul className="mt-16 space-y-12">
-              {[
-                'Start a payment',
-                'Stop, hold or reverse a payment',
-                'Touch anyone’s money or hold a balance',
-                'Change what WayaMe recorded',
-              ].map((x) => (
+              {OBSERVER_BOUNDARIES.neverTouches.map((x) => (
                 <li key={x} className="text-body font-sohne">
                   {x}
                 </li>
               ))}
             </ul>
-            <p className="text-caption font-sohne mt-16 opacity-80">
-              None of these are policies we chose. The system sits beside WayaMe and listens to it.
-              There is no path through this software by which money moves.
-            </p>
           </Card>
         </div>
       </div>
@@ -123,7 +109,7 @@ const ForRegulatorsPage: React.FC = () => (
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink max-w-[620px]">
-          A region at zero is a finding
+          Coverage gaps stay visible
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
           National totals hide the places where nothing is happening. Because every device is
@@ -221,24 +207,21 @@ const ForRegulatorsPage: React.FC = () => (
           Questions it can answer
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-40 gap-y-8 mt-24 max-w-[820px]">
-          {QUESTIONS.map((q) => (
+          {REGULATOR_QUESTIONS.map((q) => (
             <p key={q} className="text-body font-sohne text-ink">
               {q}
             </p>
           ))}
         </div>
         <p className="text-body font-sohne text-slate mt-24 max-w-[620px]">
-          Answered from views like these — each a fresh query against the live record, not a
-          projection or a survey.
+          Answered from views like these — each a fresh query against the live record.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mt-32">
-          {OVERSIGHT_CAPABILITIES.map((c) => (
-            <Card key={c.title} variant="neutral" className="p-24">
-              <h3 className="text-body font-sohne font-450 text-ink">{c.title}</h3>
-              <p className="text-caption font-sohne text-slate mt-8">{c.detail}</p>
-            </Card>
-          ))}
-        </div>
+        <TitleDetailCardGrid
+          items={OVERSIGHT_CAPABILITIES}
+          gridClassName="grid grid-cols-1 md:grid-cols-2 gap-16 mt-32"
+          cardVariant="neutral"
+          titleClassName="text-body font-sohne font-450 text-ink"
+        />
       </div>
     </section>
 
@@ -368,7 +351,7 @@ const ForRegulatorsPage: React.FC = () => (
           {[
             {
               t: 'It cannot deny anyone their money',
-              d: 'Because it sits outside the payment path, no fault here can hold or refuse a payment. A scoring error costs an analyst five minutes, never a seller their sale.',
+              d: `Because it sits outside the payment path, no fault here can hold or refuse a payment. ${SCORING_ERROR_COST}`,
             },
             {
               t: 'Rural sellers are judged fairly',

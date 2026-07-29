@@ -1,6 +1,7 @@
 import React from 'react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import Card from './Card';
+import { DATA } from '../../lib/chartTokens';
 
 interface StatCardProps {
   title: string;
@@ -33,7 +34,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, delta, icon: Icon, tr
         <div className="h-40 mt-12 -mx-4">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <Line type="monotone" dataKey="v" stroke="#E6136C" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="v" stroke={DATA} strokeWidth={2} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>

@@ -2,8 +2,9 @@ import React from 'react';
 import PageHero from '../../components/Public/PageHero';
 import ButtonLink from '../../components/ui/ButtonLink';
 import PublicShell from '../../components/Public/PublicShell';
-import { TRUST_GROUPS, TRUST_ROADMAP } from '../../lib/copy/public';
+import { TRUST_GROUPS, TRUST_ROADMAP, OBSERVER_BOUNDARIES } from '../../lib/copy/public';
 import Card from '../../components/ui/Card';
+import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
 import TrustMark from '../../components/illustration/TrustMark';
 
 /**
@@ -47,14 +48,12 @@ const TrustPage: React.FC = () => (
           <TrustMark kind={g.mark} className="mb-16" />
           <h2 className="text-heading font-signifier text-ink max-w-prose">{g.title}</h2>
           <p className="text-body font-sohne text-slate mt-12 max-w-[560px]">{g.blurb}</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mt-24">
-            {g.items.map((it) => (
-              <Card key={it.t} variant="neutral" className="p-24">
-                <h3 className="text-body font-sohne font-450 text-ink">{it.t}</h3>
-                <p className="text-caption font-sohne text-slate mt-8">{it.d}</p>
-              </Card>
-            ))}
-          </div>
+          <TitleDetailCardGrid
+            items={g.items.map((it) => ({ title: it.t, detail: it.d }))}
+            gridClassName="grid grid-cols-1 md:grid-cols-2 gap-16 mt-24"
+            cardVariant="neutral"
+            titleClassName="text-body font-sohne font-450 text-ink"
+          />
         </div>
       </section>
     ))}
@@ -74,12 +73,7 @@ const TrustPage: React.FC = () => (
           <Card variant="elevated" className="p-24">
             <p className="text-caption font-sohne text-ash">What it does</p>
             <ul className="mt-12 space-y-8">
-              {[
-                'Receive confirmation that a payment succeeded',
-                'Announce the outcome on the device',
-                'Record what it observed, and where',
-                'Flag unusual patterns for human review',
-              ].map((x) => (
+              {OBSERVER_BOUNDARIES.does.map((x) => (
                 <li key={x} className="text-body font-sohne text-ink">{x}</li>
               ))}
             </ul>
@@ -87,12 +81,7 @@ const TrustPage: React.FC = () => (
           <Card variant="elevated" className="p-24">
             <p className="text-caption font-sohne text-ash">What it cannot do</p>
             <ul className="mt-12 space-y-8">
-              {[
-                'Start a payment',
-                'Stop, hold or reverse a payment',
-                'Hold a balance or touch anyone’s money',
-                'Change what the rails recorded',
-              ].map((x) => (
+              {OBSERVER_BOUNDARIES.neverTouches.map((x) => (
                 <li key={x} className="text-body font-sohne text-ink">{x}</li>
               ))}
             </ul>
@@ -154,10 +143,6 @@ const TrustPage: React.FC = () => (
       <div className="max-w-content mx-auto px-24">
         <Card variant="accent" className="p-32">
           <h2 className="text-subheading font-signifier mb-8">What we are building next</h2>
-          <p className="text-caption font-sohne mb-16 opacity-80">
-            Stated plainly, because a partner will establish all of it anyway and finding it
-            undisclosed would cost more than saying it here.
-          </p>
           <ul className="space-y-12">
             {ROADMAP.map((o) => (
               <li key={o.t}>

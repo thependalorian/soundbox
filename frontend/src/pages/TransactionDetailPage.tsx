@@ -74,7 +74,7 @@ const TransactionDetailPage: React.FC = () => {
           <p className="text-heading-sm font-signifier text-ink uppercase">{txn.paymentType}</p>
         </Card>
         <Card variant="neutral" className="p-20">
-          <p className="text-caption font-sohne text-slate">Fraud score</p>
+          <p className="text-caption font-sohne text-slate">Anomaly score</p>
           <p className={`text-heading-sm font-signifier ${(txn.anomalyScore ?? 0) > 0.7 ? 'text-status-danger' : 'text-ink'}`}>
             {((txn.anomalyScore ?? 0) * 100).toFixed(0)}%
           </p>

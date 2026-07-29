@@ -1,4 +1,5 @@
 import React from 'react';
+import { DATA } from '../../lib/chartTokens';
 
 interface SparklineProps {
   values: number[];
@@ -50,8 +51,8 @@ const Sparkline: React.FC<SparklineProps> = ({
       aria-label={label ?? 'Trend'}
       preserveAspectRatio="none"
     >
-      {filled && <path d={area} fill="#E6136C" opacity={0.08} />}
-      <path d={line} fill="none" stroke="#E6136C" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+      {filled && <path d={area} fill={DATA} opacity={0.08} />}
+      <path d={line} fill="none" stroke={DATA} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
 };

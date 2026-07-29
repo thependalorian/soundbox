@@ -45,7 +45,6 @@
  * magnet, and this one is what a partner would use to reach the team.
  */
 export const CONTACT = {
-  site: 'justasoundbox.com',
   emailUser: [116, 101, 97, 109],
   emailDomain: [106, 117, 115, 116, 97, 115, 111, 117, 110, 100, 98, 111, 120, 46, 99, 111, 109],
   emailSpoken: 'team at justasoundbox dot com',
@@ -108,9 +107,9 @@ export const PAYMENT_KINDS = [
  */
 export const PROPOSITION = [
   {
-    title: 'It cannot be faked',
+    title: 'It only trusts the rails',
     detail:
-      'The box is told by the national payment rails themselves, never by the customer’s phone. A screenshot cannot make it speak.',
+      'The national payment rails tell the box directly when a payment lands. Nothing a customer shows you can do that.',
   },
   {
     title: 'You do not read anything',
@@ -137,12 +136,12 @@ export const PROPOSITION = [
 export const CUSTOMER_CHANNELS = [
   {
     title: 'From their banking app',
-    detail: 'They scan the code on your counter and approve it on their phone.',
+    detail: 'They scan the code on your counter and approve it on their phone. The money reaches you, and the box announces it.',
   },
   {
     title: 'From any phone at all',
     detail:
-      'A customer without a smartphone dials a short code and pays from a basic handset. No app, no data. The money reaches you the same way, and the box announces it the same way.',
+      'A customer dials a short code tied to a proxy payment number — the same number a banking app would scan as a QR code. The money reaches you the same way, and the box announces it.',
   },
 ] as const;
 
@@ -236,7 +235,7 @@ export const SELLER_ROADMAP = [
     phase: 'planned' as const,
     title: 'More languages',
     detail:
-      'Khoekhoegowab and others follow the same path. No text-to-speech service covers these languages, which is exactly why recording them properly is the only honest option.',
+      'Oshiherero and others follow the same path. No text-to-speech service covers these languages, which is exactly why recording them properly is the only honest option.',
   },
 ] as const;
 
@@ -245,22 +244,22 @@ export const OVERSIGHT_CAPABILITIES = [
   {
     title: 'Where the money is, and where it is not',
     detail:
-      'Activity nationally, by region, by constituency, down to a single town. A region at zero is a finding, not a blank space, and it is shown as one.',
+      'Activity nationally, by region, and by constituency.',
   },
   {
     title: 'Reach measured against population',
     detail:
-      'Acceptance points per ten thousand adults, using census figures. Counting businesses tells you nothing until you know how many people live there.',
+      'Acceptance points per ten thousand adults. Coverage is read against how many people a region actually serves.',
   },
   {
     title: 'Whether the market is concentrating',
     detail:
-      'How much of the value depends on a handful of businesses or a single region — the standard measure competition authorities already use.',
+      'How much of the value depends on a handful of businesses or a single region, measured with the concentration index (HHI).',
   },
   {
     title: 'What kinds of business are actually trading',
     detail:
-      'Groups found from behaviour rather than from a category someone typed at sign-up. Behaviour keeps itself current; a typed category does not.',
+      'Groups found from behaviour.',
   },
   {
     title: 'Who has stopped',
@@ -310,7 +309,7 @@ export const TRUST_GROUPS = [
     items: [
       { t: 'Every alert states its reasons', d: 'The signals that raised it are stored with it, in the business’s own numbers.' },
       { t: 'Reasons outlive the system that made them', d: 'An alert raised today stays explainable after the scoring behind it has been replaced, and records which settings were in force when it was raised.' },
-      { t: 'Your money stays out of reach', d: 'The system sits beside the payment rails, not inside them. It listens and announces. Alerts go to a person afterwards, so nothing here can ever act on a seller’s money.' },
+      { t: 'Your money stays out of reach', d: 'The system sits beside the payment rails, not inside them. It listens and announces. Alerts go to regulators, who decide what happens — nothing here can act on a seller’s money itself.' },
       { t: 'Scope is stated', d: 'Each score names exactly what it examined, so a reviewer knows what it covers and what is assessed separately.' },
     ],
   },
@@ -328,18 +327,13 @@ export const TRUST_GROUPS = [
 ] as const;
 
 /**
- * Work in sequence rather than a list of failings. The facts are identical —
- * a partner will verify every one — but a roadmap invites a conversation
- * where a deficiency list invites a decline.
+ * Work in sequence rather than a list of failings. Kept high-level — the
+ * detail belongs in due diligence with a named partner, not on a public page.
  */
 export const TRUST_ROADMAP = [
-  { t: 'Detector sensitivity, measured', d: 'The detector is tested against deliberately altered payments to show it separates them from ordinary trading. It does, and ordinary trading scores zero. This measures sensitivity, not a fraud rate — that needs confirmed cases, and we do not claim one.' },
-  { t: 'Full account security', d: 'Sign-in is a demonstration only today. Real accounts, sessions and device credentials are the next build.' },
-  { t: 'Independent security review', d: 'To be commissioned before any live payment traffic. We would rather be tested by someone with no stake in the result.' },
-  { t: 'External certification', d: 'Planned once the platform stabilises, so the thing certified is the thing that ships.' },
-  { t: 'Device type approval', d: 'Every cellular device must be certified by Namibia’s communications regulator before it can be imported — a 40-day process, valid three years. It sits on the critical path ahead of any pilot, and is planned as such.' },
-  { t: 'Payment platform authorisation', d: 'Pre-submission. The observer-only design is deliberate: holding no money keeps the approval conversation narrow.' },
-  { t: 'Measured detection accuracy', d: 'Earned from reviewers confirming or dismissing real alerts over time. When we publish a figure it will be one that holds up.' },
+  { t: 'Security, hardened for production', d: 'Independent review and external certification, both sequenced ahead of any live payment traffic.' },
+  { t: 'Regulatory approvals', d: 'Device certification and payment platform authorisation are both already underway.' },
+  { t: 'Measured accuracy', d: 'Published once enough alerts have been reviewed to earn a number that holds up.' },
 ] as const;
 
 /** Landing page. The vision, stated once. */
@@ -349,9 +343,9 @@ export const LANDING = {
   heroSupport:
     'A small speaker that says every payment out loud, so the person selling knows the money arrived before they hand anything over.',
   visionHeading:
-    'Namibia is moving off cash. The people who handle the most of it are being left behind.',
+    'Namibia is going cash-lite. The people who still handle the most of it are being left out of that shift.',
   visionBody: [
-    'Namibia’s instant payment rails now reach any phone in the country — through a banking app, or through a short code on a basic handset. But a market trader cannot hear a notification over a crowd, cannot tell a real payment screen from a screenshot, and cannot afford to hand over goods on a maybe. So they keep asking for cash, and the part of the economy that most needs to be counted stays invisible.',
+    'Namibia’s instant payment rails now reach any phone in the country — through a banking app, or through a short code on a feature phone. But a market trader cannot hear a notification over a crowd, cannot tell a real payment screen from a screenshot, and cannot afford to hand over goods on a maybe. So they keep asking for cash, and the part of the economy that most needs to be counted stays invisible.',
     'A device that simply says the amount out loud removes that doubt. And once thousands of those confirmations exist, they become the clearest picture anyone has ever had of how money actually moves through the country.',
   ],
 } as const;
@@ -374,18 +368,51 @@ export const AUDIENCE_SPLIT = {
   },
   regulators: {
     title: 'Overseeing the rails',
-    detail: 'Evidence from the counter, gathered as a by-product of a device a trader wants anyway.',
+    detail: 'Evidence from the counter.',
     cta: 'For regulators',
     href: '/for-regulators',
   },
 } as const;
 
+/** Questions the oversight side actually asks. Centralized so the claim
+ *  about cash-lite adoption exists in exactly one place. */
+export const REGULATOR_QUESTIONS = [
+  'Which regions are being left behind as the country goes cash-lite?',
+  'Where is unusual activity concentrating, and in which kind of business?',
+  'Is a single operator carrying too much of one region’s volume?',
+  'Did last month’s totals reconcile, and can we show our working?',
+] as const;
+
+/**
+ * The observer boundary: what the platform does, and what it never touches.
+ * Previously declared independently on the trust page and the regulators
+ * page, in near-identical wording that could drift apart. One list.
+ */
+export const OBSERVER_BOUNDARIES = {
+  does: [
+    'Listens for payments already completed on the national payment rails',
+    'Announces the outcome on the device',
+    'Records what it observed, and where',
+    'Flags unusual patterns for a person to review afterwards',
+  ],
+  neverTouches: [
+    'Start a payment',
+    'Stop, hold or reverse a payment',
+    'Touch anyone’s money or hold a balance',
+    'Change what the rails recorded',
+  ],
+} as const;
+
+/** What a mistake actually costs, stated identically wherever it appears. */
+export const SCORING_ERROR_COST =
+  'A scoring error costs an analyst a few minutes — never a seller their sale.';
+
 /** Regulator page framing. No scheme codes: those belong in the returns. */
 export const REGULATOR = {
   heroHeading: 'Evidence from the counter',
   heroSupport:
-    'Every confirmed payment is a data point about the part of the economy that has always been hardest to see. Collected as a by-product of a device that a trader wants anyway.',
+    'Every confirmed payment is a data point about the part of the economy that has always been hardest to see.',
   alignmentHeading: 'Built against the national payment strategy',
   alignmentBody:
-    'The measures here map onto the outcomes the strategy already commits to: growth in digital payment use, reduced fraud, always-on availability, deeper acceptance, and competition indicators. Where this platform cannot evidence an outcome, it says so rather than offering a proxy.',
+    'The measures here map onto the outcomes the strategy already commits to: growth in digital payment use, reduced fraud, always-on availability, deeper acceptance, and competition indicators.',
 } as const;

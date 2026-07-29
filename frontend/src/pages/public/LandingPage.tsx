@@ -5,6 +5,7 @@ import PageHero from '../../components/Public/PageHero';
 import AudienceSplit from '../../components/Public/AudienceSplit';
 import ImageSlot from '../../components/ui/ImageSlot';
 import Card from '../../components/ui/Card';
+import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
 import { BRAND, LANDING, PROPOSITION, AUDIENCES, CUSTOMER_CHANNELS, OVERSIGHT_CAPABILITIES } from '../../lib/copy/public';
 
 /**
@@ -87,14 +88,10 @@ const LandingPage: React.FC = () => {
           <h2 className="text-heading font-signifier text-ink max-w-[560px]">
             Why a sound, and not a screen
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-16 mt-40">
-            {PROPOSITION.map((c) => (
-              <Card key={c.title} variant="elevated" className="p-24">
-                <h3 className="text-subheading font-signifier text-ink">{c.title}</h3>
-                <p className="text-caption font-sohne text-slate mt-8">{c.detail}</p>
-              </Card>
-            ))}
-          </div>
+          <TitleDetailCardGrid
+            items={PROPOSITION}
+            gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-16 mt-40"
+          />
         </div>
       </section>
 
@@ -145,20 +142,16 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Your customer does not need a smartphone */}
+      {/* A short code reaches any phone */}
       <section className="bg-blush py-96">
         <div className="max-w-content mx-auto px-24">
           <h2 className="text-heading font-signifier text-ink max-w-[560px]">
-            Your customer does not need a smartphone
+            A short code reaches any phone
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mt-40">
-            {CUSTOMER_CHANNELS.map((c) => (
-              <Card key={c.title} variant="elevated" className="p-24">
-                <h3 className="text-subheading font-signifier text-ink">{c.title}</h3>
-                <p className="text-caption font-sohne text-slate mt-8">{c.detail}</p>
-              </Card>
-            ))}
-          </div>
+          <TitleDetailCardGrid
+            items={CUSTOMER_CHANNELS}
+            gridClassName="grid grid-cols-1 md:grid-cols-2 gap-16 mt-40"
+          />
         </div>
       </section>
 
@@ -169,17 +162,13 @@ const LandingPage: React.FC = () => {
             What the country gets
           </h2>
           <p className="text-body font-sohne text-slate mt-16 max-w-prose">
-            Every confirmed payment is also a measurement. Collected as a by-product of a device
-            a trader wants anyway, not as a survey someone has to answer.
+            Every confirmed payment is also a measurement, collected as a by-product of a device
+            sellers use to know a payment actually landed.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40">
-            {[OVERSIGHT_CAPABILITIES[0], OVERSIGHT_CAPABILITIES[1], OVERSIGHT_CAPABILITIES[2]].map((c) => (
-              <Card key={c.title} variant="elevated" className="p-24">
-                <h3 className="text-subheading font-signifier text-ink">{c.title}</h3>
-                <p className="text-caption font-sohne text-slate mt-8">{c.detail}</p>
-              </Card>
-            ))}
-          </div>
+          <TitleDetailCardGrid
+            items={[OVERSIGHT_CAPABILITIES[0], OVERSIGHT_CAPABILITIES[1], OVERSIGHT_CAPABILITIES[2]]}
+            gridClassName="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40"
+          />
         </div>
       </section>
 

@@ -12,6 +12,7 @@ import {
 import SoundBoxDevice from '../../components/Public/SoundBoxDevice';
 import ImageSlot from '../../components/ui/ImageSlot';
 import Card from '../../components/ui/Card';
+import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
 import Roadmap from '../../components/Public/Roadmap';
 
 /**
@@ -39,7 +40,7 @@ const DEVICE_OUTCOMES = [
   { t: 'Works outdoors, as standard', d: 'Rain, dust or a dropped charge: IP65 sealed, no case needed.' },
   { t: 'A full day on one charge', d: '2000mAh, charges from any USB-C cable — the same one as a modern phone.' },
   { t: 'Finds a signal where your stall is', d: '4G with automatic 2G fallback, so a weak signal slows it down instead of stopping it.' },
-  { t: 'Cannot be tricked into announcing a fake payment', d: 'A secure element and tamper detection sit between the network and the speaker.' },
+  { t: 'Cannot be tricked into announcing a payment that never happened', d: 'A secure element and tamper detection sit between the network and the speaker.' },
   { t: 'Sits on a counter or clips to a belt', d: '85mm x 50mm x 25mm, 120g.' },
 ] as const;
 
@@ -63,18 +64,14 @@ const ForMerchantsPage: React.FC = () => (
           &ldquo;They showed me the screen. The money never came.&rdquo;
         </h2>
         <p className="text-body font-sohne text-paper opacity-90 mt-16 max-w-[560px]">
-          A screen can be faked. A message can be old. And in a busy market you cannot hear your
-          phone anyway. So you either hold up the queue to check, or you take the risk. Most
-          people take the risk, and some of them lose.
+          A screen can be shown with no payment behind it. A message can be old. And in a busy
+          market you cannot hear your phone anyway. So you either hold up the queue to check, or
+          you take the risk. Most people take the risk, and some of them lose.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40">
-          {PROPOSITION.slice(0, 3).map((c) => (
-            <Card key={c.title} variant="elevated" className="p-24">
-              <h3 className="text-subheading font-signifier text-ink">{c.title}</h3>
-              <p className="text-caption font-sohne text-slate mt-8">{c.detail}</p>
-            </Card>
-          ))}
-        </div>
+        <TitleDetailCardGrid
+          items={PROPOSITION.slice(0, 3)}
+          gridClassName="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40"
+        />
       </div>
     </section>
 
@@ -102,10 +99,11 @@ const ForMerchantsPage: React.FC = () => (
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink text-center">
-          Your customer does not need a smartphone
+          A short code reaches any phone
         </h2>
         <p className="text-body font-sohne text-slate text-center mt-16 max-w-[620px] mx-auto">
-          There are two ways to pay you, and only one of them needs a modern phone.
+          There are two ways to pay you — through a banking app, or through a short code tied to
+          your proxy payment number.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mt-40">
           {CUSTOMER_CHANNELS.map((c) => (
@@ -134,14 +132,12 @@ const ForMerchantsPage: React.FC = () => (
           Not only customers at the counter. If money reaches your business on the national rails,
           the box says so.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40">
-          {PAYMENT_KINDS.map((c) => (
-            <Card key={c.title} variant="neutral" className="p-24">
-              <h3 className="text-body font-sohne font-450 text-ink">{c.title}</h3>
-              <p className="text-caption font-sohne text-slate mt-8">{c.detail}</p>
-            </Card>
-          ))}
-        </div>
+        <TitleDetailCardGrid
+          items={PAYMENT_KINDS}
+          gridClassName="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40"
+          cardVariant="neutral"
+          titleClassName="text-body font-sohne font-450 text-ink"
+        />
       </div>
     </section>
 
@@ -218,14 +214,12 @@ const ForMerchantsPage: React.FC = () => (
     <section className="bg-blush py-96">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-ink text-center">Who it is for</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-16 mt-40">
-          {AUDIENCES.map((w) => (
-            <Card key={w.title} variant="neutral" className="p-24">
-              <h3 className="text-body font-sohne font-450 text-ink">{w.title}</h3>
-              <p className="text-caption font-sohne text-slate mt-8">{w.detail}</p>
-            </Card>
-          ))}
-        </div>
+        <TitleDetailCardGrid
+          items={AUDIENCES}
+          gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-16 mt-40"
+          cardVariant="neutral"
+          titleClassName="text-body font-sohne font-450 text-ink"
+        />
       </div>
     </section>
 

@@ -81,7 +81,7 @@ const AnomalyAlertDetailPage: React.FC = () => {
 
   return (
     <div>
-      <TextLink to="/flagged" arrow={false} className="!py-0 mb-16 inline-block">&larr; Fraud Alerts</TextLink>
+      <TextLink to="/flagged" arrow={false} className="!py-0 mb-16 inline-block">&larr; Flagged</TextLink>
       <div className="flex items-start justify-between mb-32">
         <div>
           <h1 className="text-heading font-signifier text-ink">{merchant?.legalName ?? alert.merchantId}</h1>
