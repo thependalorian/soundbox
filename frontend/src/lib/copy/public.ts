@@ -410,25 +410,64 @@ export const BUSINESS_QUESTIONS = {
  */
 export const WHY_THIS_MATTERS = {
   heading: 'Why this matters',
-  lead: 'The Bank is the sole regulator and overseer of the national payment system. It does not only set the direction — it has to be able to show the direction was reached, in numbers that hold up when someone checks them.',
+  lead: 'A national payment system is held to a plain standard: that it works safely, efficiently and effectively for everyone it is meant to serve. The hardest part of that to evidence is the last one — whether the move to digital is genuinely reaching the businesses and the people who still deal mostly in cash.',
   points: [
     {
       title: 'The rails are visible. The counter is not.',
       detail:
-        'Settlement records say what cleared. They cannot say whether a trader in a market will accept digital at all, whether an agent has run dry by Thursday, or whether a business onboarded in March is still trading in June. That is where inclusion is won or lost, and it is the hardest place in the economy to measure — nobody installs an instrument in an informal stall. This one is already there, because the seller wants it there.',
+        'Settlement records say what cleared. They cannot say whether a trader in a market will accept digital at all, whether an agent has run dry by Thursday, or whether a business onboarded in March is still trading in June. That is where inclusion is won or lost, and it is the hardest place in the economy to observe — nobody installs an instrument in an informal stall. This one is already there, because the seller needs it. Oversight gains sight of the acceptance edge: adoption evidenced by region, by constituency and by kind of business, rather than inferred from a national total.',
     },
     {
       title: 'A reduction needs a baseline nobody has yet.',
       detail:
-        'Showing that payment fraud is falling requires a series to measure the fall against, and none exists for this part of the economy. Every verdict a reviewer records here — confirmed, dismissed, sent back for more — is one entry in the first honest version of that series. It is why we will not publish a fraud rate we cannot defend: the baseline is worth more than the headline, and inventing the headline destroys the baseline.',
+        'Showing that payment fraud is falling requires a series to measure the fall against, and none exists for this part of the economy. Every verdict a reviewer records — confirmed, dismissed, sent back for more — is one entry in the first honest version of that series, and it accrues from the first day the queue is worked. That record is what a claim of falling fraud can eventually rest on, which is also why no rate is published here before it can be defended.',
     },
     {
-      title: 'We move the number we measure.',
+      title: 'Acceptance and evidence grow together.',
       detail:
-        'Every box on a counter makes one more cash-preferring business willing to accept digital payment. The evidence is a by-product of a device that earns its place for an entirely different reason — the seller needing to know the money arrived. And because nothing here takes a fee on a payment, there is no version of this where we profit from a figure we also report.',
+        'Every box on a counter is one more business willing to take digital payment, in the segment that has been hardest to reach — and the record it produces is a by-product of the seller’s own need to know the money arrived. One programme therefore serves two ends at once: acceptance deepened where it is thinnest, and the evidence of that deepening produced as it happens, without a separate survey to commission. No fee is taken on any payment announced, so what is counted carries no interest in its own result.',
     },
   ],
 } as const;
+
+/**
+ * Where the evidence base goes next.
+ *
+ * Roadmap framing per the rule at the top of this file: what is coming,
+ * not what is missing — and nothing marked `live` that is not actually
+ * running. The distinction matters here more than usual.
+ *
+ * **Today the record covers payments a device announced.** A transaction
+ * row is written in exactly one place (`backend/app/api/payments.py`,
+ * inside the device-authenticated verify path), so the measures on this
+ * page are built from SoundBox-observed activity. Reporting across every
+ * payment the rails carry is a real and much larger capability — it turns
+ * each measure from an indication into a national figure — but the ingest
+ * for it is not written, so it is `building`, not `live`. Marking it
+ * otherwise would be the same defect as the invented growth figures this
+ * site removed earlier: a claim a technical reviewer can check and
+ * disprove in one question.
+ */
+export const OVERSIGHT_ROADMAP = [
+  {
+    phase: 'live' as const,
+    title: 'Evidence from every device',
+    detail:
+      'Each payment a box announces is recorded with where it happened, what kind it was and how it was funded. Every measure on this page is built from that record.',
+  },
+  {
+    phase: 'building' as const,
+    title: 'Reporting across the whole rail',
+    detail:
+      'The same reporting applied to every payment the national rails carry, not only those a device announced — which turns each measure here from an indication into a national figure. The measures are already written; the integration is the work.',
+  },
+  {
+    phase: 'planned' as const,
+    title: 'Published detection accuracy',
+    detail:
+      'Once enough alerts have been confirmed or dismissed by reviewers, how often the scoring is right becomes a measured number rather than an asserted one.',
+  },
+];
 
 /**
  * Regulator page framing. No scheme codes and no named strategy documents:

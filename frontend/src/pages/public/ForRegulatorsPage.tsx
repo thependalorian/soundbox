@@ -5,10 +5,12 @@ import PublicShell from '../../components/Public/PublicShell';
 import BrowserFrame from '../../components/Public/BrowserFrame';
 import QuestionHeading from '../../components/Public/QuestionHeading';
 import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
+import Roadmap from '../../components/Public/Roadmap';
 import {
   ASK_ANYTHING,
   BUSINESS_QUESTIONS,
   OVERSIGHT_CAPABILITIES,
+  OVERSIGHT_ROADMAP,
   REGULATOR,
   WHY_THIS_MATTERS,
 } from '../../lib/copy/public';
@@ -380,6 +382,23 @@ const ForRegulatorsPage: React.FC = () => (
           cardVariant="elevated"
           titleClassName="text-body font-sohne font-450 text-ink"
         />
+
+        {/* What the record covers today, and what it will cover. Kept
+            explicit because the difference between device-observed
+            activity and the whole rail is the difference between an
+            indication and a national figure — and only one of those is
+            running. */}
+        <div className="mt-64 pt-64 border-t border-mist">
+          <h3 className="text-subheading font-signifier text-ink max-w-[620px]">
+            How far the record reaches
+          </h3>
+          <p className="text-body font-sohne text-slate mt-16 max-w-[620px]">
+            Every measure above is built from payments this platform actually observed. Widening
+            that to each payment the rails carry is the next piece of work, and it is stated here
+            as work rather than as something already done.
+          </p>
+          <Roadmap className="mt-32" items={OVERSIGHT_ROADMAP.map((r) => ({ ...r }))} />
+        </div>
       </div>
     </section>
 
