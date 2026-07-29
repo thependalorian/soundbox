@@ -89,7 +89,7 @@ const TONES: Record<HeroTone, { surface: string; sheen: string; mark: string }> 
     sheen: 'bg-hero-sheen-mechanism',
     mark: 'w-[420px] bottom-[2%] left-1/2 -translate-x-1/2 opacity-[0.12]',
   },
-  // Trust: plum-led and still, the mark barely there.
+  // Vacancies: plum-led and still, the mark barely there.
   assurance: {
     surface: 'bg-hero-assurance',
     sheen: 'bg-hero-sheen-assurance',

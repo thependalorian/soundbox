@@ -26,28 +26,30 @@ const DeviceTable: React.FC<DeviceTableProps> = ({ devices, merchants, loading }
 
   return (
     <Card variant="elevated" className="overflow-hidden">
-      <table className="min-w-full">
-        <thead className="border-b border-mist">
-          <tr>
-            {['Device', 'Merchant', 'Status', 'Battery', 'Last Heartbeat'].map((h) => (
-              <th key={h} className="px-20 py-12 text-left text-caption font-sohne text-ash">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-mist">
-          {devices.map((device) => (
-            <tr key={device.id} className="hover:bg-blush-tint">
-              <td className="px-20 py-16 text-body font-sohne text-ink">
-                <Link to={`/devices/${device.id}`} className="hover:underline">{device.deviceCode}</Link>
-              </td>
-              <td className="px-20 py-16 text-body font-sohne text-slate">{merchantName(device.merchantId)}</td>
-              <td className="px-20 py-16"><StatusPill label={device.status} tone={TONE[device.status]} /></td>
-              <td className="px-20 py-16 text-body font-sohne text-ink">{device.batteryLevel}%</td>
-              <td className="px-20 py-16 text-caption font-sohne text-slate">{new Date(device.lastHeartbeatAt).toLocaleString()}</td>
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="border-b border-mist">
+            <tr>
+              {['Device', 'Merchant', 'Status', 'Battery', 'Last Heartbeat'].map((h) => (
+                <th key={h} className="px-20 py-12 text-left text-caption font-sohne text-ash">{h}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-mist">
+            {devices.map((device) => (
+              <tr key={device.id} className="hover:bg-blush-tint">
+                <td className="px-20 py-16 text-body font-sohne text-ink">
+                  <Link to={`/devices/${device.id}`} className="hover:underline">{device.deviceCode}</Link>
+                </td>
+                <td className="px-20 py-16 text-body font-sohne text-slate">{merchantName(device.merchantId)}</td>
+                <td className="px-20 py-16"><StatusPill label={device.status} tone={TONE[device.status]} /></td>
+                <td className="px-20 py-16 text-body font-sohne text-ink">{device.batteryLevel}%</td>
+                <td className="px-20 py-16 text-caption font-sohne text-slate">{new Date(device.lastHeartbeatAt).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Card>
   );
 };

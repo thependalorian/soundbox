@@ -181,6 +181,7 @@ const ReportsPage: React.FC = () => {
       {active === 'flag-trend' && flagTrend && (
         <Card variant="elevated" className="p-24">
           <h2 className="text-subheading font-signifier text-ink mb-16">What is being flagged, by month</h2>
+          <div className="overflow-x-auto">
           <table className="w-full text-body font-sohne mb-24">
             <thead><tr className="text-caption text-ash text-left"><th className="py-8">Month</th><th className="py-8">Total alerts</th><th className="py-8">High risk</th><th className="py-8">Typical score</th></tr></thead>
             <tbody className="divide-y divide-mist">
@@ -189,7 +190,9 @@ const ReportsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
           <h3 className="text-body font-sohne font-500 text-ink mb-8">By signal</h3>
+          <div className="overflow-x-auto">
           <table className="w-full text-body font-sohne">
             <tbody className="divide-y divide-mist">
               {flagTrend.by_type.map((t) => (
@@ -197,6 +200,7 @@ const ReportsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
           <ValidationList
             checks={[
               {
@@ -216,6 +220,7 @@ const ReportsPage: React.FC = () => {
           <p className="text-body font-sohne text-ink mb-16">
             {geo.length} merchants across {new Set(geo.map((g) => g.regionCode)).size} of {NAMIBIA_REGION_COUNT} regions.
           </p>
+          <div className="overflow-x-auto">
           <table className="w-full text-body font-sohne">
             <thead><tr className="text-caption text-ash text-left"><th className="py-8">Region</th><th className="py-8">Merchants</th><th className="py-8">Devices</th><th className="py-8">Transactions</th></tr></thead>
             <tbody className="divide-y divide-mist">
@@ -232,6 +237,7 @@ const ReportsPage: React.FC = () => {
               })}
             </tbody>
           </table>
+          </div>
           <ValidationList
             checks={[
               {

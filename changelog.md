@@ -4,6 +4,74 @@ This changelog tracks the implementation progress of the SoundBox project. The b
 
 ---
 
+## [1.18.0] - 2026-07-29 - Frontend Copy Audit, Trust/Privacy Merge, Vacancies
+
+A documentation-driven audit against every `.md` file in the repo surfaced
+duplicated JSX/copy, hardcoded chart colours bypassing `chartTokens.ts`,
+fraud/anomaly naming drift, and public-page wording that overstated or
+under-explained claims the docs didn't back. Fixed in place rather than
+flagged for later.
+
+#### Fixed — duplication
+- `components/ui/TitleDetailCardGrid.tsx` (new) replaces eight identical
+  Card-block copies across the public pages.
+- `StatCard`, `Sparkline`, `TransactionChart`, `PaymentSequenceDiagram`,
+  `GeoDistributionMap` now import `DATA`/`AXIS`/`GRID`/`STATUS`/`PLUM` from
+  `lib/chartTokens.ts` instead of pasting hex literals per call site — the
+  exact anti-pattern the token file's own header warns already happened once.
+- `OBSERVER_BOUNDARIES` and `SCORING_ERROR_COST` (new, `lib/copy/public.ts`)
+  centralise the "what it does / never touches" list and the scoring-error
+  cost line, previously restated independently on two or three pages each.
+- `ForRegulatorsPage`'s local `QUESTIONS` array (which duplicated a claim
+  already in `lib/copy/public.ts`) is now `REGULATOR_QUESTIONS`, sourced
+  from the shared copy module.
+
+#### Fixed — naming and claims
+- `TransactionDetailPage` and `AnomalyAlertDetailPage`: "Fraud score" /
+  "Fraud Alerts" → "Anomaly score" / "Flagged", matching the fraud→anomaly
+  rename everywhere else (`docs/architecture.md` §5).
+- Dropped the unsupported "a device a trader wants anyway" claim (three
+  places) in favour of the seller's actual, statable need — knowing a
+  payment landed.
+- "Namibia is moving off cash" → "going cash-lite" (cash isn't going away).
+- "Your customer does not need a smartphone" reframed around the actual
+  mechanism (a short code tied to a proxy payment number) instead of
+  defining the channel by what the customer's phone lacks.
+- "The standard measure competition authorities already use" now names the
+  measure (the Herfindahl-Hirschman Index) instead of gesturing at it.
+- Public privacy copy states data-protection standards (GDPR, POPIA) in
+  full rather than as abbreviations, and no longer frames the commitment
+  around Namibia's data protection law not yet being in force.
+
+#### Changed — Trust page folded into Privacy
+`/trust` is gone. Its "it cannot touch a payment" section duplicated
+Privacy's own automated-decisions section, so that was dropped rather than
+merged; the record-integrity and access-control sections, the
+detector-sensitivity table, and the security/regulatory roadmap moved onto
+`/privacy`, which now carries both promises — restraint on personal data and
+integrity of the record — as one argument instead of two pages making
+related claims separately. Every inbound link (`PublicShell` nav and
+footer, `HowItWorksPage`'s closing CTA) updated; dead `TRUST_GROUPS` /
+`TRUST_ROADMAP` exports removed from `lib/copy/public.ts`.
+
+#### Added — `/vacancies`
+States the assembly-plant plan from `docs/business-plan.md` §5.2.2 (import →
+local assembly → local manufacturing) and ties it to faster local repairs.
+No fabricated job listings — nothing is marked as a live opening, since none
+exist yet; the page asks for interest ahead of a role being posted instead.
+Added to the header nav and footer, replacing Trust's slot.
+
+#### Also
+- Four data tables (`DeviceTable`, `TransactionsPage`, `MerchantsPage`,
+  three tables in `ReportsPage`) had no horizontal-scroll wrapper and would
+  overflow the layout on a narrow screen; wrapped in `overflow-x-auto`.
+- Public nav logo: 24px → 28px.
+- `PublicShell` footer no longer links to a "Live demo" (folded into
+  How It Works); the unused `CONTACT.site` field and its footer reference
+  were removed together.
+
+---
+
 ## [1.17.4] - 2026-07-28 - Browser Audit of the Public Site
 
 Ran the built site in a browser rather than reasoning about the source, and

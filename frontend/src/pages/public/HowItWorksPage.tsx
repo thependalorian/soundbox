@@ -216,7 +216,7 @@ const HowItWorksPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Closing — no sign-in. This page has made its case; Trust is the
+      {/* Closing — no sign-in. This page has made its case; Privacy is the
           next honest question a reader who is not yet ready to sign in
           would ask. */}
       <section className="bg-paper py-96 text-center">
@@ -226,7 +226,7 @@ const HowItWorksPage: React.FC = () => {
             What is tested, what is safeguarded by design, and what is still being built —
             stated plainly rather than assumed.
           </p>
-          <ButtonLink to="/trust" className="mt-32">See how trust is built in</ButtonLink>
+          <ButtonLink to="/privacy" className="mt-32">See how trust is built in</ButtonLink>
         </div>
       </section>
     </PublicShell>

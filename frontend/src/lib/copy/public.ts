@@ -283,59 +283,6 @@ export const OVERSIGHT_CAPABILITIES = [
   },
 ] as const;
 
-/**
- * Trust properties, grouped as the trust page presents them.
- *
- * Moved here from the page itself. A flat duplicate briefly existed in this
- * module alongside the page's own copy, which is precisely the two-sources
- * problem this file exists to prevent.
- */
-export const TRUST_GROUPS = [
-  {
-    mark: 'record' as const,
-    title: 'The record cannot be quietly changed',
-    blurb: 'What happened stays as it happened, so a dispute can always be settled by looking.',
-    items: [
-      { t: 'History is added to, never overwritten', d: 'A correction is a new entry that sits alongside the original. Nothing is edited in place.' },
-      { t: 'Nothing is truly deleted', d: 'Records are marked as removed rather than erased, so the trail stays complete.' },
-      { t: 'Money is stored exactly', d: 'Amounts are held as exact figures with their currency, never as approximations that drift by a cent.' },
-      { t: 'Rules live in one place', d: 'Every decision happens in code that can be read and reviewed, not hidden inside the database.' },
-    ],
-  },
-  {
-    mark: 'why' as const,
-    title: 'You can always ask why',
-    blurb: 'An alert nobody can question is an alert everybody eventually ignores.',
-    items: [
-      { t: 'Every alert states its reasons', d: 'The signals that raised it are stored with it, in the business’s own numbers.' },
-      { t: 'Reasons outlive the system that made them', d: 'An alert raised today stays explainable after the scoring behind it has been replaced, and records which settings were in force when it was raised.' },
-      { t: 'Your money stays out of reach', d: 'The system sits beside the payment rails, not inside them. It listens and announces. Alerts go to regulators, who decide what happens — nothing here can act on a seller’s money itself.' },
-      { t: 'Scope is stated', d: 'Each score names exactly what it examined, so a reviewer knows what it covers and what is assessed separately.' },
-    ],
-  },
-  {
-    mark: 'access' as const,
-    title: 'People see only what they should',
-    blurb: 'A seller, an analyst and an administrator are shown genuinely different systems.',
-    items: [
-      { t: 'Access is enforced, not hidden', d: 'Restricted pages are blocked outright, not merely left out of a menu.' },
-      { t: 'A seller sees only their own business', d: 'Their devices, their payments, their alerts. Nothing belonging to anyone else.' },
-      { t: 'Identity documents are never sent back', d: 'An owner’s national identity number is recorded once and never returned to any screen. A reviewer sees that the check was done, not the number.' },
-      { t: 'Credentials stay out of the code', d: 'Secrets are supplied by the environment; what is committed contains placeholders only.' },
-    ],
-  },
-] as const;
-
-/**
- * Work in sequence rather than a list of failings. Kept high-level — the
- * detail belongs in due diligence with a named partner, not on a public page.
- */
-export const TRUST_ROADMAP = [
-  { t: 'Security, hardened for production', d: 'Independent review and external certification, both sequenced ahead of any live payment traffic.' },
-  { t: 'Regulatory approvals', d: 'Device certification and payment platform authorisation are both already underway.' },
-  { t: 'Measured accuracy', d: 'Published once enough alerts have been reviewed to earn a number that holds up.' },
-] as const;
-
 /** Landing page. The vision, stated once. */
 export const LANDING = {
   rotatingAudiences: ROTATING_AUDIENCES,

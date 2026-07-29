@@ -83,6 +83,7 @@ const TransactionsPage: React.FC = () => {
       </Card>
 
       <Card variant="elevated" className="overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead className="border-b border-mist">
             <tr>
@@ -109,6 +110,7 @@ const TransactionsPage: React.FC = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   );

@@ -20,8 +20,8 @@ const NAV = [
   { name: 'For sellers', href: '/for-merchants' },
   { name: 'For regulators', href: '/for-regulators' },
   { name: 'How it works', href: '/how-it-works' },
-  { name: 'Trust', href: '/trust' },
   { name: 'Privacy', href: '/privacy' },
+  { name: 'Vacancies', href: '/vacancies' },
 ];
 
 const FOOTER_GROUPS: { title: string; links: { name: string; href: string }[] }[] = [
@@ -36,8 +36,8 @@ const FOOTER_GROUPS: { title: string; links: { name: string; href: string }[] }[
   {
     title: 'More',
     links: [
-      { name: 'Trust', href: '/trust' },
       { name: 'Privacy', href: '/privacy' },
+      { name: 'Vacancies', href: '/vacancies' },
       { name: 'Sign in', href: '/login' },
     ],
   },
@@ -56,7 +56,7 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <img
               src={wordmark}
               alt={BRAND.name}
-              className="h-24 w-auto"
+              className="h-28 w-auto"
               width={401}
               height={106}
             />

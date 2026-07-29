@@ -21,8 +21,8 @@ import LandingPage from './pages/public/LandingPage';
 import ForMerchantsPage from './pages/public/ForMerchantsPage';
 import ForRegulatorsPage from './pages/public/ForRegulatorsPage';
 import HowItWorksPage from './pages/public/HowItWorksPage';
-import TrustPage from './pages/public/TrustPage';
 import PrivacyPage from './pages/public/PrivacyPage';
+import VacanciesPage from './pages/public/VacanciesPage';
 import Layout from './components/Layout/Layout';
 
 /**
@@ -50,8 +50,8 @@ function App() {
           <Route path="/for-merchants" element={<ForMerchantsPage />} />
           <Route path="/for-regulators" element={<ForRegulatorsPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
-          <Route path="/trust" element={<TrustPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/vacancies" element={<VacanciesPage />} />
           {/* The demo merged into How it works — the interactive piece now
               lives at its "Hear it for yourself" section. A shared /demo
               link should land on that section, not the page top. */}

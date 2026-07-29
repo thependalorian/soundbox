@@ -166,7 +166,9 @@ Mirrors `Sidebar.tsx`'s `navigation` array and the `RoleRoute` guards in
 | Oversight analytics | — | yes | yes |
 
 Public and unauthenticated: landing, for-sellers, for-regulators,
-how-it-works, trust, and the demo.
+how-it-works, privacy, and vacancies. The demo lives inside how-it-works
+(`/demo` redirects there); trust content was folded into the privacy page
+rather than kept as a separate page — see `changelog.md`.
 
 ---
 
