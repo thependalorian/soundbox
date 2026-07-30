@@ -356,6 +356,7 @@ class DeviceStatusLog(Base):
     from_status = Column(String, nullable=True)
     to_status = Column(String, nullable=False)
     note = Column(Text, nullable=True)
+    actor_user_id = ref_id(nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     __table_args__ = (
@@ -440,6 +441,7 @@ class TransactionStatusLog(Base):
     from_status = Column(String, nullable=True)
     to_status = Column(String, nullable=False)
     note = Column(Text, nullable=True)
+    actor_user_id = ref_id(nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     __table_args__ = (
@@ -474,6 +476,7 @@ class SettlementStatusLog(Base):
     from_status = Column(String, nullable=True)
     to_status = Column(String, nullable=False)
     note = Column(Text, nullable=True)
+    actor_user_id = ref_id(nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
@@ -530,6 +533,7 @@ class EMoneyWalletStatusLog(Base):
     from_status = Column(String, nullable=True)
     to_status = Column(String, nullable=False)
     note = Column(Text, nullable=True)
+    actor_user_id = ref_id(nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
@@ -694,6 +698,7 @@ class SecurityIncidentStatusLog(Base):
     from_status = Column(String, nullable=True)
     to_status = Column(String, nullable=False)
     note = Column(Text, nullable=True)
+    actor_user_id = ref_id(nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 

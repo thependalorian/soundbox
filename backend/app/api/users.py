@@ -143,6 +143,154 @@ async def create_user(
     return _summary(user)
 
 
+def _load_target(db: Session, org_id, user_id: str) -> User:
+    try:
+        target_id = uuid.UUID(user_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=404, detail="No such account.")
+    target = (
+        db.query(User)
+        .filter(User.id == target_id, User.organization_id == org_id, User.deleted_at.is_(None))
+        .first()
+    )
+    if target is None:
+        raise HTTPException(status_code=404, detail="No such account.")
+    return target
+
+
+@router.get("/users/{user_id}")
+async def get_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("admin")),
+):
+    """One account, with what it has actually done.
+
+    The activity list is the point. It reads `actor_user_id` across every
+    append-only status log, which is only answerable now that those rows carry
+    the acting account rather than a display name inside a free-text note.
+    Supporting a user starts with seeing what they changed.
+    """
+    org = get_or_create_organization(db)
+    target = _load_target(db, org.id, user_id)
+    activity = user_service.activity_for(
+        db, organization_id=org.id, user_id=target.id, limit=50
+    )
+    history = user_service.history_for(
+        db, organization_id=org.id, user_id=target.id, limit=50
+    )
+    return {
+        "user": _summary(target).model_dump(),
+        # What was done TO this account: created, role moved, deactivated,
+        # password set by an administrator. Separate from `activity` because a
+        # new account has a full history and no activity at all -- everything
+        # about it was done by somebody else.
+        "history": [
+            {
+                "fromStatus": h["from_status"],
+                "toStatus": h["to_status"],
+                "note": h["note"],
+                "actorName": h["actor_name"],
+                "createdAt": h["created_at"].isoformat() if h["created_at"] else None,
+            }
+            for h in history
+        ],
+        "activity": [
+            {
+                "source": a["source"],
+                "entityId": str(a["entity_id"]) if a["entity_id"] else None,
+                "fromStatus": a["from_status"],
+                "toStatus": a["to_status"],
+                "note": a["note"],
+                "createdAt": a["created_at"].isoformat() if a["created_at"] else None,
+            }
+            for a in activity
+        ],
+        # Stated rather than implied: rows written before actor_user_id was
+        # populated carry no account, so an empty list is not proof of
+        # inactivity. Pretending otherwise would mislead a support decision.
+        "activityNote": (
+            "Covers changes recorded with an acting account. Earlier rows named "
+            "the actor only in prose and do not appear here."
+        ),
+    }
+
+
+class UpdateUserRequest(BaseModel):
+    display_name: Optional[str] = None
+    role: Optional[str] = None
+    merchant_id: Optional[str] = None
+    """Set true to unlink the business, which `merchant_id: null` cannot
+    express -- an omitted field and an explicit null are the same thing over
+    JSON, so clearing needs its own flag."""
+    clear_merchant: bool = False
+
+
+class AdminSetPasswordRequest(BaseModel):
+    new_password: str
+
+
+@router.put("/users/{user_id}", response_model=UserSummary)
+async def update_user(
+    user_id: str,
+    body: UpdateUserRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin")),
+):
+    """Change an account's name, role or business scoping."""
+    org = get_or_create_organization(db)
+    target = _load_target(db, org.id, user_id)
+    merchant_id = None
+    if body.merchant_id:
+        try:
+            merchant_id = uuid.UUID(body.merchant_id)
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=400, detail="That is not a valid business id.")
+    try:
+        updated = user_service.update_user(
+            db, user=target, display_name=body.display_name, role=body.role,
+            merchant_id=merchant_id, clear_merchant=body.clear_merchant,
+            actor_user_id=actor.id,
+        )
+    except UserServiceError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _summary(updated)
+
+
+@router.post("/users/{user_id}/set-password")
+@limiter.limit("10/minute")
+async def admin_set_password(
+    request: Request,
+    user_id: str,
+    body: AdminSetPasswordRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin")),
+):
+    """Set someone else's password, as an administrator.
+
+    The support path for an operator who cannot receive the reset email --
+    a mistyped address at onboarding, or a domain our mail cannot reach.
+
+    Deliberately does not require the current password, because the premise is
+    that nobody has it. That makes it the sharpest endpoint here, so it is
+    administrator-only and writes an immutable row naming who used it. It also
+    ends every session that account had.
+    """
+    org = get_or_create_organization(db)
+    target = _load_target(db, org.id, user_id)
+    try:
+        user_service.admin_set_password(
+            db, user=target, new_password=body.new_password, actor_user_id=actor.id
+        )
+    except UserServiceError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {
+        "status": "ok",
+        "detail": f"Password set for {target.email}. Share it with them directly; "
+                  "they can change it once they sign in.",
+    }
+
+
 @router.put("/users/{user_id}/active", response_model=UserSummary)
 async def set_user_active(
     user_id: str,

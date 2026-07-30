@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -15,6 +15,7 @@ from app.api import (
     settings as settings_api,
     users,
 )
+from app.api.deps import get_current_user
 from app.core.config import assert_production_ready, settings
 from app.core.limiter import limiter
 from app.core.observability import configure_langfuse
@@ -80,16 +81,41 @@ async def security_headers(request: Request, call_next):
 
 
 # Include routers
+# Routers carrying their own auth, or deliberately public.
+#
+#  - auth / users: /auth/login, /auth/forgot-password and /auth/reset-password
+#    must be reachable by someone who cannot sign in. Everything else in those
+#    modules is gated per-route.
+#  - devices / payments: device-facing. They authenticate with a provisioned
+#    device credential (X-Device-Code / X-Device-Key), not a user JWT, so a
+#    user-token requirement here would lock out the hardware.
+#  - assistant: gated to regulator and admin inside the module.
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 app.include_router(assistant.router, prefix=settings.API_V1_STR, tags=["assistant"])
 app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
 app.include_router(devices.router, prefix=settings.API_V1_STR, tags=["devices"])
 app.include_router(payments.router, prefix=settings.API_V1_STR, tags=["payments"])
-app.include_router(analytics.router, prefix=settings.API_V1_STR, tags=["analytics"])
-app.include_router(oversight.router, prefix=settings.API_V1_STR, tags=["oversight"])
-app.include_router(reports.router, prefix=settings.API_V1_STR, tags=["reports"])
-app.include_router(resources.router, prefix=settings.API_V1_STR, tags=["resources"])
-app.include_router(settings_api.router, prefix=settings.API_V1_STR, tags=["settings"])
+
+# Operator-facing routers. **Authentication is required at the router level,
+# not per handler.**
+#
+# It has to be here rather than on each endpoint. Thirty-four read endpoints
+# were reachable with no token at all -- every payment, business, device,
+# alert and settlement on the platform, plus the PSD-6 and PSD-3 returns.
+# Every write was correctly gated, so the gap was invisible from the write
+# side and from the console, which always sends a token.
+#
+# The cause is that a read is the easy thing to add: a new GET only needs
+# `db: Session = Depends(get_db)` to work, so the omission never fails a test
+# and never shows up in the UI. Requiring it once at the mount point means a
+# new endpoint is protected by default and someone has to work to expose it,
+# which is the only version of this that stays true.
+_AUTHENTICATED = [Depends(get_current_user)]
+app.include_router(analytics.router, prefix=settings.API_V1_STR, tags=["analytics"], dependencies=_AUTHENTICATED)
+app.include_router(oversight.router, prefix=settings.API_V1_STR, tags=["oversight"], dependencies=_AUTHENTICATED)
+app.include_router(reports.router, prefix=settings.API_V1_STR, tags=["reports"], dependencies=_AUTHENTICATED)
+app.include_router(resources.router, prefix=settings.API_V1_STR, tags=["resources"], dependencies=_AUTHENTICATED)
+app.include_router(settings_api.router, prefix=settings.API_V1_STR, tags=["settings"], dependencies=_AUTHENTICATED)
 
 @app.on_event("startup")
 async def startup_event():

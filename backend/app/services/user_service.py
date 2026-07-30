@@ -176,6 +176,223 @@ def set_active(
     return user
 
 
+# Every append-only log that records who acted, as
+# (table, entity column). Used to answer "what has this account done".
+ACTIVITY_LOGS = [
+    ("merchant_status_log", "merchant_id"),
+    ("device_status_log", "device_id"),
+    ("transaction_status_log", "transaction_id"),
+    ("anomaly_alert_status_log", "anomaly_alert_id"),
+    ("settlement_status_log", "settlement_id"),
+    # `wallet_id`, not `e_money_wallet_id` -- this table does not follow the
+    # table-name-plus-_id convention the others do.
+    ("e_money_wallet_status_log", "wallet_id"),
+    ("security_incident_status_log", "security_incident_id"),
+    ("user_status_log", "user_id"),
+    ("media_asset_status_log", "media_asset_id"),
+]
+
+
+def activity_for(db: Session, *, organization_id: uuid.UUID, user_id: uuid.UUID,
+                 limit: int = 50) -> List[dict]:
+    """What this account has changed, newest first, across every status log.
+
+    This is the question `actor_user_id` exists to answer. Before that column
+    was populated the only record of who acted was a display name inside a
+    free-text note, so supporting a user meant grepping prose.
+
+    Parameterised throughout -- table names come from the fixed ACTIVITY_LOGS
+    list above and never from a caller, and the ids are bound.
+    """
+    from sqlalchemy import text
+
+    out: List[dict] = []
+    for table, entity_col in ACTIVITY_LOGS:
+        try:
+            rows = db.execute(
+                text(
+                    f"select '{table}' as source, {entity_col} as entity_id, "
+                    f"from_status, to_status, note, created_at "
+                    f"from {table} "
+                    f"where organization_id = :org and actor_user_id = :uid "
+                    f"order by created_at desc limit :lim"
+                ),
+                {"org": str(organization_id), "uid": str(user_id), "lim": limit},
+            ).mappings().all()
+            out.extend(dict(r) for r in rows)
+        except Exception:
+            # A log without the column yet is skipped rather than fatal --
+            # support must not break because one table lags a migration.
+            #
+            # The rollback is load-bearing, not tidiness. Postgres aborts the
+            # whole transaction on a failed statement, so swallowing the error
+            # without it left the session unusable and every later query in the
+            # request failed with "current transaction is aborted" -- turning
+            # one skippable table into a 500 for the entire page.
+            db.rollback()
+            logger.debug("Skipped %s while reading activity", table)
+    out.sort(key=lambda r: r["created_at"], reverse=True)
+    return out[:limit]
+
+
+def history_for(db: Session, *, organization_id: uuid.UUID, user_id: uuid.UUID,
+                limit: int = 50) -> List[dict]:
+    """What has been done *to* this account, newest first.
+
+    Distinct from `activity_for`, and both are needed to support someone. That
+    reads `actor_user_id` and answers "what did they change"; this reads
+    `user_id` on `user_status_log` and answers "what was changed about them" —
+    created, role moved, deactivated, password set by an administrator.
+
+    The two were conflated in the first version of this, which made a
+    newly-created account look like it had no record at all: everything about
+    it had been done *by* somebody else.
+    """
+    from sqlalchemy import text
+
+    rows = db.execute(
+        text(
+            "select from_status, to_status, note, actor_user_id, created_at "
+            "from user_status_log "
+            "where organization_id = :org and user_id = :uid "
+            "order by created_at desc limit :lim"
+        ),
+        {"org": str(organization_id), "uid": str(user_id), "lim": limit},
+    ).mappings().all()
+
+    # Resolve the acting account to a name once, so the caller does not have to
+    # issue a lookup per row.
+    actor_ids = {r["actor_user_id"] for r in rows if r["actor_user_id"]}
+    names = {}
+    if actor_ids:
+        for u in db.query(User).filter(User.id.in_(actor_ids)).all():
+            names[str(u.id)] = u.display_name
+    return [
+        {
+            **dict(r),
+            "actor_name": names.get(str(r["actor_user_id"])) if r["actor_user_id"] else None,
+        }
+        for r in rows
+    ]
+
+
+def update_user(
+    db: Session,
+    *,
+    user: User,
+    display_name: Optional[str],
+    role: Optional[str],
+    merchant_id: Optional[uuid.UUID],
+    clear_merchant: bool,
+    actor_user_id: uuid.UUID,
+) -> User:
+    """Change an account's name, role or business scoping.
+
+    Role changes are the sharp edge here. Moving someone to `merchant` without
+    a business would leave them able to see every business -- the exact
+    boundary the role exists to draw -- so the same rule the create path
+    enforces is enforced again rather than assumed.
+    """
+    changed = []
+
+    if display_name is not None and display_name.strip() and display_name != user.display_name:
+        user.display_name = display_name.strip()
+        changed.append("name")
+
+    new_role = role or user.role
+    if role is not None and role != user.role:
+        allowed = assignable_roles(db, user.organization_id)
+        if role not in allowed:
+            raise UserServiceError(f"Role must be one of: {', '.join(allowed)}.")
+        # Refusing to demote the last administrator: an organisation with no
+        # admin cannot issue accounts, cannot deactivate anyone, and cannot
+        # recover without database access.
+        if user.role == "admin" and role != "admin":
+            remaining = (
+                db.query(User)
+                .filter(
+                    User.organization_id == user.organization_id,
+                    User.role == "admin",
+                    User.is_active.is_(True),
+                    User.deleted_at.is_(None),
+                    User.id != user.id,
+                )
+                .count()
+            )
+            if remaining == 0:
+                raise UserServiceError(
+                    "This is the last administrator. Promote someone else first."
+                )
+        user.role = role
+        changed.append("role")
+
+    if clear_merchant:
+        user.merchant_id = None
+        changed.append("business")
+    elif merchant_id is not None and merchant_id != user.merchant_id:
+        user.merchant_id = merchant_id
+        changed.append("business")
+
+    if new_role == "merchant" and user.merchant_id is None:
+        raise UserServiceError("A business operator account must be linked to a business.")
+    if new_role != "merchant" and user.merchant_id is not None:
+        raise UserServiceError("Only a business operator account can be linked to a business.")
+
+    if not changed:
+        return user
+
+    user.updated_at = datetime.utcnow()
+    log_status_change(
+        db, UserStatusLog, user.organization_id, "user_id", user.id,
+        from_status="active" if user.is_active else "inactive",
+        to_status="active" if user.is_active else "inactive",
+        note=f"Account updated ({', '.join(changed)})",
+        actor_user_id=actor_user_id,
+    )
+    db.commit()
+    logger.info("User %s updated: %s", user.id, ", ".join(changed))
+    return user
+
+
+def admin_set_password(
+    db: Session, *, user: User, new_password: str, actor_user_id: uuid.UUID
+) -> None:
+    """Set someone else's password, as an administrator.
+
+    The support path for "I cannot get in and the reset email is not reaching
+    me" -- which is the common case for a merchant operator whose address was
+    mistyped at onboarding, and for any account on a domain that cannot
+    receive our mail.
+
+    It does **not** require the current password, because the point is that
+    nobody has it. That makes this the most dangerous endpoint in the module,
+    so two things are non-negotiable: it is administrator-only, and it writes
+    an immutable log row naming the administrator who did it. An admin able to
+    take over an account silently would make every other audit row arguable.
+
+    The new password ends every session the account had, exactly as a
+    self-service change does.
+    """
+    try:
+        validate_password(new_password)
+    except WeakPassword as e:
+        raise UserServiceError(str(e))
+
+    now = datetime.utcnow()
+    user.password_hash = hash_password(new_password)
+    user.password_changed_at = now
+    user.updated_at = now
+    log_status_change(
+        db, UserStatusLog, user.organization_id, "user_id", user.id,
+        from_status="active" if user.is_active else "inactive",
+        to_status="active" if user.is_active else "inactive",
+        note="Password set by an administrator",
+        actor_user_id=actor_user_id,
+    )
+    db.commit()
+    logger.info("Password for user %s set by administrator %s", user.id, actor_user_id)
+
+
 def change_password(
     db: Session, *, user: User, current_password: str, new_password: str
 ) -> None:

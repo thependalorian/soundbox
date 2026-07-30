@@ -33,7 +33,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_roles
+from app.api.deps import get_current_user, require_roles, scoped_merchant_id
 from app.core.security import generate_device_secret, hash_password
 from app.db.helpers import get_or_create_organization, log_status_change
 from app.db.models import (
@@ -162,8 +162,10 @@ async def list_devices(
     limit: int = Query(default=100, le=MAX_PAGE),
     offset: int = 0,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Dict:
     """Devices, newest registration first."""
+    merchant_id = scoped_merchant_id(user, merchant_id)
     try:
         org = get_or_create_organization(db)
         q = db.query(Device).filter(
@@ -300,6 +302,7 @@ async def assign_device(
             from_status=device.status, to_status=device.status,
             note=(f"Assigned to {name} (was {previous}) by {actor.display_name}."
                   + (f" {body.note}" if body.note else "")),
+            actor_user_id=actor.id,
         )
         db.commit()
 
@@ -358,6 +361,7 @@ async def set_device_status(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=previous, to_status=body.status,
             note=(body.note or f"Changed by {actor.display_name}."),
+            actor_user_id=actor.id,
         )
         db.commit()
         publisher.publish(contracts.device_status_changed(
@@ -416,6 +420,7 @@ async def list_merchants(
     limit: int = Query(default=100, le=MAX_PAGE),
     offset: int = 0,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Dict:
     """Businesses, with a count of those still awaiting review.
 
@@ -429,6 +434,11 @@ async def list_merchants(
             Merchant.organization_id == org.id,
             Merchant.deleted_at.is_(None),
         )
+        # A business operator sees their own business and no one else's. There
+        # is no query parameter for this on purpose -- it is a boundary, so it
+        # is derived from the verified token rather than from the request.
+        if user.role == "merchant":
+            q = q.filter(Merchant.id == user.merchant_id) if user.merchant_id else q.filter(False)
         if status:
             q = q.filter(Merchant.status == status)
         if region_id:
@@ -587,6 +597,7 @@ async def set_merchant_status(
             db, MerchantStatusLog, org.id, "merchant_id", m.id,
             from_status=previous, to_status=body.status,
             note=(body.note or f"Decided by {actor.display_name}."),
+            actor_user_id=actor.id,
         )
         db.commit()
         publisher.publish(contracts.merchant_status_changed(
@@ -637,8 +648,12 @@ async def list_transactions(
     limit: int = Query(default=100, le=MAX_PAGE),
     offset: int = 0,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Dict:
     """Payments, newest first, filterable on every dimension the console shows."""
+    # A merchant-role caller is confined to its own business here, on the
+    # server, whatever the query string asked for (app/api/deps.py).
+    merchant_id = scoped_merchant_id(user, merchant_id)
     try:
         org = get_or_create_organization(db)
         q = db.query(Transaction).filter(
@@ -854,6 +869,7 @@ async def record_verdict(
             from_status=previous, to_status=a.status,
             note=f"{VERDICT_NOTE[body.verdict]} Recorded by {actor.display_name}."
                  + (f" {body.note}" if body.note else ""),
+            actor_user_id=actor.id,
         )
         db.commit()
 
@@ -886,6 +902,7 @@ async def list_settlements(
     limit: int = Query(default=100, le=MAX_PAGE),
     offset: int = 0,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Dict:
     """Settlement batches, most recent first.
 
@@ -894,6 +911,7 @@ async def list_settlements(
     see money received today and a settlement dated tomorrow — the console
     shows both rather than conflating them.
     """
+    merchant_id = scoped_merchant_id(user, merchant_id)
     try:
         org = get_or_create_organization(db)
         q = db.query(Settlement).filter(
@@ -970,6 +988,7 @@ async def set_alert_status(
             db, AnomalyAlertStatusLog, org.id, "anomaly_alert_id", a.id,
             from_status=previous, to_status=body.status,
             note=(body.note or f"Status changed by {actor.display_name}."),
+            actor_user_id=actor.id,
         )
         db.commit()
         return {"id": str(a.id), "status": a.status}
@@ -1070,6 +1089,7 @@ async def create_device(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=None, to_status="inactive",
             note=(body.note or f"Added by {actor.display_name}. Not yet heard from."),
+            actor_user_id=actor.id,
         )
         db.commit()
         return {
@@ -1114,6 +1134,7 @@ async def rotate_device_key(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=device.status, to_status=device.status,
             note=f"Device key rotated by {actor.display_name}.",
+            actor_user_id=actor.id,
         )
         db.commit()
         return {"id": str(device.id), "deviceKey": device_secret}
@@ -1152,6 +1173,7 @@ async def update_device(
                 from_status=device.status, to_status=device.status,
                 note=(f"Firmware {previous} to {body.firmware_version}, recorded by "
                       f"{actor.display_name}." + (f" {body.note}" if body.note else "")),
+                actor_user_id=actor.id,
             )
             db.commit()
         return _device_row(device, _merchant_names(db, org.id))
@@ -1189,6 +1211,7 @@ async def retire_device(
             db, DeviceStatusLog, org.id, "device_id", device.id,
             from_status=previous, to_status="retired",
             note=(note or f"Retired by {actor.display_name}."),
+            actor_user_id=actor.id,
         )
         db.commit()
         return {"id": str(device.id), "status": "retired", "retired": True}
@@ -1276,6 +1299,7 @@ async def create_merchant(
             db, MerchantStatusLog, org.id, "merchant_id", m.id,
             from_status=None, to_status="pending_kyc",
             note=f"Application registered by {actor.display_name}.",
+            actor_user_id=actor.id,
         )
         db.commit()
         return _merchant_row(m, _type_labels(db, org.id, "region"),
@@ -1327,6 +1351,7 @@ async def update_merchant(
                 from_status=m.status, to_status=m.status,
                 note=f"Profile updated ({', '.join(sorted(changed))}) by "
                      f"{actor.display_name}.",
+                actor_user_id=actor.id,
             )
             db.commit()
 
@@ -1382,12 +1407,14 @@ async def close_merchant(
             from_status=previous, to_status="closed",
             note=f"{note} Closed by {actor.display_name}."
                  + (f" {len(released)} device(s) released." if released else ""),
+            actor_user_id=actor.id,
         )
         for d in released:
             log_status_change(
                 db, DeviceStatusLog, org.id, "device_id", d.id,
                 from_status=d.status, to_status=d.status,
                 note=f"Unassigned: {m.trading_name or m.legal_name} was closed.",
+                actor_user_id=actor.id,
             )
         db.commit()
         return {"id": str(m.id), "status": "closed", "devicesReleased": len(released)}
@@ -1462,6 +1489,7 @@ async def add_beneficial_owner(
             note=f"Beneficial owner recorded ({body.ownership_percent:g}%) by "
                  f"{actor.display_name}."
                  + (" Flagged politically exposed." if body.is_pep else ""),
+            actor_user_id=actor.id,
         )
         db.commit()
         return {
@@ -1504,6 +1532,7 @@ async def remove_beneficial_owner(
             db, MerchantStatusLog, org.id, "merchant_id", owner.merchant_id,
             from_status=None, to_status="owner_removed",
             note=f"Beneficial owner record removed by {actor.display_name}.",
+            actor_user_id=actor.id,
         )
         db.commit()
         return {"id": str(owner.id), "removed": True}

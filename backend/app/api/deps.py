@@ -73,6 +73,31 @@ def get_current_user(
     return user
 
 
+def scoped_merchant_id(user: User, requested: Optional[str]) -> Optional[str]:
+    """The merchant filter a read must actually use, given who is asking.
+
+    **A merchant-role account is confined to its own business, and the client
+    cannot widen that.** Whatever `merchant_id` arrived on the query string is
+    discarded for such a user and replaced with their own.
+
+    This exists because the scoping was previously client-side only: the
+    console passed `merchantId` as a filter, the server honoured whatever it
+    was given, and `users.merchant_id` was read only to echo it back at login.
+    A merchant-role token plus one curl therefore read every business on the
+    platform. A filter the caller supplies is a convenience; a boundary has to
+    be applied by the side that cannot be edited.
+
+    Admin and regulator accounts are oversight roles and legitimately see
+    across businesses, so their `requested` value passes through untouched.
+    """
+    if user.role == "merchant":
+        # Falls back to a value that matches nothing rather than to None: a
+        # merchant account with no business linked must see nothing, not
+        # everything. `None` here would mean "no filter".
+        return str(user.merchant_id) if user.merchant_id else "__unscoped__"
+    return requested
+
+
 def require_roles(*roles: str):
     """FastAPI dependency factory: 403s unless the verified JWT's user has
     one of `roles`. Usage: Depends(require_roles("admin", "regulator"))."""
