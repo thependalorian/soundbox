@@ -1,6 +1,70 @@
-# SoundBox - Project Changelog
+# Buffr Intelligence - Project Changelog
 
-This changelog tracks the implementation progress of the SoundBox project. The brief lives in `soundbox.md`; the detail in [`docs/`](docs/README.md).
+This changelog tracks implementation progress. The brief lives in `buffr-intelligence.md`; the detail in [`docs/`](docs/README.md).
+
+---
+
+## [1.20.0] - 2026-08-04 - Buffr Intelligence: Hardware Layer Removed, Public Site Rebuilt on Real Data
+
+**Platform.** The device, firmware, event bus and merchant-facing surface are
+gone. `firmware/` (1,179 lines of C), `app/api/devices.py`, `app/api/payments.py`,
+`app/events/`, `wayame_api_client.py` and `namqr_processor.py` deleted;
+migration `f3d80c6a45e1` drops the three device tables, three `device_id`
+columns, `merchants.namqr_public_key_pem` and `users.merchant_id`. Roles reduce
+to regulator and admin — a business is a subject of the analysis, never a
+caller, and no account type represents one.
+
+**Defects found and fixed while removing it:**
+
+- **34 read endpoints were unauthenticated** — every payment, business, alert
+  and both regulatory returns were publicly readable. Fixed at the router
+  mount rather than per endpoint, so a new endpoint is protected by default.
+  Verified: 0 of 36 testable GETs reachable without a token.
+- **PSD-6 was returning `{}`** — `regulatory_reporting.py` lost its `Merchant`
+  import during the device cleanup, raising `NameError` into a broad `except`.
+  The API surfaced it as a 500, so it was never silently wrong, but the return
+  had been dead.
+- **PSD-6 counted failed payments in `total_value`** — N$1,936,616.05 reported
+  where N$1,852,691.03 had settled. Settled value is now the headline with
+  failures reported separately; reconciles to N$0.00 difference.
+- **Health index capped at 0.80** — two of five weights were declared but never
+  computed, so a flawless system could not report HEALTHY. Reweighted to the
+  three components actually calculated.
+- **Wallet share always read 100%** — tested `== "bank"` against the seeded
+  code `bank_account`.
+- **38 tenant-scoped queries missing `deleted_at`**, four of which put withdrawn
+  payments into the PSD-6 return. Structural guard test added.
+
+**Analytics.** `backend/notebooks/anomaly_detection.ipynb` implements BIS WP
+1188 end to end: five classifiers compared, selection on detection *lift*
+rather than raw detection (a less accurate model otherwise wins by being wrong
+more often), Isolation Forest severity scoring validated by paired comparison
+against manipulated payments, SHAP explanations, k-means segmentation. Runs
+clean, 46 cells, 11 figures. Two methodology bugs caught: target leakage into
+Layer 1 via hour-derived features, and RDP silently destroying closed rings.
+
+**Synthetic data.** `scripts/seed_synthetic.py` covers all eleven use cases,
+individuals and businesses on both sides, constituency assignment and
+tokenised counterparties — the last of which matters because the top SHAP
+feature is counterparty-relative timing, which is uncomputable without an
+identifier on both sides.
+
+**Public site.** Rebuilt around figures rather than text: a Namibia region map
+from OCHA's current boundaries (Natural Earth and geoBoundaries both still
+ship the pre-2013 delimitation), click-to-detail modal, five chart primitives,
+model comparison, SHAP feature importance, append-only ledger, access matrix,
+assistant exchange. Zero bare sections on any page at any width from 320px up.
+Vacancies removed from the public nav.
+
+**Brand.** `frontend/scripts/build_brand_assets.py` derives every mark from the
+supplied art — recolouring the blue bar to the brand gradient, restoring
+transparency the source JPEG could not carry, and generating the favicon set
+and social card.
+
+**Docs.** `soundbox.md` (3,070 lines) replaced by `buffr-intelligence.md`;
+`docs/device.md` and `docs/hardware-and-approvals.md` deleted; architecture,
+business plan, privacy, regulatory, ux, design-system and both READMEs
+rewritten. Supply-chain controls documented against `Security_Setup.pdf`.
 
 ---
 

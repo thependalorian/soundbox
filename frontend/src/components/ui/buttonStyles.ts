@@ -18,9 +18,23 @@
 
 export type ButtonVariant = 'filled' | 'ghost';
 
+/**
+ * Pressure feedback, not just a colour change.
+ *
+ * A button that only shifts opacity on hover feels like an image of a button.
+ * Scaling fractionally down on press is the cheapest possible simulation of
+ * something physically yielding, and it is the difference most people feel
+ * without being able to name.
+ *
+ * `group` is declared here so a nested trailing icon can respond to the
+ * parent's hover. `ease-brand` is the system's one curve — see the note on
+ * it in tailwind.config.js.
+ */
 export const BUTTON_BASE =
-  'inline-flex items-center justify-center rounded-buttons px-20 py-8 ' +
-  'text-body font-sohne transition-opacity';
+  'group inline-flex items-center justify-center gap-8 rounded-buttons pl-20 pr-20 py-8 ' +
+  'text-body font-sohne select-none ' +
+  'transition-[opacity,transform] duration-300 ease-brand ' +
+  'active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100';
 
 export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   filled:

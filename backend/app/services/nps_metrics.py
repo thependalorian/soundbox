@@ -40,7 +40,6 @@ from app.data.payment_repository import PaymentRepository
 from app.db.helpers import get_or_create_organization
 from app.db.models import (
     AnomalyAlert,
-    Device,
     Merchant,
     Transaction,
 )
@@ -183,27 +182,27 @@ class NpsMetricsService:
         measure that makes regions comparable. "142 businesses in Khomas"
         against "31 in Omaheke" says nothing until both carry a denominator.
 
-        An access point here is an active device: a place a person can
-        actually be paid or take cash out. A registered business with no
-        working device is not an access point, and counting it as one is how
-        coverage figures overstate reach.
+        An access point here is an **active acceptance point**: a business in
+        `active` status, i.e. a place a person can actually pay digitally or
+        take cash out. This is the Global Findex / IMF Financial Access Survey
+        sense of the term, which is what makes the figure comparable with what
+        Namibia already reports internationally.
+
+        Two things it deliberately is not. It is not every registered
+        business: one still `pending_kyc` or `suspended` cannot accept a
+        payment, and counting it would overstate reach. And it is not a count
+        of terminals — a business is reachable or it is not, and counting
+        equipment would measure our own estate rather than the country's
+        acceptance footprint.
         """
         try:
             regions = self._regions()
             merchants = self._merchants()
-            devices = self.db.query(Device).filter(
-                Device.organization_id == self.organization.id,
-                Device.deleted_at.is_(None),
-                Device.status == "active",
-            ).all()
-
-            merchant_region = {str(m.id): str(m.region_id) for m in merchants if m.region_id}
 
             points_by_region: Dict[str, int] = defaultdict(int)
-            for d in devices:
-                region_id = merchant_region.get(str(d.merchant_id))
-                if region_id:
-                    points_by_region[region_id] += 1
+            for m in merchants:
+                if m.status == "active" and m.region_id:
+                    points_by_region[str(m.region_id)] += 1
 
             rows = []
             for region_id, meta in regions.items():
@@ -229,7 +228,7 @@ class NpsMetricsService:
                 "status": "ok",
                 "theme": "Digital Enablement",
                 "indicator": "Access to digital payment acceptance",
-                "basis": f"active devices per {PER_ADULTS:,} adults aged 15 and over",
+                "basis": f"active acceptance points per {PER_ADULTS:,} adults aged 15 and over",
                 "populationSource": "Namibia Population and Housing Census 2023 (NSA), main report 30 October 2024",
                 "accessPoints": total_points,
                 "nationalPerTenThousandAdults": (

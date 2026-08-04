@@ -1,7 +1,7 @@
 import React from 'react';
 import Card from '../ui/Card';
 import TextLink from '../ui/TextLink';
-import { AnomalyAlert } from '../../types/soundbox';
+import { AnomalyAlert } from '../../types/domain';
 
 interface AnomalyAlertsCardProps {
   data?: AnomalyAlert[];

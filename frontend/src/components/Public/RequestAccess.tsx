@@ -5,16 +5,16 @@ import { ACCESS, CONTACT } from '../../lib/copy/public';
  * The way in for a reader who does not have an account.
  *
  * Every public page closed on "Sign in", which is the wrong last word for the
- * audience each page is written for — a supervisor who has just finished the
- * oversight argument, or a seller who does not own a box. Both were invited to
- * sign in to something they have no account for.
+ * reader each page is written for — a supervisor who has just finished the
+ * oversight argument and has no account yet, invited to sign in to something
+ * they cannot sign in to.
  *
  * **This is deliberately not a sign-up.** Accounts are issued by an
  * administrator and never self-created (see the README's Account lifecycle
  * section), because on an oversight platform an account someone can create for
  * themselves is a defect. So this opens a mail to the team with the audience
- * already in the subject line, which is also what lets a regulator get a
- * different reply from a market trader.
+ * already in the subject line, so an oversight enquiry and a general one do
+ * not arrive looking identical.
  *
  * The address is assembled from character codes in the click handler and never
  * appears in the DOM, the bundle or this file — the same standard

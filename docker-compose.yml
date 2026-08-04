@@ -8,47 +8,16 @@ services:
       - ./backend/.env
     environment:
       REDIS_HOST: redis
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/%2F
     ports:
       - "8000:8000"
     depends_on:
       - redis
-      - rabbitmq
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    restart: unless-stopped
-
-  # Event broker for the payment event stream (backend/app/events/).
-  #
-  # Pinned to an exact tag, like every other dependency here. `3.13-management`
-  # rather than `3-management`: a floating major tag means a broker upgrade
-  # arrives on whichever day someone rebuilds, and a broker upgrade is not a
-  # thing to discover by accident.
-  #
-  # The management plugin is included deliberately. Queue depth and unroutable
-  # message counts are the two numbers that say whether the event layer is
-  # actually working, and without a UI the answer is "nobody knows".
-  #
-  # Default guest/guest credentials only reach localhost by RabbitMQ's own
-  # rule, which is correct for local work and must be replaced before this
-  # runs anywhere shared.
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    ports:
-      - "5672:5672"    # AMQP
-      - "15672:15672"  # management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
     restart: unless-stopped
 
   frontend:

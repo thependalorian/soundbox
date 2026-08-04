@@ -2,15 +2,21 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import api from '../api/api';
 import { logger } from '../lib/logger';
 
-export type UserRole = 'merchant' | 'regulator' | 'admin';
+/**
+ * Two roles, because there are two kinds of person who sign in: someone doing
+ * oversight work, and someone administering the platform. A business appears
+ * in this system as a subject of the analysis, never as a caller — there is no
+ * account type that represents one.
+ */
+export type UserRole = 'regulator' | 'admin';
 
 interface AuthUser {
   id: string;
   name: string;
+  /** Carried so the shared team account can be told apart from a person —
+   *  see components/ui/Avatar.tsx. */
+  email: string;
   role: UserRole;
-  /** Only set for role='merchant' — scopes Devices/Transactions/Flagged
-   * Alerts to this merchant's own data. */
-  merchantId?: string;
 }
 
 interface AuthContextType {
@@ -32,7 +38,7 @@ interface LoginResponse {
   id: string;
   role: UserRole;
   name: string;
-  merchant_id: string | null;
+  email: string;
 }
 
 interface MeResponse {
@@ -40,7 +46,6 @@ interface MeResponse {
   email: string;
   name: string;
   role: UserRole;
-  merchantId: string | null;
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -61,8 +66,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser({
           id: res.data.id,
           name: res.data.name,
+          email: res.data.email,
           role: res.data.role,
-          merchantId: res.data.merchantId || undefined,
         });
       })
       .catch((err) => {
@@ -78,8 +83,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser({
       id: res.data.id,
       name: res.data.name,
+      email: res.data.email,
       role: res.data.role,
-      merchantId: res.data.merchant_id || undefined,
     });
   };
 

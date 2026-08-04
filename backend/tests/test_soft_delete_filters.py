@@ -40,7 +40,6 @@ APP = pathlib.Path(__file__).resolve().parents[1] / "app"
 # soft-deleted rows out would report the code as available and then fail on
 # INSERT with an integrity error the caller cannot act on.
 EXEMPT = {
-    ("api/resources.py", "Device"): "device_code uniqueness pre-check (UNIQUE at DB level)",
     ("api/resources.py", "Merchant"): "merchant_code uniqueness pre-check (UNIQUE at DB level)",
 }
 

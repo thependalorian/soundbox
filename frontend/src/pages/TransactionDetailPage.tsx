@@ -1,13 +1,13 @@
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchTransactionById, fetchTransactionStatusLog, fetchMerchantById, fetchDeviceById } from '../api/api';
+import { fetchTransactionById, fetchTransactionStatusLog, fetchMerchantById } from '../api/api';
 import Card from '../components/ui/Card';
 import Skeleton from '../components/ui/Skeleton';
 import Timeline from '../components/ui/Timeline';
 import StatusPill from '../components/ui/StatusPill';
 import TextLink from '../components/ui/TextLink';
-import { Transaction, StatusLogEntry} from '../types/soundbox';
+import { Transaction, StatusLogEntry} from '../types/domain';
 import { useAuth } from '../context/AuthContext';
 
 const TONE: Record<Transaction['status'], 'success' | 'warning' | 'danger' | 'neutral'> = {
@@ -44,13 +44,9 @@ const TransactionDetailPage: React.FC = () => {
 
   const { data: txn, isLoading } = useQuery({ queryKey: ['transaction', id], queryFn: () => fetchTransactionById(id as string), enabled: !!id });
   const { data: merchant } = useQuery({ queryKey: ['merchant', txn?.merchantId], queryFn: () => fetchMerchantById(txn!.merchantId), enabled: !!txn });
-  const { data: device } = useQuery({ queryKey: ['device', txn?.deviceId], queryFn: () => fetchDeviceById(txn!.deviceId as string), enabled: !!txn?.deviceId });
   const { data: statusLog } = useQuery({ queryKey: ['transactionStatusLog', id], queryFn: () => fetchTransactionStatusLog(id as string), enabled: !!id });
 
   if (!isLoading && !txn) return <Navigate to="/transactions" replace />;
-  if (txn && user?.role === 'merchant' && merchant && merchant.merchantCode !== user.merchantId) {
-    return <Navigate to="/transactions" replace />;
-  }
   if (isLoading || !txn) return <Skeleton rows={4} />;
 
   return (
@@ -80,8 +76,10 @@ const TransactionDetailPage: React.FC = () => {
           </p>
         </Card>
         <Card variant="neutral" className="p-20">
-          <p className="text-caption font-sohne text-slate">Device</p>
-          <p className="text-heading-sm font-signifier text-ink">{device?.deviceCode ?? '—'}</p>
+          <p className="text-caption font-sohne text-slate">Funded from</p>
+          <p className="text-heading-sm font-signifier text-ink capitalize">
+            {(txn.payerInstrument ?? 'unknown').replace(/_/g, ' ')}
+          </p>
         </Card>
       </div>
 

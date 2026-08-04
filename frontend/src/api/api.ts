@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { logger } from '../lib/logger';
 import {
+  AccountDetail,
   AccountUser,
   BeneficialOwner,
-  Device,
-  DeviceHeartbeatPoint,
   AnomalyAlert,
   GeoDistributionPoint,
   Merchant,
@@ -18,18 +17,7 @@ import {
   Transaction,
   TransactionSummary,
   TransactionTrendPoint,
-} from '../types/soundbox';
-// Fixtures are re-exported for the demo page only — it is explicitly a
-// demonstration and says so. No live read in this file touches them.
-import {
-  mockDevices,
-  mockAnomalyAlerts,
-  mockGeoDistribution,
-  mockMerchants,
-  mockSettlements,
-  mockTransactions,
-} from './mockData';
-
+} from '../types/domain';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
 const api = axios.create({
@@ -67,20 +55,15 @@ api.interceptors.response.use(
   }
 );
 
-export { mockDevices, mockTransactions, mockAnomalyAlerts, mockMerchants, mockGeoDistribution, mockSettlements };
-
 interface ListFilters {
   merchantId?: string;
   status?: string;
   search?: string;
 }
 
-// Rows store the merchant's internal UUID, but callers — the signed-in
-// merchant user's AuthContext.merchantId, for instance — may hold the
+// Rows store the business's internal UUID, but a caller may hold the
 // human-readable code ("M-101") instead. The backend accepts either and
-// resolves it, so this is a pass-through. It used to translate the two
-// using the fixture list, which is what tied every filtered read to
-// mockData; the translation belongs where the merchant list actually lives.
+// resolves it, so this is a pass-through.
 const resolveMerchantId = (idOrCode?: string): string | undefined => idOrCode || undefined;
 
 /**
@@ -98,14 +81,15 @@ const actorHeaders = (_role: string, _name: string) => ({});
  * Live reads.
  *
  * These call the backend. They do **not** fall back to fixtures when the
- * database is empty, and that is deliberate: this product's whole argument
- * is that its numbers are real, so an empty deployment must look empty. A
- * console that quietly shows sample rows when the API returns nothing is the
- * same defect as the invented growth figures removed earlier, only harder to
- * notice.
+ * database is empty, and that is deliberate: this platform's whole argument
+ * is that its numbers are real and traceable, so an empty deployment must
+ * look empty. A console that quietly shows sample rows when the API returns
+ * nothing would undermine exactly the claim the product rests on.
  *
- * The fixtures remain in mockData.ts and are used by the demo page, which is
- * explicitly a demonstration and says so.
+ * Where demonstration data is wanted, it is generated into the database by
+ * `backend/scripts/seed_synthetic.py` and every row it writes is marked as
+ * synthetic — so it is visible as such in the record itself, not hidden in a
+ * frontend fixture that looks identical to real activity.
  */
 
 /** Errors are logged and rethrown; pages render their own empty and error states. */
@@ -118,75 +102,13 @@ const live = async <T>(label: string, call: () => Promise<T>): Promise<T> => {
   }
 };
 
-export const fetchDevices = async (filters?: ListFilters): Promise<Device[]> =>
-  live('devices', async () => {
-    const res = await api.get('/devices', {
-      params: {
-        merchant_id: resolveMerchantId(filters?.merchantId),
-        status: filters?.status,
-        search: filters?.search,
-      },
-    });
-    return res.data.devices as Device[];
-  });
-
-export interface DeviceDetail extends Device {
-  statusLog: StatusLogEntry[];
-  heartbeats: DeviceHeartbeatPoint[];
-  recentTransactions: Transaction[];
-}
-
-export const fetchDeviceById = async (id: string): Promise<DeviceDetail | undefined> =>
-  live('device detail', async () => {
-    const res = await api.get(`/devices/${id}`);
-    return res.data as DeviceDetail;
-  });
-
-export const fetchDeviceHeartbeats = async (deviceId: string): Promise<DeviceHeartbeatPoint[]> =>
-  live('device heartbeats', async () => {
-    const res = await api.get(`/devices/${deviceId}`);
-    return res.data.heartbeats as DeviceHeartbeatPoint[];
-  });
-
-/** Moving a device to another business. Recorded in the device's status log. */
-export const assignDevice = async (
-  deviceId: string,
-  merchantId: string,
-  actor: { role: string; name: string },
-  note?: string
-): Promise<Device> =>
-  live('assign device', async () => {
-    const res = await api.put(
-      `/devices/${deviceId}/assign`,
-      { merchant_id: merchantId, note },
-      actorHeaders(actor.role, actor.name)
-    );
-    return res.data as Device;
-  });
-
-export const setDeviceStatus = async (
-  deviceId: string,
-  status: string,
-  actor: { role: string; name: string },
-  note?: string
-): Promise<Device> =>
-  live('set device status', async () => {
-    const res = await api.put(
-      `/devices/${deviceId}/status`,
-      { status, note },
-      actorHeaders(actor.role, actor.name)
-    );
-    return res.data as Device;
-  });
-
 export const fetchTransactions = async (
-  filters?: ListFilters & { deviceId?: string; paymentType?: string; payerInstrument?: string }
+  filters?: ListFilters & { paymentType?: string; payerInstrument?: string }
 ): Promise<Transaction[]> =>
   live('transactions', async () => {
     const res = await api.get('/transactions', {
       params: {
         merchant_id: resolveMerchantId(filters?.merchantId),
-        device_id: filters?.deviceId,
         status: filters?.status,
         payment_type: filters?.paymentType,
         payer_instrument: filters?.payerInstrument,
@@ -254,7 +176,6 @@ export interface MerchantDetail extends Merchant {
   address: Record<string, unknown>;
   beneficialOwners: BeneficialOwner[];
   statusLog: StatusLogEntry[];
-  devices: Device[];
 }
 
 export const fetchMerchantById = async (id: string): Promise<MerchantDetail | undefined> =>
@@ -320,7 +241,7 @@ export const fetchWalletShare = async (): Promise<
 export const fetchPeriodDeltas = async (
   idOrCode?: string,
   days = 7
-): Promise<{ transactions: number | null; volume: number | null; devices: number | null }> =>
+): Promise<{ transactions: number | null; volume: number | null }> =>
   live('period deltas', async () => {
     const rows = await fetchTransactions({ merchantId: idOrCode });
     const now = Date.now();
@@ -339,9 +260,6 @@ export const fetchPeriodDeltas = async (
     return {
       transactions: pctChange(current.length, prior.length),
       volume: pctChange(sum(current), sum(prior)),
-      // Device count is a stock, not a flow: there is no prior-period
-      // snapshot to difference against, so no figure is claimed.
-      devices: null,
     };
   });
 export type GeoLevel = 'region' | 'constituency' | 'local_authority';
@@ -492,11 +410,6 @@ export const recordAnomalyFeedback = async (
 export const fetchMerchantStatusLog = async (merchantId: string): Promise<StatusLogEntry[]> =>
   live('business status log', async () => {
     const res = await api.get(`/merchants/${merchantId}`);
-    return res.data.statusLog as StatusLogEntry[];
-  });
-export const fetchDeviceStatusLog = async (deviceId: string): Promise<StatusLogEntry[]> =>
-  live('device status log', async () => {
-    const res = await api.get(`/devices/${deviceId}`);
     return res.data.statusLog as StatusLogEntry[];
   });
 export interface AnomalyRule {
@@ -669,58 +582,6 @@ export const fetchRulePreview = async (): Promise<RulePreview> => {
   };
 };
 
-/** Record what firmware a device is believed to be running. */
-export const updateDevice = async (
-  deviceId: string,
-  changes: { firmwareVersion?: string; note?: string },
-  actor: { role: string; name: string }
-): Promise<Device> =>
-  live('update device', async () => {
-    const res = await api.put(
-      `/devices/${deviceId}`,
-      { firmware_version: changes.firmwareVersion, note: changes.note },
-      actorHeaders(actor.role, actor.name)
-    );
-    return res.data as Device;
-  });
-
-/** Add a device to the estate before it has ever reported in. */
-export const createDevice = async (
-  input: { deviceCode: string; firmwareVersion?: string; merchantId?: string; note?: string },
-  actor: { role: string; name: string }
-): Promise<Device> =>
-  live('create device', async () => {
-    const res = await api.post(
-      '/devices',
-      {
-        device_code: input.deviceCode,
-        firmware_version: input.firmwareVersion || '0.0.0',
-        merchant_id: input.merchantId || undefined,
-        note: input.note,
-      },
-      actorHeaders(actor.role, actor.name)
-    );
-    return res.data as Device;
-  });
-
-/**
- * Retire a device.
- *
- * Soft: the row survives, so a payment taken through this device last year
- * still resolves it. It simply leaves every list.
- */
-export const retireDevice = async (
-  deviceId: string,
-  actor: { role: string; name: string },
-  note?: string
-): Promise<{ id: string; retired: boolean }> =>
-  live('retire device', async () => {
-    const res = await api.delete(`/devices/${deviceId}`, {
-      params: { note },
-      ...actorHeaders(actor.role, actor.name),
-    });
-    return res.data;
-  });
 
 /** Register a business application. Always starts pending review. */
 export const createMerchant = async (
@@ -764,16 +625,17 @@ export const updateMerchant = async (
   });
 
 /**
- * Close a business. The reason is required, and its devices are released.
+ * Close a business. The reason is required.
  *
- * A device still assigned to a business that no longer trades would count
- * toward coverage as reach that does not exist.
+ * Soft: the row survives, so a payment recorded against this business last
+ * year still resolves it. It simply leaves every active list, and stops
+ * counting toward coverage as reach that no longer exists.
  */
 export const closeMerchant = async (
   merchantId: string,
   note: string,
   actor: { role: string; name: string }
-): Promise<{ id: string; devicesReleased: number }> =>
+): Promise<{ id: string }> =>
   live('close business', async () => {
     const res = await api.delete(`/merchants/${merchantId}`, {
       params: { note },
@@ -820,8 +682,8 @@ export const removeBeneficialOwner = async (
  *
  * Status options are read rather than hardcoded. A UI holding its own copy
  * of a list that lives in configuration will eventually offer a value the
- * API rejects — which is precisely what a hardcoded "faulty" device status
- * did before this existed.
+ * API rejects — which is precisely what a hardcoded status list did before
+ * this existed.
  */
 export const fetchTypeDefinitions = async (
   domain: string
@@ -1005,5 +867,19 @@ export const resetPassword = async (
   newPassword: string,
 ): Promise<string> =>
   (await api.post('/auth/reset-password', { id, token, new_password: newPassword })).data.detail;
+
+export const fetchUserDetail = async (id: string): Promise<AccountDetail> =>
+  live('user detail', async () => (await api.get(`/users/${id}`)).data);
+
+export const updateUser = async (
+  id: string,
+  body: { display_name?: string; role?: string; merchant_id?: string | null; clear_merchant?: boolean },
+): Promise<AccountUser> =>
+  live('update user', async () => (await api.put(`/users/${id}`, body)).data);
+
+/** Admin-set password, for someone who cannot receive reset mail. Returns the
+ *  server's message; the password itself is never echoed back. */
+export const adminSetPassword = async (id: string, newPassword: string): Promise<string> =>
+  (await api.post(`/users/${id}/set-password`, { new_password: newPassword })).data.detail;
 
 export default api;

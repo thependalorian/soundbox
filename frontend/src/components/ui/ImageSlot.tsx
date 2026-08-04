@@ -1,5 +1,5 @@
 import React from 'react';
-import monogram from '../../assets/brand/wayame-monogram.png';
+import mark from '../../assets/brand/buffr-mark.png';
 
 interface ImageSlotProps {
   /** What the finished image must show. This is the brief, not a caption. */
@@ -53,10 +53,10 @@ const ImageSlot: React.FC<ImageSlotProps> = ({
         visible to visitors — the page looked unfinished in a way the work
         behind it is not. */}
     <img
-      src={monogram}
+      src={mark}
       alt=""
       aria-hidden="true"
-      className="w-[38%] max-w-[190px] opacity-[0.30]"
+      className="w-[26%] max-w-[130px] opacity-[0.34]"
     />
     <span className="sr-only">{slot ?? brief}</span>
   </figure>

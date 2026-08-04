@@ -2,20 +2,40 @@
 
 > Market, operating model, financials, roadmap, risk and team.
 >
-> Part of the SoundBox documentation set — see [README.md](README.md).
+> Part of the Buffr Intelligence documentation set — see [README.md](README.md).
 
 ---
 
 ## Executive Summary
 
-**SoundBox** is a hardware-enabled payment confirmation device designed for Namibia's Instant Payment Programme (IPP), combined with a **predictive analytics platform** that provides real-time intelligence to regulators, banks, and merchants. The device provides loud, instant audio confirmations for merchants receiving payments via the WayaMe platform—Namibia's consumer-facing instant payment solution powered by the Unified Payments Interface (UPI) technology from India.
+**Buffr Intelligence** is a RegTech and SupTech analytics platform built for the
+Bank of Namibia. It reads transaction-pattern data from Namibia's instant
+payment rails and turns it into real-time dashboards, explainable anomaly
+detection, market-structure and financial-inclusion metrics, and automated
+regulatory reporting.
 
-This business plan outlines the complete technical architecture, regulatory compliance strategy, operational model, financial projections, and **predictive analytics product suite** for establishing a SoundBox business in Namibia, with the long-term goal of local assembly and manufacturing, and the strategic objective of becoming a RegTech partner to the Bank of Namibia and NAMFISA.
+**It holds no funds, moves no money, and has no consumer product.** It is told
+the outcome of payments that have already settled, and analyses them. That is
+structural rather than a policy, and it is the single most important fact
+about the venture: an observer relationship is a materially smaller question
+for a rails operator to grant than a participant relationship.
 
-> **Naming and status note.** SoundBox listens to the WayaMe rails. WayaMe is
+This is a single institutional relationship, built on a published and
+peer-reviewed anomaly-detection method, seeking a data-sharing arrangement
+with Instant Payments Namibia that begins with a lower-risk, lower-burden
+data-discovery phase and scales toward continuous access as trust and value
+are demonstrated.
+
+> **Sections still under revision.** The commercial sections below — revenue
+> model, distribution, unit economics and the financial projections — are
+> being rewritten and should not be read as current. They describe an earlier
+> hardware-led model. The market, positioning, regulatory and roadmap sections
+> are current.
+
+> **Naming and status note.** Buffr Intelligence reads data from the WayaMe rails. WayaMe is
 > the consumer-facing name of Namibia's instant payment service, operated by
 > Instant Payments Namibia; it is named throughout this plan to say what
-> SoundBox connects to, **not to imply endorsement, partnership or approval
+> Buffr Intelligence connects to, **not to imply endorsement, partnership or approval
 > that has not been granted**. No licence, certification, integration
 > agreement or partnership described here should be read as already held —
 > the engagements to obtain them are set out in
@@ -38,13 +58,23 @@ Namibia's National Payment System (NPS) is undergoing a significant transformati
 - **UPI Technology**: Namibia is the first country to sign a licensing agreement to adopt India's UPI system for real-time digital payments
 - **NAMQR Standards**: Namibia's national QR Code payment standard, finalized in May 2025, ensures interoperability across all payment streams
 
-### 1.2 The SoundBox Opportunity
+### 1.2 The Oversight Opportunity
 
-In the Indian market, the UPI SoundBox has become an essential merchant tool with over 20 million devices deployed. The device:
-- Provides instant, loud audio confirmation of payments
-- Builds merchant trust in digital payments
-- Reduces disputes and fraud
-- Enables merchants to continue serving customers while receiving payment confirmations audibly
+Instant payments raise transaction volume and velocity at the same time. That
+is precisely the condition under which an annual, retrospective reporting
+cadence stops being sufficient on its own — not because anything is currently
+out of control, but because the profile of what oversight has to catch
+changes.
+
+What a supervisor gains from this platform:
+- Real-time visibility into volume, value and reach, reported at constituency
+  level rather than as a national average
+- Explainable anomaly detection, where every score resolves into the features
+  that produced it and carries the configuration it was computed under
+- Market-structure measures — concentration and value distribution — of the
+  kind competition regulators already use
+- Returns that reconcile against the same record the dashboards read, so a
+  filed number and a displayed number cannot silently drift apart
 
 ### 1.3 The Predictive Analytics Opportunity
 
@@ -106,48 +136,36 @@ pay-point model, but it is our own inference from how the model works, not a
 reported incident — copy should keep it a secondary point, not present it as
 a documented failure.
 
-### 1.6 Why Bank of Namibia Chooses SoundBox
+### 1.6 Why the Bank of Namibia would contract this
 
-The predictive analytics platform (§1.3) is the reason BoN would evaluate
-SoundBox at all. These are the three reasons a regulator — not just a
-merchant — would choose *this* vendor over an alternative device or over
-building nothing.
+Three reasons a supervisor would choose this over an alternative vendor or
+over building nothing.
 
-**We grow the rails' own user base, not a competitor to them.** Every
-SoundBox deployed to a market trader, taxi driver, or agent is one more
-counter where digital payment is trusted enough to replace cash. The device
-reads WayaMe/NAMQR confirmations and speaks them aloud; it does not
-introduce a competing payment method or a second QR standard. Adoption in
-the informal sector — the segment hardest to reach and the one the NPS's own
-stated goals depend on — is exactly what a national payments programme needs
-help with, and SoundBox is built to supply that help without asking anyone
-to trust a second system.
+**It serves the rails' own stated goals rather than competing with them.**
+Every measure the platform surfaces about where digital payment is and is not
+reaching directly serves the informal-sector adoption goal the national
+payments strategy already states. It introduces no competing payment method,
+no second standard and no consumer product. The segment hardest to reach is
+exactly the one a national payments programme needs evidence about, and
+evidence is the whole of what this supplies.
 
-**We do not take a cut of the payment.** SoundBox's revenue comes from the
-device, the connectivity and maintenance subscription, and the analytics
-platform — never a per-transaction fee (see §5.1.1). That is a deliberate
-choice, not an oversight, for two reasons a regulator will recognize
-immediately: it removes the standard conflict of interest a payments
-intermediary carries (earning more as more money moves is misaligned with
-consumer protection), and it keeps SoundBox unambiguously an *observer* of
-the rails rather than a participant in them — the same architectural
-boundary the platform enforces end-to-end (see
-[docs/architecture.md](architecture.md)). A vendor that cannot profit from a
-payment happening more, or more often, has nothing to gain from encouraging
-a payment that shouldn't happen.
+**No per-transaction fee, ever.** Revenue comes from a single institutional
+subscription and from bounded engagement work — never a cut of payment volume
+(§5.1.1). That is deliberate, for a reason a supervisor recognises
+immediately: a vendor earning more as more money moves has an interest in the
+number it reports on. Excluding that fee keeps the platform unambiguously an
+*observer* of the rails rather than a participant in them, which is the same
+boundary the architecture enforces end to end (see
+[docs/architecture.md](architecture.md)). Nothing counted here carries an
+interest in its own result.
 
-**The device is the entry point; the relationship is the asset.** A one-off
-device sale ends the day it ships. A contract to supply, install, and
-maintain SoundBox devices at scale — paired with the analytics layer BoN
-already has a demonstrated appetite for (§1.3), and with local job creation
-through Namibian assembly and field-service technicians (§5.2.2) — is a
-different kind of engagement: a standing operational relationship with the
-institution running the NPS, renewed every maintenance cycle and deepened
-every time a new analytics capability ships. That is the actual prize on
-offer here, not a hardware sale: becoming infrastructure the NPS depends on
-and keeps re-contracting, with SoundBox's continued relevance measured by
-how much it keeps contributing to outcomes BoN and IPN are already
-accountable for — not by how many boxes were sold in year one.
+**The relationship is the asset, not a sale.** A one-off report ends the day
+it is filed. A subscription renewed each cycle as capability grows is
+infrastructure the institution keeps re-contracting — deepened every time a
+new measure ships, and measured by how much it keeps contributing to outcomes
+the Bank and IPN are already accountable for. The reviewer verdicts
+accumulating inside it are also the only path to something that does not
+exist today: a defensible fraud baseline for this part of the economy.
 
 ### 1.7 The Business Questions Our Models Actually Answer
 
@@ -228,95 +246,71 @@ actually contain.
 
 ---
 
-## 5. Operational Model
+## 5. Operating Model
 
-### 5.1 Business Model
+### 5.1 The shape of the relationship
 
-**5.1.1 Revenue Streams**
+One supplier of data (Instant Payments Namibia), one buyer of the analytics
+(the Bank of Namibia). That bilateral structure determines everything below,
+and it is unusual enough to state plainly rather than describe as a market.
 
-| Revenue Stream | Description | Projected Margin |
-|----------------|-------------|------------------|
-| Device Sales | One-time sale of SoundBox devices | 30-40% |
-| Monthly Subscription | Ongoing service fee (connectivity, updates, maintenance) | 60-70% |
-| Data Analytics | Merchant insights and reporting | 50-60% |
-| RegTech Subscription | Regulatory reporting and analytics platform | 60-70% |
-| Replacement Parts | Battery, charger, accessories | 40-50% |
+**5.1.1 Revenue**
 
-**Deliberately excluded: a per-transaction fee.** An earlier draft of this
-model listed one as optional. Dropped, not deferred — see §1.6 for why
-taking a cut of the payment undermines the exact positioning (observer of
-the rails, not a participant in them) that makes SoundBox worth contracting
-in the first place.
+| Stream | Description |
+|---|---|
+| Data-discovery and model-validation engagement | A paid, bounded piece of work against Phase 1 access: validating the models on real structure and deriving thresholds that currently do not exist |
+| Institutional subscription | A standing subscription for the platform, renewed each cycle as capability grows |
 
-**5.1.2 Pricing Strategy**
+**Deliberately excluded: a per-transaction fee.** Not deferred — excluded.
+Taking a cut of payment volume would give the platform a financial interest in
+the number it reports on, which destroys the exact positioning (observer of
+the rails, not a participant in them) that makes the relationship grantable at
+all. Nothing measured here carries an interest in its own result.
 
-| Item | Price (NAD) | Notes |
-|------|-------------|-------|
-| SoundBox Device | 400-600 | Volume discounts for merchants |
-| Monthly Service Fee | 30-50 | Includes 4G data and updates |
-| Annual Service Package | 300-500 | Discounted annual rate |
-| RegTech Platform (BoN) | 500,000-1,000,000/year | Enterprise subscription |
-| RegTech Platform (NAMFISA) | 300,000-500,000/year | Enterprise subscription |
-| Replacement Battery | 100-150 | User-replaceable |
-| Bulk Order (50+) | 350/unit | 15-20% discount |
+**Deliberately excluded: any consumer product.** There is no second revenue
+line aimed at the businesses or individuals whose payments are analysed. They
+are subjects of the analysis, never customers, and monetising them would
+introduce a conflict the platform could not answer for.
 
-### 5.2 Supply Chain
+> **Pricing is under revision** and is deliberately not stated here. It
+> depends on which phase of data access is granted and what is contracted with
+> it, and a number published ahead of that would be invented rather than
+> derived.
 
-**5.2.1 Manufacturing Partners**
+### 5.2 Delivery model
 
-| Partner | Product | Status |
-|---------|---------|--------|
-| CWD Limited | SoundBox OEM | Primary target |
-| Oakter (Riot Labs) | SoundBox OEM | Secondary option |
-| iServeU | SoundBox + PAX integration | Alternative |
+No hardware, no inventory, no supply chain, no field estate. The platform is a
+hosted application; delivery is an account, and the constraints are
+operational rather than logistical.
 
-**5.2.2 Manufacturing Timeline**
+| Concern | How it is handled |
+|---|---|
+| Availability | Hosted, with the append-only data store backed up and recoverable. There is no payment path to take down — an outage costs visibility, never a payment |
+| Access | Accounts are issued by an administrator and never self-created; there is no sign-up form and no self-service tier |
+| Change control | Every scoring-policy change is append-only with a named actor, and every score carries the configuration fingerprint that produced it |
+| Data handling | Purpose limitation, storage limitation, tokenised identifiers. Terms are set by the data-sharing agreement, and the platform is built so that a term set later is a configuration change rather than a rebuild |
 
-```
-Phase 1: Import (Months 1-6)
-├── Identify ODM partner
-├── Finalize specifications
-├── Place initial order (1,000 units)
-└── CRAN Type Approval
+### 5.3 Support
 
-Phase 2: Local Assembly (Months 7-12)
-├── Set up assembly facility
-├── Train local technicians
-├── Import components
-└── Begin "Box Build" assembly
+A two-person team supporting one institution. The honest version of a support
+model at this size is a named contact and a response commitment, not a tiered
+service desk:
 
-Phase 3: Local Manufacturing (Years 2-3)
-├── PCB assembly capability
-├── SMT (Surface Mount Technology) line
-├── Local sourcing of components
-└── "Made in Namibia" certification
-```
-
-### 5.3 Device Distribution Channels
-
-| Channel | Description | Target |
-|---------|-------------|--------|
-| Bank Partnerships | Distribution through partner banks | 40% |
-| Direct Sales | Online and field sales team | 20% |
-| Agent Network | Cash-in/cash-out agents | 25% |
-| Retail Partners | Electronics and telecom retailers | 15% |
-
-### 5.4 Customer Support
-
-| Support Channel | Availability | SLA |
-|-----------------|--------------|-----|
-| Phone Support | 8am-8pm weekdays, 9am-5pm weekends | Response within 2 hours |
-| WhatsApp Support | 24/7 | Response within 1 hour |
-| Email Support | 24/7 | Response within 24 hours |
-| In-Person Support | Physical service centers | Walk-in service |
-| Self-Service | FAQ and troubleshooting portal | 24/7 access |
-
----
-
+| Channel | Availability |
+|---|---|
+| Named contact for the institution | Business hours, direct |
+| Email | Monitored daily |
+| Incident response | Documented process, scaled to current team size and designed to be extensible as the team grows (§9.2) |
 
 ---
 
 ## 6. Financial Projections
+
+> **This entire section is under revision and should not be relied on.** The
+> figures below were built for a hardware-led model — unit sales, cost of
+> goods, inventory, type approval — none of which apply to a platform with no
+> device. They are retained only so the revision has a diff to work against.
+> Every line will change.
 
 ### 6.1 Startup Costs
 
@@ -361,76 +355,67 @@ Phase 3: Local Manufacturing (Years 2-3)
 
 ## 7. Implementation Roadmap
 
-### Phase 1: Foundation (Months 1-3)
+Sequenced to **data access**, because nothing else can move until that does.
+Each phase is a smaller, independently justifiable request than the one after
+it, and each builds the evidence for the next. Full field-by-field detail of
+what is requested at Phase 1, and what is lost if a field is withheld, is in
+`backend/notebooks/anomaly_detection.ipynb` §11.
 
-| Milestone | Description | Responsible |
-|-----------|-------------|-------------|
-| 1.1 | Register company (Pty Ltd) | Legal Team |
-| 1.2 | Submit FinTech Innovation Framework application | Regulatory Lead |
-| 1.3 | Submit PSD-1 license application | Regulatory Lead |
-| 1.4 | Engage potential ODM partners | Operations Lead |
-| 1.5 | Secure initial funding | CEO |
-| 1.6 | Establish office and infrastructure | Operations Lead |
+### Phase 0 — Synthetic validation (complete)
 
-### Phase 2: Regulatory Approval (Months 4-6)
+| Milestone | Status |
+|---|---|
+| Two-layer framework implemented end to end | Done |
+| Five classifiers compared on the same measures the published method uses | Done |
+| Severity scoring validated by paired comparison against manipulated payments | Done |
+| Every score attributable to features, globally and individually | Done |
+| Market-structure, inclusion, constituency coverage and forecasting computed | Done |
+| Regulatory returns reconciling against the same record | Done |
 
-| Milestone | Description | Responsible |
-|-----------|-------------|-------------|
-| 2.1 | Obtain FinTech Regulatory Framework approval | Regulatory Lead |
-| 2.2 | Begin Regulatory Sandbox testing | Technical Lead |
-| 2.3 | Obtain CRAN Type Approval | Operations Lead |
-| 2.4 | Complete PSD-1 licensing | Regulatory Lead |
-| 2.5 | Engage Instant Payment Namibia (IPN) | CEO |
-| 2.6 | Finalize ODM partnership | Operations Lead |
+**No data was requested to reach this point.** That is the argument: the
+method is demonstrable before anyone commits anything.
 
-### Phase 3: Development & Certification (Months 7-9)
+### Phase 1 — Schema and a bounded historical sample
 
-| Milestone | Description | Responsible |
-|-----------|-------------|-------------|
-| 3.1 | Complete hardware design | Technical Lead |
-| 3.2 | Complete firmware development | Technical Lead |
-| 3.3 | Complete backend services | Technical Lead |
-| 3.4 | IPN certification testing | Technical Lead |
-| 3.5 | ODM production of first batch | Operations Lead |
-| 3.6 | Develop predictive analytics MVP | Data Science Lead |
+| Milestone | Description |
+|---|---|
+| 1.1 | Amend the founding statement to reflect software and analytics |
+| 1.2 | Submit the FinTech Innovation Framework application |
+| 1.3 | Request the Bank's determination on classification (§10.2 of the application) |
+| 1.4 | Open engagement with IPN on a bounded, anonymised historical extract |
+| 1.5 | Validate models against real structure; derive thresholds that do not exist today |
+| 1.6 | Deliver a paid data-discovery and model-validation engagement |
+| 1.7 | First hire: Data Scientist / ML Engineer |
 
-### Phase 4: Launch (Months 10-12)
+### Phase 2 — Periodic aggregate access
 
-| Milestone | Description | Responsible |
-|-----------|-------------|-------------|
-| 4.1 | Receive first inventory | Operations Lead |
-| 4.2 | Launch marketing campaign | Marketing Lead |
-| 4.3 | Onboard first merchant partners | Sales Lead |
-| 4.4 | Deploy first 500 devices | Sales Lead |
-| 4.5 | Launch RegTech pilot with BoN | CEO |
-| 4.6 | Establish support infrastructure | Operations Lead |
+| Milestone | Description |
+|---|---|
+| 2.1 | Regular aggregated extracts, with cadence and content controlled by IPN |
+| 2.2 | Dashboards, market-structure and inclusion measures running on a lag |
+| 2.3 | Returns generated and reconciled against the shared record |
+| 2.4 | Paid pilot subscription |
+| 2.5 | Hire: Regulatory & Compliance Officer |
+| 2.6 | Begin advisory-board formation |
 
-### Phase 5: Scaling (Months 13-24)
+### Phase 3 — Observer status
 
-| Milestone | Description | Responsible |
-|-----------|-------------|-------------|
-| 5.1 | Expand distribution channels | Sales Lead |
-| 5.2 | Launch second product iteration | Technical Lead |
-| 5.3 | Begin local assembly setup | Operations Lead |
-| 5.4 | Expand team | CEO |
-| 5.5 | Secure Series A funding | CEO |
-| 5.6 | Deploy 5,000+ devices | Sales Lead |
-| 5.7 | Expand RegTech product suite | Data Science Lead |
-| 5.8 | Sign commercial agreements with BoN/NAMFISA | CEO |
+| Milestone | Description |
+|---|---|
+| 3.1 | Live or near-live access, justified by the Phase 1–2 track record |
+| 3.2 | Review queue worked daily; reviewer verdicts accumulate |
+| 3.3 | The first defensible fraud baseline for this part of the economy |
+| 3.4 | Published detection accuracy — measured, not asserted |
+| 3.5 | Hire: Security Engineer |
+| 3.6 | Model retraining on a schedule, as the participant population grows |
 
-### Phase 6: Assembly Plant (Months 25-36)
+### Beyond
 
-| Milestone | Description | Responsible |
-|-----------|-------------|-------------|
-| 6.1 | Establish assembly facility | Operations Lead |
-| 6.2 | Train local technicians | Operations Lead |
-| 6.3 | Import SMT equipment | Operations Lead |
-| 6.4 | Begin "Made in Namibia" production | Operations Lead |
-| 6.5 | Local component sourcing | Operations Lead |
-| 6.6 | Export to SADC region | CEO |
-
----
-
+| Milestone | Description |
+|---|---|
+| 4.1 | Standing subscription relationship |
+| 4.2 | Cross-border corridor analytics, contingent on that infrastructure existing |
+| 4.3 | Hire: Business Development / Partnerships, as institution count grows |
 
 ---
 
@@ -440,14 +425,14 @@ Phase 3: Local Manufacturing (Years 2-3)
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| Regulatory delays | Medium | High | Engage early, maintain relationships, use sandbox |
-| Technical integration issues | Medium | High | Early IPN engagement, thorough testing |
-| Supply chain disruption | Medium | Medium | Diversify suppliers, local assembly goal |
-| Market adoption slow | Medium | High | Strong partnerships with banks, merchant education |
-| Competition | Medium | Medium | First-mover advantage, strong branding |
-| Cybersecurity breach | Low | High | Robust security architecture, regular audits |
-| Currency fluctuation | Low | Medium | Local currency pricing, hedging |
-| Data privacy concerns | Medium | High | Strong governance, anonymization, regulator collaboration |
+| **IPN declines even Phase 1 access** | Medium | High | The phased ask is designed to make Phase 1 a smaller, more easily evaluated yes than a full agreement. A decline at Phase 1 is decision-relevant early rather than after a year of building against an assumption |
+| Classification requires full licensing | Medium | High | The Bank's determination is requested explicitly rather than assumed favourably |
+| Two-person team, key-person risk | High | High | Hires sequenced to capability triggers (§7), not to a timeline the funding does not support |
+| Revenue depends on institution count on the rails, outside our control | High | Medium | Reflected directly in the projections rather than assumed away |
+| Model drift as participants onboard | Medium | Medium | Retraining cadence before Phase 3; the participant population grows with every institution added |
+| Cybersecurity breach | Low | High | NIST CSF 2.0-aligned process, fixed query surface, no funds and no payment path to compromise |
+| Data privacy concerns | Medium | High | Tokenised identifiers, purpose and storage limitation, POPIA/GDPR principles adopted by choice ahead of any Namibian requirement |
+| Overstating capability | Medium | High | Nothing is marked live that is not running; capabilities that cannot be measured with confidence are omitted rather than promised |
 
 ### 8.2 Fraud Prevention (PSD-8 Compliance)
 
@@ -479,35 +464,51 @@ PSD-8 provides the framework for administrative penalties. To avoid penalties:
 
 ### 9.1 Leadership Team
 
-| Position | Responsibilities | Qualifications Required |
-|----------|------------------|------------------------|
-| CEO | Overall strategy, regulatory, fundraising | MBA, fintech experience |
-| CTO | Technical architecture, development | Engineering degree, embedded systems |
-| COO | Operations, supply chain, assembly | Operations management |
-| Head of Regulatory | Compliance, licensing | Legal background, financial services |
-| Head of Sales | Distribution, partnerships | Sales experience, banking network |
-| Head of Data Science | Predictive analytics, ML models | PhD/MSc in Data Science, AI experience |
+**Current team: two people.** Everything below the first two rows is a role
+sequenced to a trigger in §7, not a position that exists today.
+
+**We are open to conversations now, ahead of any of those triggers.** A role
+that becomes fundable in nine months is still worth talking about in month
+one — the right person for a two-person team is rarely available on the week
+the budget clears. Enquiries go to the founders directly; there is no
+recruitment process to enter and no vacancy to apply against.
+
+| Position | Responsibilities | Status |
+|---|---|---|
+| Founder / CEO | Strategy, regulatory engagement, business development, data science direction | Current |
+| Technical Operations & Infrastructure Lead | Network infrastructure, database and data-asset management, access control, the Protect and Detect functions | Current |
+| Data Scientist / ML Engineer | Model validation on real data, feature engineering, the ensemble methodology in practice | Once Phase 1 access is secured |
+| Regulatory & Compliance Officer | Classification, data governance as a formal function, Bank and IPN liaison | Once a subscription or paid engagement exists |
+| Security Engineer | A dedicated Detect and Respond function as access scope grows | Once Phase 2–3 access begins |
+| Business Development / Partnerships | Relationship management as institution count grows | As institutions onboard |
 
 ### 9.2 Organization Structure
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         CEO                                     │
+│                    Founder / CEO                                │
+│      Strategy · regulatory engagement · data science direction   │
 └─────────────────────────────────────────────────────────────────┘
-        │                    │                    │
-        ▼                    ▼                    ▼
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│   CTO         │   │   COO         │   │   Head of     │
-│   (Technical) │   │   (Ops)       │   │   Regulatory  │
-└───────────────┘   └───────────────┘   └───────────────┘
-        │                    │                    │
-        ▼                    ▼                    ▼
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│• Firmware Dev │   │• Supply Chain │   │• Licensing    │
-│• Backend Dev  │   │• Assembly     │   │• Compliance   │
-│• QA/Testing   │   │• Logistics    │   │• Reporting    │
-│• Data Science │   │               │   │               │
-└───────────────┘   └───────────────┘   └───────────────┘
+                              │
+        ┌─────────────────────┴─────────────────────┐
+        ▼                                           ▼
+┌───────────────────────┐              ┌───────────────────────┐
+│ Technical Operations  │              │  Roles that follow    │
+│ & Infrastructure Lead │              │  the data phases      │
+├───────────────────────┤              ├───────────────────────┤
+│• Network & infra      │              │• Data Scientist /     │
+│• Database & data      │              │  ML Engineer  (P1)    │
+│  asset management     │              │• Regulatory &         │
+│• Access control       │              │  Compliance   (P1-2)  │
+│• Protect / Detect     │              │• Security Engineer    │
+│                       │              │               (P2-3)  │
+│                       │              │• Business Development │
+│                       │              │      (as institutions │
+│                       │              │       onboard)        │
+└───────────────────────┘              └───────────────────────┘
+
+Two people today. Everything in the right-hand column is sequenced to a
+data-access phase in §7, not to a date.
 ```
 
 ---
@@ -519,36 +520,40 @@ PSD-8 provides the framework for administrative penalties. To avoid penalties:
 
 ### 10.1 Key Success Factors
 
-1. **Regulatory First**: Proactive engagement with BoN, NAMFISA, and CRAN
-2. **Technical Excellence**: Reliable, secure, user-friendly device
-3. **Strategic Partnerships**: Banks, IPN, and merchant networks
-4. **Local Manufacturing**: "Made in Namibia" as a competitive advantage
-5. **Affordable Pricing**: Accessible to informal sector merchants
-6. **Data Monetization**: Predictive analytics platform for regulators
-7. **First-Mover Advantage**: Establish market leadership early
-8. **No Fee Conflict**: No per-transaction fee keeps SoundBox an observer of the rails, not a participant in them — see §1.6
-9. **Contract, Not a Sale**: Supply + maintenance + analytics + local jobs, structured as a standing relationship BoN re-contracts, not a one-time device order
+1. **Data access, phased.** Nothing else moves until Phase 1 is granted, and the ask is deliberately shaped to be the smallest defensible one.
+2. **Observer position, structurally.** No funds, no payment path, no consumer product. It is what makes the relationship a smaller question to grant.
+3. **No fee conflict.** No per-transaction fee, so nothing measured carries an interest in its own result — see §1.6.
+4. **A published, checkable method.** The methodology is peer-reviewed and the implementation is inspectable end to end, rather than asserted.
+5. **Explainability as a requirement.** A score a supervisor cannot interrogate is one they cannot defend acting on.
+6. **Honest absence.** Capabilities that cannot be measured with confidence are left out entirely rather than listed as future promises.
+7. **The relationship, not a sale.** A subscription renewed as capability grows, rather than a report filed once.
 
 ### 10.2 Immediate Next Steps
 
 | Action | Timeline | Owner |
 |--------|----------|-------|
-| Register company | Week 1 | CEO |
+| Amend the founding statement to software and analytics | Week 1 | CEO |
 | Submit FinTech application | Week 2 | Regulatory Lead |
 | Engage BoN Innovation Hub | Week 2 | CEO |
 | Engage IPN | Week 3 | CEO |
-| Identify ODM partner | Week 4 | Operations Lead |
-| Prepare full PSD-1 application | Month 2 | Regulatory Lead |
-| Begin predictive analytics prototype | Month 2 | Data Science Lead |
+| Request the Bank's determination on classification | Month 1 | CEO |
+| Open IPN engagement on a bounded historical extract | Month 2 | CEO |
 
 ### 10.3 Strategic Vision
 
-The SoundBox is not just a hardware device—it is a catalyst for digital financial inclusion in Namibia and a foundation for a **data-driven regulatory intelligence platform**. By providing merchants with instant, audible confirmation of digital payments, the device builds trust in the digital economy, reduces fraud, and enables small businesses to participate fully in Namibia's modernizing payment ecosystem.
+The constraint this venture exists to address is not policy intent — it is
+information asymmetry. A supervisor cannot act on what it cannot see, and the
+part of the economy that most needs to be measured is the part that has never
+been measurable.
 
-By pivoting to a predictive analytics startup, you become an essential partner in the modernization of Namibia's entire financial system. The regulators are ready, the technology is available, and your SoundBox network provides the perfect data foundation.
+Instant payments change that, because for the first time the activity leaves a
+record. What is missing is the layer that turns that record into evidence a
+supervisor can act on and defend acting on: measured against real population
+denominators, drilled to the level where a gap is visible rather than
+averaged away, and explained rather than asserted.
 
-With the Bank of Namibia's commitment to the NPS Vision 2030 and the Instant Payment Programme positioned as a national public good, the SoundBox & Predictive Analytics Platform is uniquely positioned to drive adoption and contribute to **"Inclusive Payments, Shared Prosperity"** .
-
-The device is what gets SoundBox in the room; it is not the reason the relationship lasts. What lasts is a supply, maintenance, and analytics contract renewed on its own merits year after year, growing local employment through Namibian assembly and field service (§5.2.2) as it does, with no per-transaction fee ever putting SoundBox's interests at odds with the payer's. That is the shape of a partner the NPS keeps, not a vendor it replaces at the next tender.
+That is the whole offer. It holds no funds, moves no money, and has nothing to
+sell to the people in the data. Its value is that a regulator can look at a
+number it produces, ask where the number came from, and get an answer.
 
 ---

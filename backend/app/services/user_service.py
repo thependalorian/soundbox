@@ -16,7 +16,7 @@ that action is logged with who did it.
 returns the same thing for a registered address, an unregistered one, and a
 deactivated one. Anything else turns the forgot-password form into a way to
 enumerate the platform's users — which, for a system whose users are named
-regulators and merchants, is itself sensitive.
+supervisory staff, is itself sensitive.
 
 **Every state change is logged immutably.** User transitions land in
 `user_status_log`, token transitions in `password_reset_token_status_log`,
@@ -90,7 +90,6 @@ def create_user(
     display_name: str,
     role: str,
     password: str,
-    merchant_id: Optional[uuid.UUID],
     actor_user_id: uuid.UUID,
 ) -> User:
     """Create an account. Raises UserServiceError with a safe message."""
@@ -103,13 +102,6 @@ def create_user(
     allowed = assignable_roles(db, organization_id)
     if role not in allowed:
         raise UserServiceError(f"Role must be one of: {', '.join(allowed)}.")
-
-    # A merchant account that is not scoped to a business would see every
-    # business on the platform -- the exact boundary the role exists to draw.
-    if role == "merchant" and merchant_id is None:
-        raise UserServiceError("A business operator account must be linked to a business.")
-    if role != "merchant" and merchant_id is not None:
-        raise UserServiceError("Only a business operator account can be linked to a business.")
 
     try:
         validate_password(password)
@@ -131,7 +123,6 @@ def create_user(
         password_hash=hash_password(password),
         display_name=display_name.strip(),
         role=role,
-        merchant_id=merchant_id,
         is_active=True,
         # Set at creation so the session check in app/api/deps.py has a
         # baseline; without it the first password change could not invalidate
@@ -180,7 +171,6 @@ def set_active(
 # (table, entity column). Used to answer "what has this account done".
 ACTIVITY_LOGS = [
     ("merchant_status_log", "merchant_id"),
-    ("device_status_log", "device_id"),
     ("transaction_status_log", "transaction_id"),
     ("anomaly_alert_status_log", "anomaly_alert_id"),
     ("settlement_status_log", "settlement_id"),
@@ -282,16 +272,13 @@ def update_user(
     user: User,
     display_name: Optional[str],
     role: Optional[str],
-    merchant_id: Optional[uuid.UUID],
-    clear_merchant: bool,
     actor_user_id: uuid.UUID,
 ) -> User:
     """Change an account's name, role or business scoping.
 
-    Role changes are the sharp edge here. Moving someone to `merchant` without
-    a business would leave them able to see every business -- the exact
-    boundary the role exists to draw -- so the same rule the create path
-    enforces is enforced again rather than assumed.
+    Refuses to demote the last active administrator: an organisation with no
+    administrator cannot issue accounts, cannot deactivate anyone, and cannot
+    recover without database access.
     """
     changed = []
 
@@ -299,7 +286,6 @@ def update_user(
         user.display_name = display_name.strip()
         changed.append("name")
 
-    new_role = role or user.role
     if role is not None and role != user.role:
         allowed = assignable_roles(db, user.organization_id)
         if role not in allowed:
@@ -325,18 +311,6 @@ def update_user(
                 )
         user.role = role
         changed.append("role")
-
-    if clear_merchant:
-        user.merchant_id = None
-        changed.append("business")
-    elif merchant_id is not None and merchant_id != user.merchant_id:
-        user.merchant_id = merchant_id
-        changed.append("business")
-
-    if new_role == "merchant" and user.merchant_id is None:
-        raise UserServiceError("A business operator account must be linked to a business.")
-    if new_role != "merchant" and user.merchant_id is not None:
-        raise UserServiceError("Only a business operator account can be linked to a business.")
 
     if not changed:
         return user
@@ -491,7 +465,7 @@ def request_password_reset(
     )
     sent = email_service.send(
         to=user.email,
-        subject="Reset your SoundBox password",
+        subject="Reset your Buffr Intelligence password",
         text_body=email_service.password_reset_body(
             user.display_name, reset_url, PASSWORD_RESET_TTL_MINUTES
         ),

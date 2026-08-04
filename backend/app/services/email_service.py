@@ -98,11 +98,11 @@ def password_reset_body(display_name: str, reset_url: str, ttl_minutes: int) -> 
     """
     return (
         f"Hello {display_name},\n\n"
-        "Someone asked to reset the password for your SoundBox account.\n\n"
+        "Someone asked to reset the password for your Buffr Intelligence account.\n\n"
         f"To choose a new one, open this link within {ttl_minutes} minutes:\n\n"
         f"{reset_url}\n\n"
         "The link can be used once. If you did not ask for this, you can "
         "ignore this message — your password has not changed. If you get "
         "these unexpectedly, reply to this email and tell us.\n\n"
-        "SoundBox\n"
+        "Buffr Intelligence\n"
     )

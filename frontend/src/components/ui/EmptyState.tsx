@@ -13,7 +13,7 @@ interface EmptyStateProps {
  * Empty state with a drawn mark.
  *
  * "No transactions yet" reports a void and leaves the reader nowhere. An
- * empty list usually means something specific — a device was never fitted,
+ * empty list usually means something specific — no payments were shared,
  * a business was onboarded last week, a region has no coverage — and saying
  * *which* turns a dead end into information. The mark gives the space a
  * centre so it reads as a deliberate state rather than a failed render.

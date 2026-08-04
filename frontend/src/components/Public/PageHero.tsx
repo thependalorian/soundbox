@@ -1,5 +1,5 @@
 import React from 'react';
-import monogram from '../../assets/brand/wayame-monogram.png';
+import mark from '../../assets/brand/buffr-mark.png';
 
 /**
  * The opening section of a public page.
@@ -15,9 +15,9 @@ import monogram from '../../assets/brand/wayame-monogram.png';
  *
  * **Each hero must look different from the others.** Until photography
  * lands, every backdrop would otherwise render the same gradient panel with
- * the same monogram in the same place — six identical heroes, which defeats
+ * the same mark in the same place — six identical heroes, which defeats
  * the point of having one. So the placeholder varies by `tone`: the gradient
- * angle, the monogram's position and scale, and the surface all shift per
+ * angle, the mark's position and scale, and the surface all shift per
  * page. When a real photograph is supplied to `backdrop`, it replaces the
  * placeholder entirely and the variation stops mattering.
  *
@@ -71,7 +71,8 @@ const TONES: Record<HeroTone, { surface: string; sheen: string; mark: string }> 
     sheen: 'bg-hero-sheen-origin',
     mark: 'w-[380px] bottom-[4%] right-[2%] opacity-[0.16]',
   },
-  // Sellers: warm, the mark close and to the left, like something on a counter.
+  // Trader tone: warm, the mark close and to the left. Unused by the current
+  // page set, kept because the token family is referenced by the design system.
   trader: {
     surface: 'bg-hero-trader',
     sheen: 'bg-hero-sheen-trader',
@@ -89,7 +90,7 @@ const TONES: Record<HeroTone, { surface: string; sheen: string; mark: string }> 
     sheen: 'bg-hero-sheen-mechanism',
     mark: 'w-[420px] bottom-[2%] left-1/2 -translate-x-1/2 opacity-[0.12]',
   },
-  // Vacancies: plum-led and still, the mark barely there.
+  // Assurance: plum-led and still, the mark barely there.
   assurance: {
     surface: 'bg-hero-assurance',
     sheen: 'bg-hero-sheen-assurance',
@@ -139,7 +140,7 @@ const PageHero: React.FC<PageHeroProps> = ({
         <>
           <div aria-hidden="true" className={`absolute inset-0 -z-10 ${t.sheen}`} />
           <img
-            src={monogram}
+            src={mark}
             alt=""
             aria-hidden="true"
             className={`pointer-events-none absolute -z-10 max-w-none ${t.mark}`}
@@ -153,13 +154,28 @@ const PageHero: React.FC<PageHeroProps> = ({
         }`}
       >
         {eyebrow && (
-          <p className="text-caption font-sohne font-500 text-paper/80 uppercase tracking-[0.18em] mb-20">
+          // A pill rather than bare tracked caps. Floating text above a
+          // headline reads as a stray line; enclosed, it reads as a label
+          // belonging to the thing beneath it.
+          <p className="inline-flex items-center rounded-full border border-paper/25
+                        bg-paper/10 px-16 py-4 mb-20
+                        text-caption font-sohne font-500 text-paper/90
+                        uppercase tracking-[0.18em]">
             {eyebrow}
           </p>
         )}
+        {/* The display size steps up at `xl`, not at `md`.
+            `md:text-display` put 90px type on any viewport from 768px, and a
+            headline of ordinary length at 90px is about 1,050px wide — wider
+            than the 1,200px content column has room for once padding is taken
+            off, on every laptop screen. The result was a clipped first line,
+            which is the one thing a hero cannot survive.
+            `break-words` is the backstop for a long word at a narrow width. */}
         <h1
-          className={`font-signifier text-paper ${
-            large ? 'text-heading-lg md:text-display' : 'text-heading md:text-heading-lg'
+          className={`font-signifier text-paper break-words ${
+            large
+              ? 'text-heading md:text-heading-lg xl:text-display'
+              : 'text-heading md:text-heading-lg'
           }`}
         >
           {title}

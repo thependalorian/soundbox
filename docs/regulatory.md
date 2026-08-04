@@ -2,7 +2,7 @@
 
 > Namibian payment-system obligations, standards and contacts. Internal reference — the public site deliberately avoids this vocabulary.
 >
-> Part of the SoundBox documentation set — see [README.md](README.md).
+> Part of the Buffr Intelligence documentation set — see [README.md](README.md).
 
 ---
 
@@ -10,7 +10,7 @@
 
 ### 2.1 Primary Regulatory Landscape
 
-The regulatory framework for payment services in Namibia is governed by the **Payment System Management Act, 2023 (Act No. 14 of 2023)** . Key determinations relevant to the SoundBox business include:
+The regulatory framework for payment services in Namibia is governed by the **Payment System Management Act, 2023 (Act No. 14 of 2023)** . Key determinations relevant to the Buffr Intelligence business include:
 
 | Determination | Relevance |
 |---------------|-----------|
@@ -29,7 +29,7 @@ The regulatory framework for payment services in Namibia is governed by the **Pa
 
 **2.2.1 Payment Service Provider License (PSD-1)**
 
-Under section 10 of the PSM Act, any person offering payment services must be licensed as a Payment Service Provider (PSP). The SoundBox business must apply to the Bank of Namibia for licensing, which includes:
+Under section 10 of the PSM Act, any person offering payment services must be licensed as a Payment Service Provider (PSP). The Buffr Intelligence business must apply to the Bank of Namibia for licensing, which includes:
 
 - **Capital Requirements**: Minimum capital as determined by the Bank
 - **Governance Requirements**: Board composition, fitness and probity assessments
@@ -48,7 +48,7 @@ Under section 10 of the PSM Act, any person offering payment services must be li
 
 **2.2.2 FinTech Innovation Regulatory Framework**
 
-The SoundBox qualifies as a FinTech innovation under the Bank's FinTech Innovation Regulatory Framework. The framework provides a structured pathway through two programmes:
+The Buffr Intelligence qualifies as a FinTech innovation under the Bank's FinTech Innovation Regulatory Framework. The framework provides a structured pathway through two programmes:
 
 1. **Allow-and-See Programme**: For lower-risk innovations
 2. **Regulatory Sandbox Programme**: For testing in a controlled, live environment
@@ -58,31 +58,24 @@ The SoundBox qualifies as a FinTech innovation under the Bank's FinTech Innovati
 - Complete Part B (deployment strategy, intended users, partnerships)
 - Undergo risk assessment (Stages 1-4 of the Analytical Framework)
 
-**2.2.3 NAMQR Code Compliance**
+**2.2.3 Standards that do not apply, and why saying so matters**
 
-The SoundBox must comply with the NAMQR Code Standards, finalized on 9 May 2025. Key requirements:
+Two standards are commonly assumed to apply to anything touching the national
+rails, and neither applies here. Stating that explicitly is more useful than
+omitting them, because a reviewer who expects to find them will otherwise
+assume they were overlooked.
 
-- Support for both static and dynamic QR Codes
-- Customer-presented and merchant-presented formats
-- Byte Mode encoding only
-- CRC validation (Tag 63) — integrity only, implemented in
-  `namqr_processor.py` / firmware `namqr.c`
-- Token Vault integration for security (Tag 65)
-- Signed QR (Annexure I, Tag 66) — ECDSA P-256/SHA-256, implemented on both
-  backend (`cryptography`) and firmware (mbedTLS). Per S1.7.7, an unsigned
-  QR is a warning, not a rejection, until merchant signing keys are
-  onboarded (`NAMQR_REQUIRE_SIGNATURE`).
+- **NAMQR Code Standards.** This platform neither generates nor accepts QR
+  codes. It is never presented to a payer, never scanned, and never part of a
+  payment initiation. QR conformance is a matter for the institutions that
+  issue the codes.
+- **CRAN telecommunications type approval.** There is no radio, no hardware
+  and no equipment of any kind. Type approval governs equipment placed on the
+  telecommunications network; this is a hosted application reached over the
+  public internet.
 
-**2.2.4 Telecommunications Equipment Type Approval**
-
-The SoundBox requires **Type Approval** from the **Communications Regulatory Authority of Namibia (CRAN)** for its telecommunications (4G/2G) components.
-
-| Requirement | Details |
-|-------------|---------|
-| Processing Time | 4-6 weeks |
-| Validity | 3 years |
-| Documentation | Technical literature, user manual, test reports |
-| Key Standard | CE/FCC reports accepted, local registration required |
+What does apply is PSD-12, in full, and the open question of classification —
+see §2.1 and the Bank's determination requested there.
 
 ### 2.3 Compliance with PSD-12: Operational and Cybersecurity Standards
 
@@ -97,6 +90,35 @@ PSD-12 requires entities to implement robust cybersecurity measures:
 | Recovery Point Objective | 5 minutes for critical systems |
 | Recovery Time Objective | Within 2 hours |
 | System Availability | 99.9% uptime |
+
+### 2.3a Software supply chain
+
+NIST CSF 2.0 carries supply-chain risk as its own category under Govern
+(GV.SC), and PSD-12's vulnerability-management requirement does not stop at
+code this team writes. A dependency compromised upstream is an incident in
+the platform regardless of who published it, and the 2025–26 npm attacks —
+where malicious versions were live for hours before being pulled — are the
+concrete version of that risk.
+
+Five controls, and the repository's own state against each:
+
+| Control | Why | State |
+|---|---|---|
+| Exact dependency versions, no `^` or `~` | A range auto-upgrades into a poisoned patch the moment one is published | **Met.** No ranged dependencies |
+| Lockfile committed, never ignored | Carries integrity hashes that verify a tarball has not been tampered with | **Met.** Tracked in git |
+| `npm ci` in the image, with the lockfile copied by explicit path | `npm ci` refuses to build when lockfile and manifest disagree. `COPY package*.json` silently tolerates a missing lockfile, which defeats the point | **Met.** `COPY package.json package-lock.json` then `npm ci` |
+| Seven-day cool-down on new versions | Malicious releases are typically caught and yanked within 24–72 hours | **Met by practice.** Applied to every dependency added here |
+| Block install-time script execution (`npm config set ignore-scripts true`) | `preinstall`/`postinstall` hooks are the primary delivery channel for npm malware | **Not met.** This is a machine-global npm setting rather than a repository one |
+| Pre-commit scan for known malware indicators | Blocks a poisoned file before it reaches the remote | **Not met.** No hooks path is configured |
+
+The last two are deliberately listed as unmet rather than quietly omitted.
+Both are developer-workstation settings rather than properties of this
+repository, so a green tick here would describe one machine and imply
+something about every machine. They belong in the onboarding checklist for
+anyone working on the platform — see the repository README.
+
+The first four are already standing rules in the workspace conventions, which
+is why they were met before this was assessed rather than as a result of it.
 
 ### 2.4 Regulatory Engagement Strategy
 
@@ -125,9 +147,9 @@ Two rules follow, and both are cheaper to honour now than to reverse:
   built, including on the public oversight pages. In a process built on
   trust, a claim a technical reviewer disproves in one question is
   expensive.
-- **The WayaMe name is used to say what the system connects to, never to
-  imply endorsement.** Co-branding terms are IPN's to set; see
-  [`soundbox.md`](../soundbox.md) §0.
+- **The WayaMe name is used to say what the platform observes, never to
+  imply endorsement, partnership or licence.** See
+  [`../buffr-intelligence.md`](../buffr-intelligence.md) §1.
 
 ---
 
@@ -225,7 +247,7 @@ as though it were live.
 ### Channels
 
 Payments are initiated through a **participant app** or **Universal USSD**.
-The USSD channel is why the SoundBox matters: a customer on a feature phone
+The USSD channel is why the Buffr Intelligence matters: a customer on a feature phone
 can pay without a smartphone, and the trader still needs to know it arrived.
 
 ### Participants

@@ -1,4 +1,0 @@
-# Build artifacts (make / make clean)
-*.o
-*.d
-soundbox_sim

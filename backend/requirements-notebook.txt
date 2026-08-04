@@ -1,0 +1,22 @@
+# Analysis and notebook dependencies — NOT installed in the deployed image.
+#
+# backend/Dockerfile installs requirements.txt only. These are for running
+# notebooks/anomaly_detection.ipynb locally: plotting, model explainability
+# and the Jupyter kernel. Keeping them out of requirements.txt keeps the API
+# image small and its attack surface smaller.
+#
+# Install alongside the app requirements:
+#   pip install -r requirements.txt -r requirements-notebook.txt
+#
+# Pinned exactly, like everything else here (workspace CLAUDE.md §4).
+#
+# **shap is held at 0.46.0 deliberately.** 0.47+ declares `numpy>=2`, and this
+# project pins `numpy==1.26.2` for the application. Installing a newer shap
+# silently pulls numpy 2 and pandas 3 into the same environment, which
+# `pip check` then reports as a broken requirement while the app appears to
+# keep working — the same shape of failure as an unbounded transitive pin.
+# 0.46.0 is the last release that runs on the numpy the app is pinned to.
+matplotlib==3.11.1
+shap==0.46.0
+jupyterlab==4.6.2
+ipykernel==7.3.0

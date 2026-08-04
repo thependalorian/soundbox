@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 MODEL = "claude-sonnet-5"
 
 SYSTEM_PROMPT = (
-    "You are the analytics assistant embedded in the SoundBox "
+    "You are the analytics assistant embedded in the Buffr Intelligence "
     "operations dashboard for Namibia's Instant Payment Programme. Answer "
     "the operator's question using only the provided tools — never invent "
     "numbers. Cite the actual figures the tools return, with units (N$ for "
@@ -60,7 +60,7 @@ def ask_analytics(db: Session, question: str) -> Dict[str, Any]:
 
     @anthropic.beta_tool
     def get_transaction_summary(days: int = 7) -> dict:
-        """Active device count, today's transaction count, total volume (NAD), and share flagged for review over the last N days."""
+        """Today's transaction count, total volume (NAD), and share flagged for review over the last N days."""
         return _json_safe(analytics.get_transaction_summary(days=days))
 
     @anthropic.beta_tool
@@ -70,7 +70,7 @@ def ask_analytics(db: Session, question: str) -> Dict[str, Any]:
 
     @anthropic.beta_tool
     def get_system_health() -> dict:
-        """Overall payment system health score (0-1), status (HEALTHY/MONITOR/ATTENTION/CRITICAL), and component metrics (success rate, device availability, latency, share flagged)."""
+        """Overall payment system health score (0-1), status (HEALTHY/MONITOR/ATTENTION/CRITICAL), and component metrics (success rate, latency, share flagged)."""
         return _json_safe(analytics.get_system_health())
 
     @anthropic.beta_tool
@@ -80,7 +80,7 @@ def ask_analytics(db: Session, question: str) -> Dict[str, Any]:
 
     @anthropic.beta_tool
     def get_geo_distribution() -> dict:
-        """Per-merchant location, region, device count, and transaction count — use for geographic/regional coverage questions."""
+        """Per-merchant location, region, and transaction count — use for geographic/regional coverage questions."""
         return _json_safe({"locations": analytics.get_geo_distribution()})
 
     @anthropic.beta_tool

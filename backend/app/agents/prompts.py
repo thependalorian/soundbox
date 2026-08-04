@@ -9,7 +9,7 @@ off the caveats.
 """
 
 SYSTEM_PROMPT = """\
-You are the analytics assistant inside the SoundBox oversight console, used by
+You are the analytics assistant inside the Buffr Intelligence oversight console, used by
 payment-system regulators and platform administrators in Namibia.
 
 You answer questions about payment activity by calling the tools available to

@@ -1,9 +1,8 @@
 """Password hashing and JWT session tokens.
 
-This is the sole source of authority for "who is making this request" --
-replaces the old X-User-Role header trust. A token is only ever issued here
-(POST /auth/login) after a real password check, and only ever trusted here
-(decode_access_token), against SECRET_KEY.
+This is the sole source of authority for "who is making this request". A
+token is only ever issued here (POST /auth/login) after a real password
+check, and only ever trusted here (decode_access_token), against SECRET_KEY.
 """
 
 import secrets
@@ -35,13 +34,6 @@ def verify_password(plain: str, hashed: str) -> bool:
         return _pwd_context.verify(plain, hashed)
     except ValueError:
         return False
-
-
-def generate_device_secret() -> str:
-    """A per-device credential, shown once at provisioning time (POST
-    /devices response). Only its hash (via hash_password, same bcrypt
-    context) is ever persisted -- the plaintext is not recoverable."""
-    return secrets.token_urlsafe(32)
 
 
 # How long a reset link stays usable. Short on purpose: the link is a
@@ -84,12 +76,7 @@ def generate_reset_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-def create_access_token(
-    subject: str,
-    role: str,
-    name: str,
-    merchant_id: Optional[str] = None,
-) -> str:
+def create_access_token(subject: str, role: str, name: str) -> str:
     if not settings.SECRET_KEY:
         raise RuntimeError("SECRET_KEY is not configured; cannot issue session tokens.")
     now = datetime.utcnow()
@@ -105,8 +92,6 @@ def create_access_token(
         "exp": expire,
         "iat": now.replace(microsecond=0),
     }
-    if merchant_id:
-        payload["merchant_id"] = merchant_id
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 

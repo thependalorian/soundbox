@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Card from '../ui/Card';
 import Skeleton from '../ui/Skeleton';
 import StatusPill from '../ui/StatusPill';
-import { AnomalyAlert, Merchant } from '../../types/soundbox';
+import { AnomalyAlert, Merchant } from '../../types/domain';
 
 interface FlaggedListProps {
   alerts: AnomalyAlert[];

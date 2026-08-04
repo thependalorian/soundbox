@@ -37,7 +37,6 @@ class UserSummary(BaseModel):
     email: str
     display_name: str
     role: str
-    merchant_id: Optional[str] = None
     is_active: bool
     last_login_at: Optional[str] = None
     created_at: Optional[str] = None
@@ -48,7 +47,6 @@ class CreateUserRequest(BaseModel):
     display_name: str
     role: str
     password: str
-    merchant_id: Optional[str] = None
 
 
 class SetActiveRequest(BaseModel):
@@ -76,7 +74,6 @@ def _summary(u: User) -> UserSummary:
         email=u.email,
         display_name=u.display_name,
         role=u.role,
-        merchant_id=str(u.merchant_id) if u.merchant_id else None,
         is_active=bool(u.is_active),
         last_login_at=u.last_login_at.isoformat() if u.last_login_at else None,
         created_at=u.created_at.isoformat() if u.created_at else None,
@@ -121,12 +118,6 @@ async def create_user(
     this records who issued them.
     """
     org = get_or_create_organization(db)
-    merchant_id = None
-    if body.merchant_id:
-        try:
-            merchant_id = uuid.UUID(body.merchant_id)
-        except (ValueError, AttributeError):
-            raise HTTPException(status_code=400, detail="That is not a valid business id.")
     try:
         user = user_service.create_user(
             db,
@@ -135,7 +126,6 @@ async def create_user(
             display_name=body.display_name,
             role=body.role,
             password=body.password,
-            merchant_id=merchant_id,
             actor_user_id=actor.id,
         )
     except UserServiceError as e:
@@ -219,11 +209,6 @@ async def get_user(
 class UpdateUserRequest(BaseModel):
     display_name: Optional[str] = None
     role: Optional[str] = None
-    merchant_id: Optional[str] = None
-    """Set true to unlink the business, which `merchant_id: null` cannot
-    express -- an omitted field and an explicit null are the same thing over
-    JSON, so clearing needs its own flag."""
-    clear_merchant: bool = False
 
 
 class AdminSetPasswordRequest(BaseModel):
@@ -237,19 +222,12 @@ async def update_user(
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin")),
 ):
-    """Change an account's name, role or business scoping."""
+    """Change an account's name or role."""
     org = get_or_create_organization(db)
     target = _load_target(db, org.id, user_id)
-    merchant_id = None
-    if body.merchant_id:
-        try:
-            merchant_id = uuid.UUID(body.merchant_id)
-        except (ValueError, AttributeError):
-            raise HTTPException(status_code=400, detail="That is not a valid business id.")
     try:
         updated = user_service.update_user(
             db, user=target, display_name=body.display_name, role=body.role,
-            merchant_id=merchant_id, clear_merchant=body.clear_merchant,
             actor_user_id=actor.id,
         )
     except UserServiceError as e:

@@ -7,8 +7,6 @@ import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
-import DevicesPage from './pages/DevicesPage';
-import DeviceDetailPage from './pages/DeviceDetailPage';
 import MerchantsPage from './pages/MerchantsPage';
 import MerchantDetailPage from './pages/MerchantDetailPage';
 import TransactionsPage from './pages/TransactionsPage';
@@ -21,11 +19,9 @@ import MapPage from './pages/MapPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import LandingPage from './pages/public/LandingPage';
-import ForMerchantsPage from './pages/public/ForMerchantsPage';
 import ForRegulatorsPage from './pages/public/ForRegulatorsPage';
 import HowItWorksPage from './pages/public/HowItWorksPage';
 import PrivacyPage from './pages/public/PrivacyPage';
-import VacanciesPage from './pages/public/VacanciesPage';
 import Layout from './components/Layout/Layout';
 
 /**
@@ -47,18 +43,12 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Public, unauthenticated surface. These sit outside
-              ProtectedRoute so a shared link works for someone who has no
-              account — which is the whole point of a demo link. */}
+              ProtectedRoute so a shared link reaches someone who has no
+              account — the audience the public pages are written for. */}
           <Route path="/" element={<RootRoute />} />
-          <Route path="/for-merchants" element={<ForMerchantsPage />} />
           <Route path="/for-regulators" element={<ForRegulatorsPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/vacancies" element={<VacanciesPage />} />
-          {/* The demo merged into How it works — the interactive piece now
-              lives at its "Hear it for yourself" section. A shared /demo
-              link should land on that section, not the page top. */}
-          <Route path="/demo" element={<Navigate to="/how-it-works#run-it" replace />} />
 
           <Route path="/login" element={<LoginPage />} />
           {/* Unauthenticated by necessity: someone who cannot sign in has to
@@ -71,17 +61,17 @@ function App() {
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
 
-              <Route element={<RoleRoute allow={['merchant', 'admin']} />}>
-                <Route path="/devices" element={<DevicesPage />} />
-                <Route path="/devices/:id" element={<DeviceDetailPage />} />
+              {/* Every operational view sits behind the same guard. The
+                  payment record and the alert queue are the reviewer's core
+                  workflow, so an oversight user reaching neither would leave
+                  the platform's main purpose unreachable. */}
+              <Route element={<RoleRoute allow={['regulator', 'admin']} />}>
                 <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/transactions/:id" element={<TransactionDetailPage />} />
                 <Route path="/flagged" element={<FlaggedPage />} />
                 <Route path="/flagged/:id" element={<AnomalyAlertDetailPage />} />
-              </Route>
-
-              <Route element={<RoleRoute allow={['regulator', 'admin']} />}>
                 <Route path="/merchants" element={<MerchantsPage />} />
+                <Route path="/merchants/:id" element={<MerchantDetailPage />} />
                 <Route path="/map" element={<MapPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 {/* The assistant's tools read across every business on the
@@ -90,12 +80,6 @@ function App() {
                     the route guard is convenience, the server is the boundary. */}
                 <Route path="/ask" element={<AnalyticsChatPage />} />
               </Route>
-
-              {/* Merchant detail is reachable by admin/regulator (full/read-only)
-                  and by a merchant viewing their own profile (component-level
-                  guard inside MerchantDetailPage, since the :id param isn't
-                  known at route-declaration time). */}
-              <Route path="/merchants/:id" element={<MerchantDetailPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -10,7 +10,7 @@ import {
   PAYMENT_TYPE_LABEL,
   PayerInstrument,
   PaymentType,
-} from '../../types/soundbox';
+} from '../../types/domain';
 import Card from '../ui/Card';
 import Meter from '../ui/Meter';
 import Skeleton from '../ui/Skeleton';

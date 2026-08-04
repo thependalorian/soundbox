@@ -1,34 +1,37 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-// Transparent PNG, not the JPG: a JPG carries an opaque white box, which
-// was clearly visible against the footer's tinted surface.
-import wordmark from '../../assets/brand/soundbox-wordmark.png';
+// Transparent PNG, not the JPG the wordmark was supplied as: a JPG carries
+// an opaque white box, clearly visible against the footer's tinted surface.
+import wordmark from '../../assets/brand/buffr-wordmark.png';
 import { BRAND, CONTACT } from '../../lib/copy/public';
 import ObfuscatedEmail from '../ui/ObfuscatedEmail';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 
 /**
- * Chrome for the unauthenticated marketing surface.
+ * Chrome for the unauthenticated public surface.
  *
  * Separate from the app's `Layout` on purpose: that shell's sidebar links
  * into role-guarded routes, which would dead-end a logged-out visitor at
  * the login screen. The two share design tokens, not structure.
+ *
+ * **The reader here is an institution, not a consumer.** There is no
+ * sign-up, no pricing page and no product tour, because none of those match
+ * how this is actually bought — a single institutional relationship,
+ * arranged in conversation. The nav reflects that: what it answers, how it
+ * works, what it does with data, and who is building it.
  */
 
 const NAV = [
   { name: 'Home', href: '/' },
-  { name: 'For sellers', href: '/for-merchants' },
   { name: 'For regulators', href: '/for-regulators' },
   { name: 'How it works', href: '/how-it-works' },
   { name: 'Privacy', href: '/privacy' },
-  { name: 'Vacancies', href: '/vacancies' },
 ];
 
 const FOOTER_GROUPS: { title: string; links: { name: string; href: string }[] }[] = [
   {
     title: 'Explore',
     links: [
-      { name: 'For sellers', href: '/for-merchants' },
       { name: 'For regulators', href: '/for-regulators' },
       { name: 'How it works', href: '/how-it-works' },
     ],
@@ -37,8 +40,7 @@ const FOOTER_GROUPS: { title: string; links: { name: string; href: string }[] }[
     title: 'More',
     links: [
       { name: 'Privacy', href: '/privacy' },
-      { name: 'Vacancies', href: '/vacancies' },
-      { name: 'Sign in', href: '/login' },
+          { name: 'Sign in', href: '/login' },
     ],
   },
 ];
@@ -142,10 +144,9 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 />
               </div>
               {/* Administrator sign-in lives here rather than in the nav.
-                  Sellers and analysts are sent to their own sign-in from the
-                  page written for them; this is for the handful of people
-                  who run the deployment, and a footer is where they expect
-                  to find it. */}
+                  Analysts are sent to their own sign-in from the page written
+                  for them; this is for the handful of people who run the
+                  deployment, and a footer is where they expect to find it. */}
               <Link
                 to="/login?as=admin"
                 className="inline-block text-caption font-sohne text-slate hover:text-ink mt-16 underline"
@@ -153,8 +154,8 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 Administrator sign-in
               </Link>
               <p className="text-caption font-sohne text-slate mt-8 max-w-[320px]">
-                A speaker that confirms every payment out loud, and the picture of the country&apos;s
-                money that those confirmations build.
+                Real-time analysis of the national payment rails, and the picture of the
+                country&apos;s money that it builds.
               </p>
             </div>
             {FOOTER_GROUPS.map((group) => (
@@ -172,11 +173,23 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
             ))}
           </div>
-          <p className="text-caption font-sohne text-ash mt-40">
-            SoundBox listens to the {BRAND.rails} rails. {BRAND.rails} is the consumer-facing
-            name of Namibia&rsquo;s instant payment service, operated by {BRAND.railsOperator};
-            it is named here to say what SoundBox connects to, not to imply any endorsement.
-          </p>
+          <div className="mt-40 space-y-8">
+            <p className="text-caption font-sohne text-ash">
+              {BRAND.name} reads data about payments carried on the {BRAND.rails} rails. It holds
+              no funds and is never in the payment path. {BRAND.rails} is the consumer-facing
+              name of Namibia&rsquo;s instant payment service, operated by {BRAND.railsOperator};
+              it is named here to say what {BRAND.name} observes, not to imply any endorsement,
+              partnership or licence.
+            </p>
+            {/* Said in the footer as well as on the pages, because a reader
+                who lands mid-site should not have to find the one page that
+                admits it. */}
+            <p className="text-caption font-sohne text-ash">
+              No transaction data has been requested from, or shared by, any institution. Every
+              figure on this site is computed from activity this platform generates itself and
+              describes no real payment behaviour.
+            </p>
+          </div>
         </div>
         </div>
       </footer>

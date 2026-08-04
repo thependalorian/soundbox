@@ -7,7 +7,7 @@
 > migration `b7c3e10d94af`, frontend `/ask`. Where implementation departed
 > from this design, the section says so — see §3.1 and §6.
 >
-> Part of the SoundBox documentation set — see [README.md](README.md).
+> Part of the Buffr Intelligence documentation set — see [README.md](README.md).
 
 ---
 
@@ -124,7 +124,8 @@ generation may later be worth confirming before it is filed.
 > **The CopilotKit MCP server was unavailable when this was written** —
 > every call returned `Bad Request: No valid session`. The findings above
 > came from the published documentation and the workspace's own
-> `PRD-Master-Copilot-Generative-UI-Agentic-Chat.md` §3.2. Do not assume the
+> [`PRD-Master-Copilot-Generative-UI-Agentic-Chat.md`](../../PRD-Master-Copilot-Generative-UI-Agentic-Chat.md)
+> §3.2 (workspace root). Do not assume the
 > MCP tooling works; verify against the docs.
 
 ### 3.1 Why the chat surface is not CopilotKit
@@ -259,9 +260,12 @@ Other backend notes:
   verified JWT, never a header.
 - **Persistence** lives in a repository function, not in the agent. The
   agent answers; something else writes the row.
-- **`/analytics/ask` stays** for one release and is then removed. It is the
-  only consumer of `ask_service.py`, so both go together. Say so in the
-  changelog when it happens rather than deleting it quietly.
+- **`/analytics/ask` is still mounted** (`app/api/analytics.py`) alongside the
+  AG-UI endpoint, and is still the only consumer of `ask_service.py`. It was
+  to be dropped one release after `/assistant` shipped; that has not happened
+  yet, so both remain. Retiring them is a deliberate change with a changelog
+  entry, not a silent deletion — recorded here so the outstanding step is
+  visible rather than forgotten.
 
 ---
 
@@ -318,6 +322,10 @@ Three rules for the renderers:
 ---
 
 ## 7. Frontend wiring
+
+**Done.** The table below is the record of what was changed, not a plan.
+`/ask` is live and role-guarded; the dashboard carries a `PageAction` link to
+it rather than an inline composer.
 
 | Change | File |
 |---|---|

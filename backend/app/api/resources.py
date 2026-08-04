@@ -1,10 +1,8 @@
 """Read and write access to the operational records.
 
-Until now the backend exposed only the paths the *device* needs — register,
-heartbeat, verify a payment — plus aggregate analytics. Everything a person
-uses to run the deployment (list the devices, open one, review a merchant
-application, work an alert) had no endpoint at all, which is why the console
-was reading fixtures.
+The endpoints an analyst uses to work the record: list the businesses under
+supervision, open one and review its KYC file, read the payments attributed
+to it, and work the alert queue.
 
 Three rules hold throughout:
 
@@ -33,16 +31,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_roles, scoped_merchant_id
-from app.core.security import generate_device_secret, hash_password
+from app.api.deps import require_roles
+from app.core.security import hash_password
 from app.db.helpers import get_or_create_organization, log_status_change
 from app.db.models import (
     AnomalyAlert,
     Settlement,
     AnomalyAlertStatusLog,
-    Device,
-    DeviceHeartbeatLog,
-    DeviceStatusLog,
     Merchant,
     MerchantBeneficialOwner,
     MerchantStatusLog,
@@ -52,13 +47,12 @@ from app.db.models import (
     User,
 )
 from app.db.session import get_db
-from app.events import contracts, publisher
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Roles permitted to change a record's state. Oversight reads nationally and
-# records alert verdicts; it does not administer the device estate.
+# records alert verdicts.
 ADMIN_ROLES = {"admin"}
 REVIEW_ROLES = {"admin", "regulator"}
 
@@ -98,10 +92,9 @@ def _iso(value) -> Optional[str]:
 def _resolve_merchant_id(db: Session, organization_id, id_or_code: Optional[str]):
     """Accept either the internal UUID or the human-readable merchant code.
 
-    A signed-in merchant knows themselves as "M-101"; the rows store a UUID.
+    A business is known operationally as "M-101"; the rows store a UUID.
     Resolving here rather than in the browser means the console never needs a
-    local copy of the merchant list to translate one into the other — which
-    is what previously tied it to fixtures.
+    local copy of the merchant list to translate one into the other.
 
     Returns None for an unknown code so the caller filters on nothing rather
     than silently returning every business.
@@ -123,261 +116,6 @@ def _looks_like_uuid(value: str) -> bool:
         return True
     except (ValueError, AttributeError, TypeError):
         return False
-
-
-# ---------------------------------------------------------------------------
-# Devices
-# ---------------------------------------------------------------------------
-
-class AssignDevice(BaseModel):
-    merchant_id: str
-    note: Optional[str] = Field(default=None, max_length=500)
-
-
-class DeviceStatusChange(BaseModel):
-    status: str
-    note: Optional[str] = Field(default=None, max_length=500)
-
-
-def _device_row(d: Device, names: Dict[str, str]) -> Dict:
-    return {
-        "id": str(d.id),
-        "deviceCode": d.device_code,
-        "merchantId": str(d.merchant_id) if d.merchant_id else None,
-        "merchantName": names.get(str(d.merchant_id)),
-        "firmwareVersion": d.firmware_version,
-        "status": d.status,
-        "batteryLevel": d.battery_level,
-        "signalStrength": d.signal_strength,
-        "registeredAt": _iso(d.registered_at),
-        "lastHeartbeatAt": _iso(d.last_heartbeat_at),
-    }
-
-
-@router.get("/devices")
-async def list_devices(
-    status: Optional[str] = None,
-    merchant_id: Optional[str] = None,
-    search: Optional[str] = None,
-    limit: int = Query(default=100, le=MAX_PAGE),
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> Dict:
-    """Devices, newest registration first."""
-    merchant_id = scoped_merchant_id(user, merchant_id)
-    try:
-        org = get_or_create_organization(db)
-        q = db.query(Device).filter(
-            Device.organization_id == org.id,
-            Device.deleted_at.is_(None),
-        )
-        if status:
-            q = q.filter(Device.status == status)
-        if merchant_id:
-            q = q.filter(Device.merchant_id == _resolve_merchant_id(db, org.id, merchant_id))
-        if search:
-            q = q.filter(Device.device_code.ilike(f"%{search}%"))
-
-        total = q.count()
-        rows = q.order_by(Device.registered_at.desc()).offset(offset).limit(limit).all()
-        names = _merchant_names(db, org.id)
-        return {
-            "devices": [_device_row(d, names) for d in rows],
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-        }
-    except Exception as e:
-        logger.error(f"Error listing devices: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/devices/{device_id}")
-async def get_device(device_id: str, db: Session = Depends(get_db)) -> Dict:
-    """One device, with the history that explains its current state.
-
-    The heartbeat series is included because "when did it last speak" is the
-    first question about a silent device, and answering it in a second
-    request would mean the page renders a device before it can say whether
-    the device is actually alive.
-    """
-    try:
-        org = get_or_create_organization(db)
-        device = db.query(Device).filter(
-            Device.id == device_id,
-            Device.organization_id == org.id,
-            Device.deleted_at.is_(None),
-        ).first()
-        if not device:
-            raise HTTPException(status_code=404, detail="Device not found.")
-
-        names = _merchant_names(db, org.id)
-        status_log = db.query(DeviceStatusLog).filter(
-            DeviceStatusLog.organization_id == org.id,
-            DeviceStatusLog.device_id == device.id,
-        ).order_by(DeviceStatusLog.created_at.desc()).limit(50).all()
-
-        heartbeats = db.query(DeviceHeartbeatLog).filter(
-            DeviceHeartbeatLog.organization_id == org.id,
-            DeviceHeartbeatLog.device_id == device.id,
-        ).order_by(DeviceHeartbeatLog.recorded_at.desc()).limit(100).all()
-
-        recent = db.query(Transaction).filter(
-            Transaction.organization_id == org.id,
-            Transaction.device_id == device.id,
-            Transaction.deleted_at.is_(None),
-        ).order_by(Transaction.created_at.desc()).limit(20).all()
-
-        return {
-            **_device_row(device, names),
-            "statusLog": [{
-                "id": str(s.id),
-                "fromStatus": s.from_status,
-                "toStatus": s.to_status,
-                "note": s.note,
-                "at": _iso(s.created_at),
-            } for s in status_log],
-            "heartbeats": [{
-                "at": _iso(h.recorded_at),
-                "batteryLevel": h.battery_level,
-                "signalStrength": h.signal_strength,
-            } for h in reversed(heartbeats)],
-            "recentTransactions": [{
-                "id": str(t.id),
-                "transactionRef": t.transaction_ref,
-                "amount": float(t.amount or 0),
-                "currencyCode": t.currency_code,
-                "status": t.status,
-                "paymentType": t.payment_type,
-                "createdAt": _iso(t.created_at),
-            } for t in recent],
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error loading device {device_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.put("/devices/{device_id}/assign")
-async def assign_device(
-    device_id: str,
-    body: AssignDevice,
-    db: Session = Depends(get_db),
-    actor: User = Depends(require_roles(*ADMIN_ROLES)),
-) -> Dict:
-    """Move a device to a merchant.
-
-    Recorded in the status log even though the status itself does not
-    change: where a device is installed is exactly the kind of fact that
-    later needs explaining, and a reassignment that leaves no trace makes a
-    device's transaction history impossible to interpret.
-    """
-    try:
-        org = get_or_create_organization(db)
-        device = db.query(Device).filter(
-            Device.id == device_id,
-            Device.organization_id == org.id,
-            Device.deleted_at.is_(None),
-        ).first()
-        if not device:
-            raise HTTPException(status_code=404, detail="Device not found.")
-
-        merchant = db.query(Merchant).filter(
-            Merchant.id == body.merchant_id,
-            Merchant.organization_id == org.id,
-            Merchant.deleted_at.is_(None),
-        ).first()
-        if not merchant:
-            raise HTTPException(status_code=404, detail="Business not found.")
-
-        previous = str(device.merchant_id) if device.merchant_id else "unassigned"
-        device.merchant_id = merchant.id
-        db.commit()
-
-        name = merchant.trading_name or merchant.legal_name
-        log_status_change(
-            db, DeviceStatusLog, org.id, "device_id", device.id,
-            from_status=device.status, to_status=device.status,
-            note=(f"Assigned to {name} (was {previous}) by {actor.display_name}."
-                  + (f" {body.note}" if body.note else "")),
-            actor_user_id=actor.id,
-        )
-        db.commit()
-
-        names = _merchant_names(db, org.id)
-        return _device_row(device, names)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error assigning device {device_id}: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.put("/devices/{device_id}/status")
-async def set_device_status(
-    device_id: str,
-    body: DeviceStatusChange,
-    db: Session = Depends(get_db),
-    actor: User = Depends(require_roles(*ADMIN_ROLES)),
-) -> Dict:
-    """Change a device's status.
-
-    Valid statuses come from `type_definitions`, not from a literal list
-    here — adding one is a configuration row, not a release.
-    """
-    try:
-        org = get_or_create_organization(db)
-        valid = {
-            r.code for r in db.query(TypeDefinition).filter(
-                TypeDefinition.organization_id == org.id,
-                TypeDefinition.domain == "device_status",
-                TypeDefinition.is_active.is_(True),
-            ).all()
-        }
-        if valid and body.status not in valid:
-            raise HTTPException(
-                status_code=400,
-                detail=f"{body.status} is not a configured device status. Configured: {', '.join(sorted(valid))}.",
-            )
-
-        device = db.query(Device).filter(
-            Device.id == device_id,
-            Device.organization_id == org.id,
-            Device.deleted_at.is_(None),
-        ).first()
-        if not device:
-            raise HTTPException(status_code=404, detail="Device not found.")
-
-        previous = device.status
-        if previous == body.status:
-            return _device_row(device, _merchant_names(db, org.id))
-
-        device.status = body.status
-        db.commit()
-        log_status_change(
-            db, DeviceStatusLog, org.id, "device_id", device.id,
-            from_status=previous, to_status=body.status,
-            note=(body.note or f"Changed by {actor.display_name}."),
-            actor_user_id=actor.id,
-        )
-        db.commit()
-        publisher.publish(contracts.device_status_changed(
-            organization_id=str(org.id),
-            device_id=str(device.id),
-            device_code=device.device_code,
-            from_status=previous,
-            to_status=body.status,
-        ))
-        return _device_row(device, _merchant_names(db, org.id))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error setting device status {device_id}: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +158,6 @@ async def list_merchants(
     limit: int = Query(default=100, le=MAX_PAGE),
     offset: int = 0,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
 ) -> Dict:
     """Businesses, with a count of those still awaiting review.
 
@@ -434,11 +171,6 @@ async def list_merchants(
             Merchant.organization_id == org.id,
             Merchant.deleted_at.is_(None),
         )
-        # A business operator sees their own business and no one else's. There
-        # is no query parameter for this on purpose -- it is a boundary, so it
-        # is derived from the verified token rather than from the request.
-        if user.role == "merchant":
-            q = q.filter(Merchant.id == user.merchant_id) if user.merchant_id else q.filter(False)
         if status:
             q = q.filter(Merchant.status == status)
         if region_id:
@@ -504,12 +236,6 @@ async def get_merchant(merchant_id: str, db: Session = Depends(get_db)) -> Dict:
             MerchantStatusLog.merchant_id == m.id,
         ).order_by(MerchantStatusLog.created_at.desc()).limit(50).all()
 
-        devices = db.query(Device).filter(
-            Device.organization_id == org.id,
-            Device.merchant_id == m.id,
-            Device.deleted_at.is_(None),
-        ).all()
-
         regions = _type_labels(db, org.id, "region")
         constituencies = _type_labels(db, org.id, "constituency")
         names = _merchant_names(db, org.id)
@@ -533,7 +259,6 @@ async def get_merchant(merchant_id: str, db: Session = Depends(get_db)) -> Dict:
                 "note": s.note,
                 "at": _iso(s.created_at),
             } for s in status_log],
-            "devices": [_device_row(d, names) for d in devices],
         }
     except HTTPException:
         raise
@@ -600,13 +325,6 @@ async def set_merchant_status(
             actor_user_id=actor.id,
         )
         db.commit()
-        publisher.publish(contracts.merchant_status_changed(
-            organization_id=str(org.id),
-            merchant_id=str(m.id),
-            from_status=previous,
-            to_status=body.status,
-        ))
-
         regions = _type_labels(db, org.id, "region")
         return _merchant_row(m, regions, _type_labels(db, org.id, "constituency"))
     except HTTPException:
@@ -627,7 +345,6 @@ def _transaction_row(t: Transaction, names: Dict[str, str]) -> Dict:
         "transactionRef": t.transaction_ref,
         "merchantId": str(t.merchant_id) if t.merchant_id else None,
         "merchantName": names.get(str(t.merchant_id)),
-        "deviceId": str(t.device_id) if t.device_id else None,
         "amount": float(t.amount or 0),
         "currencyCode": t.currency_code,
         "status": t.status,
@@ -640,7 +357,6 @@ def _transaction_row(t: Transaction, names: Dict[str, str]) -> Dict:
 @router.get("/transactions")
 async def list_transactions(
     merchant_id: Optional[str] = None,
-    device_id: Optional[str] = None,
     status: Optional[str] = None,
     payment_type: Optional[str] = None,
     payer_instrument: Optional[str] = None,
@@ -648,12 +364,8 @@ async def list_transactions(
     limit: int = Query(default=100, le=MAX_PAGE),
     offset: int = 0,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
 ) -> Dict:
     """Payments, newest first, filterable on every dimension the console shows."""
-    # A merchant-role caller is confined to its own business here, on the
-    # server, whatever the query string asked for (app/api/deps.py).
-    merchant_id = scoped_merchant_id(user, merchant_id)
     try:
         org = get_or_create_organization(db)
         q = db.query(Transaction).filter(
@@ -662,8 +374,6 @@ async def list_transactions(
         )
         if merchant_id:
             q = q.filter(Transaction.merchant_id == _resolve_merchant_id(db, org.id, merchant_id))
-        if device_id:
-            q = q.filter(Transaction.device_id == device_id)
         if status:
             q = q.filter(Transaction.status == status)
         if payment_type:
@@ -804,7 +514,6 @@ async def get_alert(alert_id: str, db: Session = Depends(get_db)) -> Dict:
             "merchantId": str(a.merchant_id) if a.merchant_id else None,
             "merchantName": names.get(str(a.merchant_id)),
             "transactionId": str(a.transaction_id) if a.transaction_id else None,
-            "deviceId": str(a.device_id) if a.device_id else None,
             "amount": float(a.amount or 0),
             "anomalyScore": float(a.anomaly_score or 0),
             "currencyCode": a.currency_code,
@@ -875,13 +584,6 @@ async def record_verdict(
 
         # The only confirmed-outcome event the platform produces. A future
         # training pipeline subscribes to this rather than polling the table.
-        publisher.publish(contracts.alert_verdict(
-            organization_id=str(org.id),
-            alert_id=str(a.id),
-            verdict=body.verdict,
-            status=a.status,
-            reviewer=actor.display_name,
-        ))
         return {"id": str(a.id), "status": a.status, "verdict": body.verdict}
     except HTTPException:
         raise
@@ -902,7 +604,6 @@ async def list_settlements(
     limit: int = Query(default=100, le=MAX_PAGE),
     offset: int = 0,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
 ) -> Dict:
     """Settlement batches, most recent first.
 
@@ -911,7 +612,6 @@ async def list_settlements(
     see money received today and a settlement dated tomorrow — the console
     shows both rather than conflating them.
     """
-    merchant_id = scoped_merchant_id(user, merchant_id)
     try:
         org = get_or_create_organization(db)
         q = db.query(Settlement).filter(
@@ -1005,222 +705,10 @@ async def set_alert_status(
 # ---------------------------------------------------------------------------
 #
 # Deletes are soft, always. An operational record that was withdrawn still
-# has to be explainable — a payment that ran through a device retired last
-# year must still resolve that device. `deleted_at` takes it out of every
+# has to be explainable — a payment attributed to a business closed last
+# year must still resolve that business. `deleted_at` takes it out of every
 # list without taking it out of the history.
 
-
-class CreateDevice(BaseModel):
-    device_code: str = Field(min_length=1, max_length=64)
-    firmware_version: str = Field(default="0.0.0", max_length=32)
-    merchant_id: Optional[str] = None
-    note: Optional[str] = Field(default=None, max_length=500)
-
-
-class UpdateDevice(BaseModel):
-    firmware_version: Optional[str] = Field(default=None, max_length=32)
-    note: Optional[str] = Field(default=None, max_length=500)
-
-
-@router.post("/devices", status_code=201)
-async def create_device(
-    body: CreateDevice,
-    db: Session = Depends(get_db),
-    actor: User = Depends(require_roles(*ADMIN_ROLES)),
-) -> Dict:
-    """Add a device to the estate from the console.
-
-    Distinct from `POST /devices/register`, which is the device introducing
-    itself over the air. This is a person recording a unit before it ships,
-    so it starts `inactive` — a device that has never spoken should not
-    appear healthy.
-    """
-    try:
-        org = get_or_create_organization(db)
-        # Deliberately does NOT filter deleted_at. `device_code` is UNIQUE at
-        # the database level, so a withdrawn device still occupies its code.
-        # Filtering soft-deleted rows out here would report the code as free
-        # and then fail on INSERT with an integrity error the caller cannot
-        # act on. This is a uniqueness check, not a record lookup.
-        existing = db.query(Device).filter(
-            Device.organization_id == org.id,
-            Device.device_code == body.device_code,
-        ).first()
-        if existing:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Device {body.device_code} already exists.",
-            )
-
-        merchant_id = None
-        if body.merchant_id:
-            m = db.query(Merchant).filter(
-                Merchant.id == body.merchant_id,
-                Merchant.organization_id == org.id,
-                Merchant.deleted_at.is_(None),
-            ).first()
-            if not m:
-                raise HTTPException(status_code=404, detail="Business not found.")
-            merchant_id = m.id
-
-        # The credential this device will use to prove it is itself on
-        # /devices/register, /devices/heartbeat, /payments/verify and
-        # /payments/process_qr (X-Device-Code + X-Device-Key). Shown exactly
-        # once, in this response -- only its bcrypt hash is ever persisted,
-        # so provision it onto the physical unit now or it must be rotated.
-        device_secret = generate_device_secret()
-
-        # Client-side UUID so a retried request cannot create a second row.
-        device = Device(
-            id=uuid.uuid4(),
-            organization_id=org.id,
-            merchant_id=merchant_id,
-            device_code=body.device_code,
-            firmware_version=body.firmware_version,
-            status="inactive",
-            battery_level=0,
-            signal_strength=0,
-            api_key_hash=hash_password(device_secret),
-            registered_at=datetime.utcnow(),
-        )
-        db.add(device)
-        db.commit()
-        log_status_change(
-            db, DeviceStatusLog, org.id, "device_id", device.id,
-            from_status=None, to_status="inactive",
-            note=(body.note or f"Added by {actor.display_name}. Not yet heard from."),
-            actor_user_id=actor.id,
-        )
-        db.commit()
-        return {
-            **_device_row(device, _merchant_names(db, org.id)),
-            "deviceKey": device_secret,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating device: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.post("/devices/{device_id}/rotate-key")
-async def rotate_device_key(
-    device_id: str,
-    db: Session = Depends(get_db),
-    actor: User = Depends(require_roles(*ADMIN_ROLES)),
-) -> Dict:
-    """Issue a new device credential, invalidating the old one immediately.
-
-    For a lost, decommissioned-and-reissued, or suspected-compromised unit.
-    The old X-Device-Key stops working the moment this commits -- there is
-    no grace period, because a key rotation you can still use with the old
-    key is not a rotation.
-    """
-    try:
-        org = get_or_create_organization(db)
-        device = db.query(Device).filter(
-            Device.id == device_id,
-            Device.organization_id == org.id,
-            Device.deleted_at.is_(None),
-        ).first()
-        if not device:
-            raise HTTPException(status_code=404, detail="Device not found.")
-
-        device_secret = generate_device_secret()
-        device.api_key_hash = hash_password(device_secret)
-        db.commit()
-        log_status_change(
-            db, DeviceStatusLog, org.id, "device_id", device.id,
-            from_status=device.status, to_status=device.status,
-            note=f"Device key rotated by {actor.display_name}.",
-            actor_user_id=actor.id,
-        )
-        db.commit()
-        return {"id": str(device.id), "deviceKey": device_secret}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error rotating device key for {device_id}: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.put("/devices/{device_id}")
-async def update_device(
-    device_id: str,
-    body: UpdateDevice,
-    db: Session = Depends(get_db),
-    actor: User = Depends(require_roles(*ADMIN_ROLES)),
-) -> Dict:
-    """Update a device's recorded firmware version."""
-    try:
-        org = get_or_create_organization(db)
-        device = db.query(Device).filter(
-            Device.id == device_id,
-            Device.organization_id == org.id,
-            Device.deleted_at.is_(None),
-        ).first()
-        if not device:
-            raise HTTPException(status_code=404, detail="Device not found.")
-
-        if body.firmware_version and body.firmware_version != device.firmware_version:
-            previous = device.firmware_version
-            device.firmware_version = body.firmware_version
-            db.commit()
-            log_status_change(
-                db, DeviceStatusLog, org.id, "device_id", device.id,
-                from_status=device.status, to_status=device.status,
-                note=(f"Firmware {previous} to {body.firmware_version}, recorded by "
-                      f"{actor.display_name}." + (f" {body.note}" if body.note else "")),
-                actor_user_id=actor.id,
-            )
-            db.commit()
-        return _device_row(device, _merchant_names(db, org.id))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error updating device {device_id}: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.delete("/devices/{device_id}")
-async def retire_device(
-    device_id: str,
-    note: Optional[str] = None,
-    db: Session = Depends(get_db),
-    actor: User = Depends(require_roles(*ADMIN_ROLES)),
-) -> Dict:
-    """Retire a device. Soft delete: the row stays, the estate loses it."""
-    try:
-        org = get_or_create_organization(db)
-        device = db.query(Device).filter(
-            Device.id == device_id,
-            Device.organization_id == org.id,
-            Device.deleted_at.is_(None),
-        ).first()
-        if not device:
-            raise HTTPException(status_code=404, detail="Device not found.")
-
-        previous = device.status
-        device.status = "retired"
-        device.deleted_at = datetime.utcnow()
-        db.commit()
-        log_status_change(
-            db, DeviceStatusLog, org.id, "device_id", device.id,
-            from_status=previous, to_status="retired",
-            note=(note or f"Retired by {actor.display_name}."),
-            actor_user_id=actor.id,
-        )
-        db.commit()
-        return {"id": str(device.id), "status": "retired", "retired": True}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error retiring device {device_id}: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 class CreateMerchant(BaseModel):
@@ -1393,31 +881,14 @@ async def close_merchant(
         m.deleted_at = datetime.utcnow()
         m.updated_at = datetime.utcnow()
 
-        released = db.query(Device).filter(
-            Device.organization_id == org.id,
-            Device.merchant_id == m.id,
-            Device.deleted_at.is_(None),
-        ).all()
-        for d in released:
-            d.merchant_id = None
-        db.commit()
-
         log_status_change(
             db, MerchantStatusLog, org.id, "merchant_id", m.id,
             from_status=previous, to_status="closed",
-            note=f"{note} Closed by {actor.display_name}."
-                 + (f" {len(released)} device(s) released." if released else ""),
+            note=f"{note} Closed by {actor.display_name}.",
             actor_user_id=actor.id,
         )
-        for d in released:
-            log_status_change(
-                db, DeviceStatusLog, org.id, "device_id", d.id,
-                from_status=d.status, to_status=d.status,
-                note=f"Unassigned: {m.trading_name or m.legal_name} was closed.",
-                actor_user_id=actor.id,
-            )
         db.commit()
-        return {"id": str(m.id), "status": "closed", "devicesReleased": len(released)}
+        return {"id": str(m.id), "status": "closed"}
     except HTTPException:
         raise
     except Exception as e:

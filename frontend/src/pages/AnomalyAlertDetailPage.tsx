@@ -17,7 +17,7 @@ import Button from '../components/ui/Button';
 import ConfidenceBadge from '../components/ui/ConfidenceBadge';
 import ExplanationCard from '../components/ui/ExplanationCard';
 import FeedbackControl, { FeedbackVerdict } from '../components/ui/FeedbackControl';
-import { AnomalyAlert, StatusLogEntry} from '../types/soundbox';
+import { AnomalyAlert, StatusLogEntry} from '../types/domain';
 import { useAuth } from '../context/AuthContext';
 
 const RISK_TONE: Record<AnomalyAlert['riskLevel'], 'danger' | 'warning' | 'success'> = { HIGH: 'danger', MEDIUM: 'warning', LOW: 'success' };
@@ -60,9 +60,6 @@ const AnomalyAlertDetailPage: React.FC = () => {
   const { data: statusLog } = useQuery({ queryKey: ['anomalyAlertStatusLog', id], queryFn: () => fetchAnomalyAlertStatusLog(id as string), enabled: !!id });
 
   if (!isLoading && !alert) return <Navigate to="/flagged" replace />;
-  if (alert && user?.role === 'merchant' && merchant && merchant.merchantCode !== user.merchantId) {
-    return <Navigate to="/flagged" replace />;
-  }
   if (isLoading || !alert) return <Skeleton rows={5} />;
 
   const canTriage = user?.role === 'admin' && (alert.status === 'open' || alert.status === 'under_review');

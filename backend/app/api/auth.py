@@ -34,7 +34,9 @@ class LoginResponse(BaseModel):
     id: str
     role: str
     name: str
-    merchant_id: Optional[str] = None
+    # The caller already proved it holds this address; returning it saves the
+    # client a round trip to /auth/me purely to learn which account it is.
+    email: str
 
 
 @router.post("/auth/login", response_model=LoginResponse)
@@ -57,14 +59,13 @@ async def login(request: Request, body: LoginRequest, db: Session = Depends(get_
         subject=str(user.id),
         role=user.role,
         name=user.display_name,
-        merchant_id=str(user.merchant_id) if user.merchant_id else None,
     )
     return LoginResponse(
         access_token=token,
         id=str(user.id),
         role=user.role,
         name=user.display_name,
-        merchant_id=str(user.merchant_id) if user.merchant_id else None,
+        email=user.email,
     )
 
 
@@ -75,5 +76,4 @@ async def me(user: User = Depends(get_current_user)):
         "email": user.email,
         "name": user.display_name,
         "role": user.role,
-        "merchantId": str(user.merchant_id) if user.merchant_id else None,
     }

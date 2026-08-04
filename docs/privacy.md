@@ -2,7 +2,7 @@
 
 > What personal data this system holds, why, for how long, and the standard it is built to.
 >
-> Part of the SoundBox documentation set — see [README.md](README.md).
+> Part of the Buffr Intelligence documentation set — see [README.md](README.md).
 
 ---
 
@@ -79,8 +79,11 @@ names — multiplied by every payment ever made. The rule is:
 > Store a **masked alias** and, where present, a display name. Never a full
 > phone number, never a national ID, never an account number.
 
-A sound box needs to announce *an amount*. It does not need to know who paid.
-The oversight platform needs *patterns*, which survive masking intact.
+**The analysis needs patterns, and patterns survive masking intact.** A
+tokenised identifier links one participant's payments to each other, which is
+everything the models require — including the counterparty-relative timing
+features that rank highest in the published methodology. None of it needs to
+know who the participant is.
 
 **The API never returns `id_number`.** `GET /merchants/{id}` returns
 `hasIdOnFile` instead, so the identifier is not sent to a browser, not held
@@ -140,24 +143,32 @@ Beyond that, three properties were built specifically so this stays true:
 
 ---
 
-## 5. Sellers are consumers too
+## 5. The people in the data never chose to be
 
-Consumer protection is usually framed around the payer. Here the more
-vulnerable party is often the **seller** — a market trader with a thin
-margin who cannot absorb a disputed sale.
+Consumer protection is usually framed around a customer who signed up for
+something. Nobody whose payments are analysed here signed up for anything with
+us — they are in the record because they were paid, or paid someone.
 
-Three product decisions follow from that, and they are protections rather
-than features:
+That asymmetry is the reason for each of the following, and they are
+protections rather than features:
 
-- **The device never claims a payment succeeded when it has not.** Silence
-  and uncertainty are announced as pending, because a false confirmation
-  costs a trader their stock.
-- **The same payment is never counted twice**, so a device retrying on a bad
-  connection cannot double-charge a customer *or* overstate a seller's
-  takings.
-- **Being flagged is not being punished.** An alert affects nothing except an
-  analyst's queue. A seller keeps trading, keeps being paid, and is never
-  cut off by a score.
+- **Being flagged is not being accused.** An alert marks a payment a person
+  was asked to examine. It reaches no one outside the supervising
+  institution, and nothing about the payment changes — this platform sits
+  outside the payment path and structurally cannot act on it. Only a named
+  reviewer's recorded verdict decides anything.
+- **A pattern is not a person.** Identifiers are tokenised: enough to link one
+  participant's payments to each other, never enough to identify who they
+  are. No phone number and no national ID is requested at any phase of the
+  data-access path.
+- **A seasonal pattern is not an anomaly.** Long dormancy followed by a sudden
+  inflow is what a harvest wage or a twice-yearly grant looks like. Scoring
+  that as suspicious would flag precisely the people digital payment is meant
+  to reach, so every model measures a participant against their own history
+  rather than against an average.
+- **The same payment is never counted twice.** Overlapping extracts and
+  replayed messages are recognised by reference and counted once, so nobody's
+  activity is overstated by an ingestion artefact.
 
 ---
 

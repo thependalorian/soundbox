@@ -5,7 +5,7 @@ import { fetchMerchants, reviewMerchantKyc } from '../api/api';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { logger } from '../lib/logger';
-import { Merchant, MERCHANT_TYPE_LABEL } from '../types/soundbox';
+import { Merchant, MERCHANT_TYPE_LABEL } from '../types/domain';
 import Card from '../components/ui/Card';
 import PageAction from '../components/ui/PageAction';
 import Skeleton from '../components/ui/Skeleton';

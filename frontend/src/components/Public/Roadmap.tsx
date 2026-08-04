@@ -36,7 +36,14 @@ const Roadmap: React.FC<{ items: RoadmapItem[]; className?: string }> = ({
   items,
   className = '',
 }) => (
-  <div className={`grid grid-cols-1 md:grid-cols-3 gap-16 ${className}`}>
+  // Columns follow the item count rather than being fixed at three. A fixed
+  // grid leaves a fourth item stranded alone on its own row, which reads as an
+  // afterthought rather than as part of the sequence.
+  <div
+    className={`grid grid-cols-1 gap-16 ${
+      items.length % 4 === 0 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'
+    } ${className}`}
+  >
     {items.map((item) => (
       <Card key={item.title} variant={item.phase === 'building' ? 'accent' : 'neutral'} className="p-24">
         <span

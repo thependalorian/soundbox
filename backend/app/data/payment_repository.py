@@ -33,7 +33,6 @@ from sqlalchemy.orm import Session
 
 from app.db.models import (
     AnomalyAlert,
-    Device,
     Merchant,
     Transaction,
     TypeDefinition,
@@ -155,17 +154,6 @@ class PaymentRepository:
                 return m.id
         return None
 
-    # -- devices ----------------------------------------------------------
-
-    def devices(self, status: Optional[str] = None) -> List[Device]:
-        q = self.db.query(Device).filter(
-            Device.organization_id == self.organization_id,
-            Device.deleted_at.is_(None),
-        )
-        if status:
-            q = q.filter(Device.status == status)
-        return q.all()
-
     # -- alerts -----------------------------------------------------------
 
     def alerts(self, days: Optional[int] = None, anchor: Optional[datetime] = None) -> List[AnomalyAlert]:
@@ -212,10 +200,10 @@ class PaymentRepository:
     # counts" are built on the same daily counts.
     #
     # **These aggregate in the database, not in Python.** The distinction is
-    # not stylistic. SoundBox reports on every payment carried by the WayaMe
+    # not stylistic. This platform reports on every payment carried by the WayaMe
     # rails, not only the ones its own devices confirm, so the row count is
     # set by national instant-payment adoption rather than by how many
-    # SoundBoxes are in the field. Folding a 90-day window in Python costs
+    # participants are onboarded. Folding a 90-day window in Python costs
     # memory proportional to that traffic; folding it in SQL costs memory
     # proportional to the number of groups — merchants, days, payment types —
     # which stays small no matter how large the country's payment volume

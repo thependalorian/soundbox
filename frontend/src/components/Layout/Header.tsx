@@ -8,7 +8,6 @@ interface HeaderProps {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  merchant: 'Merchant',
   regulator: 'Regulator',
   admin: 'Admin',
 };

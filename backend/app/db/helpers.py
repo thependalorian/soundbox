@@ -23,8 +23,11 @@ from app.db.models import (
 
 logger = logging.getLogger(__name__)
 
+# The slug is the stable key every existing row already points at. It is
+# deliberately not renamed alongside the display name: the slug identifies the
+# tenant, the name is what a person reads.
 DEFAULT_ORGANIZATION_SLUG = "wayame-soundbox"
-DEFAULT_ORGANIZATION_NAME = "SoundBox"
+DEFAULT_ORGANIZATION_NAME = "Buffr Intelligence"
 
 
 def get_or_create_organization(

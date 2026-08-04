@@ -6,13 +6,20 @@ import Card from '../../components/ui/Card';
 import TitleDetailCardGrid from '../../components/ui/TitleDetailCardGrid';
 import Roadmap from '../../components/Public/Roadmap';
 import TrustMark from '../../components/illustration/TrustMark';
+import MinimisationFigure from '../../components/illustration/MinimisationFigure';
+import AppendOnlyLedger from '../../components/illustration/AppendOnlyLedger';
+import AccessMatrix from '../../components/illustration/AccessMatrix';
+import Figure from '../../components/charts/Figure';
+import { ShareBars } from '../../components/charts/primitives';
+import NamibiaMap from '../../components/illustration/NamibiaMap';
+import Reveal from '../../components/ui/Reveal';
 
 /**
  * Public privacy position — and, since the trust page was folded in here,
  * the record-integrity and access-control promises that used to sit on a
  * separate page. Trust in the record and restraint on personal data turned
- * out to be one page's worth of argument, not two: a seller handing over
- * their livelihood to a device, and a regulator deciding whether to let it
+ * out to be one page's worth of argument, not two: a person whose payment
+ * data is being analysed, and a regulator deciding whether to let it
  * near the rails, are asking the same underlying question either way.
  *
  * Namibia has no enacted data protection law yet, so there is no template to
@@ -29,7 +36,7 @@ const RECORD_INTEGRITY = [
 
 const ACCESS_CONTROL = [
   { title: 'Access is enforced, not hidden', detail: 'Restricted pages are blocked outright, not merely left out of a menu.' },
-  { title: 'A seller sees only their own business', detail: 'Their devices, their payments, their alerts. Nothing belonging to anyone else.' },
+  { title: 'Every read is tenant-scoped', detail: 'Every query filters on the supervising institution, at the database layer rather than in the interface. A query that forgets it returns nothing, not everything.' },
   { title: 'Identity documents are never sent back', detail: 'An owner’s national identity number is recorded once and never returned to any screen. A reviewer sees that the check was done, not the number.' },
   { title: 'Credentials stay out of the code', detail: 'Secrets are supplied by the environment; what is committed contains placeholders only.' },
 ];
@@ -78,8 +85,13 @@ const SENSITIVITY = [
 const ROADMAP = [
   {
     phase: 'live' as const,
-    title: 'Minimal collection',
-    detail: 'Payer detail is limited to a masked reference. Every record is append-only, so nothing can be altered without leaving a trace of who altered it.',
+    title: 'No shared data held at all',
+    detail: 'The strongest privacy position available is the one currently in force: no transaction data has been requested from anyone, and none is held. Everything running today runs on activity the platform generates itself.',
+  },
+  {
+    phase: 'live' as const,
+    title: 'Minimal collection, by design',
+    detail: 'What would be received is scoped to tokenised references — enough to link one participant’s payments to each other, never enough to identify a person. Every record is append-only, so nothing can be altered without leaving a trace of who altered it.',
   },
   {
     phase: 'building' as const,
@@ -89,12 +101,12 @@ const ROADMAP = [
   {
     phase: 'building' as const,
     title: 'Security, hardened for production',
-    detail: 'Annual penetration testing and an independent security review, both sequenced ahead of any live payment traffic.',
+    detail: 'Annual penetration testing and an independent security review, both sequenced ahead of receiving any shared data rather than after it.',
   },
   {
     phase: 'building' as const,
-    title: 'Regulatory approvals',
-    detail: 'Type approval for the device’s radio from Namibia’s telecoms regulator, and certification against the national QR payment standard, are both already underway.',
+    title: 'Regulatory classification',
+    detail: 'A determination on whether an observer-only, non-custodial data relationship requires payment-system authorisation at all is being sought explicitly rather than assumed.',
   },
   {
     phase: 'planned' as const,
@@ -113,7 +125,7 @@ const PrivacyPage: React.FC = () => (
     <PageHero
       tone="restraint"
       title="What we keep, and what we do not"
-      lead="A payment record says a great deal about a person. We hold the least of it that still lets a seller be paid and a regulator see the system working."
+      lead="A payment record says a great deal about a person. We hold the least of it that still lets a regulator see the system working."
     />
 
     {/* The standard we hold ourselves to */}
@@ -124,7 +136,7 @@ const PrivacyPage: React.FC = () => (
           The standard we hold ourselves to
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[600px]">
-          We collect only what a seller needs to get paid and a regulator needs to see the system
+          We collect only what a regulator needs to see the system
           working. We are aligned with the same principles Europe&apos;s GDPR and South
           Africa&apos;s POPIA set out: collect only what a stated purpose requires, and never
           repurpose it.
@@ -148,6 +160,15 @@ const PrivacyPage: React.FC = () => (
           cardVariant="neutral"
           titleClassName="text-body font-sohne font-450 text-ink"
         />
+        <Reveal>
+          <Figure
+            className="mt-40"
+            label="anomaly_alert_status_log"
+            source="one alert, four rows, nothing overwritten"
+          >
+            <AppendOnlyLedger />
+          </Figure>
+        </Reveal>
       </div>
     </section>
 
@@ -155,6 +176,9 @@ const PrivacyPage: React.FC = () => (
     <section className="bg-blush">
       <div className="max-w-content mx-auto px-24 py-96">
         <h2 className="text-heading font-signifier text-ink">What the system holds</h2>
+        <Reveal>
+          <MinimisationFigure className="mt-40" />
+        </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mt-40">
           {HOLDINGS.map((h) => (
             <Card key={h.t} variant={h.tone === 'minimal' ? 'accent' : 'elevated'} className="p-24">
@@ -179,7 +203,7 @@ const PrivacyPage: React.FC = () => (
           People see only what they should
         </h2>
         <p className="text-body font-sohne text-slate mt-16 max-w-[600px]">
-          A seller, an analyst and an administrator are shown genuinely different systems.
+          An analyst and an administrator are shown genuinely different systems.
         </p>
         <TitleDetailCardGrid
           items={ACCESS_CONTROL}
@@ -187,6 +211,15 @@ const PrivacyPage: React.FC = () => (
           cardVariant="neutral"
           titleClassName="text-body font-sohne font-450 text-ink"
         />
+        <Reveal>
+          <Figure
+            className="mt-40"
+            label="require_roles() · capability × role"
+            source="enforced at the router, not the interface"
+          >
+            <AccessMatrix />
+          </Figure>
+        </Reveal>
       </div>
     </section>
 
@@ -194,12 +227,30 @@ const PrivacyPage: React.FC = () => (
     <section className="bg-brand-gradient-aa py-128">
       <div className="max-w-content mx-auto px-24">
         <h2 className="text-heading font-signifier text-paper">What never happens to your data</h2>
-        <ul className="mt-40 space-y-16 max-w-[600px]">
-          {NEVER.map((n) => (
-            <li key={n} className="flex items-start gap-12">
-              <span className="w-8 h-8 rounded-full bg-paper mt-8 shrink-0" aria-hidden="true" />
-              <span className="text-body font-sohne text-paper">{n}</span>
-            </li>
+        {/* Four prohibitions, each with the same crossed mark. Repetition is
+            the point: a list of things that cannot happen reads as stronger
+            when every entry carries the identical, unambiguous symbol. */}
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-16 mt-40">
+          {NEVER.map((n, idx) => (
+            // `as="li"` because these are list items: a div inside a ul is
+            // invalid, and a screen reader stops announcing the count.
+            <Reveal as="li" key={n} delay={idx * 70}>
+              <div className="rounded-shell bg-paper/15 p-6 h-full">
+                <div className="rounded-shellInner bg-paper/10 h-full p-24">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex items-center justify-center w-32 h-32 rounded-full
+                               bg-paper/20"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14">
+                      <path d="M3 3 L11 11 M11 3 L3 11" stroke="#ffffff" strokeWidth="2"
+                        strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <p className="text-body font-sohne text-paper mt-16">{n}</p>
+                </div>
+              </div>
+            </Reveal>
           ))}
         </ul>
       </div>
@@ -232,30 +283,32 @@ const PrivacyPage: React.FC = () => (
       </div>
     </section>
 
-    {/* Sellers are consumers too */}
+    {/* The people in the data never chose to be. That is the whole reason
+        this page has to be specific rather than reassuring. */}
     <section className="bg-paper">
       <div className="max-w-content mx-auto px-24 py-96">
       <TrustMark kind="shield" className="mb-16" />
       <h2 className="text-heading font-signifier text-ink max-w-prose">
-        Sellers have the most at stake
+        Nobody in this data chose to be in it
       </h2>
       <p className="text-body font-sohne text-slate mt-16 max-w-[600px]">
-        Consumer protection usually focuses on the person paying. At a market stall, it&apos;s the
-        seller working on the thinner margin — so we built three protections for them too.
+        The people whose payments are analysed here are not our customers and never agreed to
+        anything with us. They are in the record because they were paid, or paid someone. That
+        asymmetry is the reason for each of the three commitments below.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mt-40">
         {[
           {
-            t: 'Never a false confirmation',
-            d: 'If the box isn’t sure, it says pending — never a false "paid." A wrong confirmation costs a trader their stock.',
+            t: 'Being flagged is not being accused',
+            d: 'An alert marks a payment a person was asked to examine. It is never a finding, it reaches no one outside the supervising institution, and nothing about the payment changes — the platform sits outside the payment path and cannot act on it.',
           },
           {
-            t: 'Never counted twice',
-            d: 'A retrying device can’t double-charge a customer or inflate a seller’s takings — the same payment is recognised if it comes through twice.',
+            t: 'A pattern is not a person',
+            d: 'Identifiers are tokenised: enough to link one participant’s payments to each other, never enough to identify who they are. No phone number and no national ID is requested at any phase.',
           },
           {
-            t: 'Being flagged is not being punished',
-            d: 'The alert goes to regulators, who decide what happens next. Our system sits outside the payment path. The seller keeps trading and keeps getting paid.',
+            t: 'A seasonal pattern is not an anomaly',
+            d: 'Long dormancy and a sudden inflow is what a harvest wage or a twice-yearly grant looks like. Scoring that as suspicious would flag the very people digital payment is meant to reach, so the models measure each participant against their own history rather than an average.',
           },
         ].map((c) => (
           <Card key={c.t} variant="neutral" className="p-24">
@@ -281,29 +334,26 @@ const PrivacyPage: React.FC = () => (
           apart from a real one. Following central-bank research on exactly this problem, five
           kinds of manipulated payment were generated and scored.
         </p>
-        <div className="mt-32 max-w-[680px]">
-          <Card variant="elevated" className="p-24">
-            <div className="space-y-12">
-              {SENSITIVITY.map((s) => (
-                <div key={s.label} className="flex items-center justify-between gap-16">
-                  <div className="min-w-0">
-                    <p className={`text-body font-sohne ${s.ordinary ? 'font-450 text-ink' : 'text-ink'}`}>
-                      {s.label}
-                    </p>
-                    <p className="text-caption font-sohne text-slate">{s.represents}</p>
-                  </div>
-                  <span
-                    className={`text-body font-sohne tabular-nums shrink-0 ${
-                      s.ordinary ? 'text-status-success' : 'text-ink'
-                    }`}
-                  >
-                    {s.score.toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+        {/* The separation is the finding, so it should be seen rather than
+            read down a column of numbers. Ordinary trading sits at zero and
+            every manipulated shape sits above it — that gap is the whole
+            result, and a bar chart states it in one look. */}
+        <Reveal>
+          <Figure
+            className="mt-32 max-w-[720px]"
+            label="injection_validation · anomaly_score"
+            source="manipulated payments vs ordinary probes"
+          >
+            <ShareBars
+              data={SENSITIVITY.map((x) => ({
+                label: x.label,
+                value: Math.round(x.score * 100),
+                hint: x.represents,
+              }))}
+              format={(v) => (v / 100).toFixed(2)}
+            />
+          </Figure>
+        </Reveal>
         <p className="text-caption font-sohne text-ash mt-16 max-w-prose">
           Ordinary trading scores zero, so the separation is absolute rather than a ratio. This
           measures sensitivity, not a fraud rate — that needs confirmed cases, and we do not
@@ -321,7 +371,7 @@ const PrivacyPage: React.FC = () => (
         Holding less is only useful if what remains still answers the questions oversight needs
         answered.
       </p>
-      <ButtonLink to="/how-it-works" className="mt-32">See how it works</ButtonLink>
+      <ButtonLink to="/how-it-works" className="mt-32" arrow>See how it works</ButtonLink>
     </section>
   </PublicShell>
 );

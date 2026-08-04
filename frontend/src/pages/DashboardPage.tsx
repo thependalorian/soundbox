@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  DevicePhoneMobileIcon,
+  BuildingStorefrontIcon,
   BanknotesIcon,
   CreditCardIcon,
   ShieldExclamationIcon,
@@ -11,7 +11,6 @@ import {
   fetchAnomalyAlerts,
   fetchTransactionSummary,
   fetchTransactionTrends,
-  fetchSettlements,
   fetchMerchants,
   fetchPeriodDeltas,
 } from '../api/api';
@@ -27,47 +26,38 @@ const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const isRegulator = user?.role === 'regulator';
   const isAdmin = user?.role === 'admin';
-  const isMerchant = user?.role === 'merchant';
-  const merchantId = isMerchant ? user?.merchantId : undefined;
 
   const { data: health, isLoading: healthLoading } = useQuery({
     queryKey: ['systemHealth'],
     queryFn: fetchSystemHealth,
-    enabled: isRegulator || isAdmin,
   });
 
   const { data: alerts, isLoading: alertsLoading } = useQuery({
-    queryKey: ['anomalyAlerts', merchantId ?? 'all'],
-    queryFn: () => fetchAnomalyAlerts(merchantId ? { merchantId } : undefined),
-    enabled: isRegulator || isAdmin || isMerchant,
+    queryKey: ['anomalyAlerts'],
+    queryFn: () => fetchAnomalyAlerts(),
   });
 
   const { data: txnSummary } = useQuery({
-    queryKey: ['transactionSummary', merchantId ?? 'all'],
-    queryFn: () => fetchTransactionSummary(merchantId),
+    queryKey: ['transactionSummary'],
+    queryFn: () => fetchTransactionSummary(),
   });
 
   const { data: trends } = useQuery({
-    queryKey: ['transactionTrends', merchantId ?? 'all'],
-    queryFn: () => fetchTransactionTrends(merchantId),
-  });
-
-  const { data: settlements } = useQuery({
-    queryKey: ['settlements', merchantId ?? 'all'],
-    queryFn: () => fetchSettlements(merchantId),
-    enabled: isMerchant,
+    queryKey: ['transactionTrends'],
+    queryFn: () => fetchTransactionTrends(),
   });
 
   const { data: merchants } = useQuery({
     queryKey: ['merchants'],
     queryFn: () => fetchMerchants(),
-    enabled: isRegulator || isAdmin,
   });
 
   const { data: deltas } = useQuery({
-    queryKey: ['periodDeltas', merchantId ?? 'all'],
-    queryFn: () => fetchPeriodDeltas(merchantId),
+    queryKey: ['periodDeltas'],
+    queryFn: () => fetchPeriodDeltas(),
   });
+
+  const activeMerchants = (merchants ?? []).filter((m) => m.status === 'active').length;
 
   // Highest exposure still open — the single most useful thing to act on.
   const topAlert = (alerts ?? [])
@@ -83,15 +73,14 @@ const DashboardPage: React.FC = () => {
       : `${v >= 0 ? '+' : ''}${v.toFixed(0)}% vs previous 7 days`;
   const tone = (v: number | null | undefined): 'up' | 'down' | 'neutral' =>
     v === null || v === undefined ? 'neutral' : v > 0 ? 'up' : v < 0 ? 'down' : 'neutral';
-  const headline = isMerchant ? 'Your SoundBox activity' : isRegulator ? 'National Payment System overview' : 'Operations overview';
+  const headline = isRegulator ? 'National Payment System overview' : 'Operations overview';
 
   return (
     <div>
       <h1 className="text-heading font-signifier text-ink mb-8">{headline}</h1>
       <p className="text-body font-sohne text-slate mb-32">
-        {isMerchant && 'Devices, transactions, and settlements for your account.'}
-        {isRegulator && 'System-wide health, flag trends, and coverage across all registered merchants.'}
-        {isAdmin && `${(merchants ?? []).length} merchants onboarded across the network.`}
+        {isRegulator && 'System-wide health, flag trends, and coverage across every business on the record.'}
+        {isAdmin && `${(merchants ?? []).length} businesses on the record, ${activeMerchants} of them active.`}
       </p>
 
       {/* One action, chosen by what is actually waiting. An operator opening
@@ -112,17 +101,18 @@ const DashboardPage: React.FC = () => {
           A conversation that answers with charts needs room and a scroll of
           its own, and this one was squeezed above the stat cards. Kept as an
           entry point rather than simply deleted, so the way in is not lost. */}
-      {(isRegulator || isAdmin) && (
-        <PageAction className="mb-32" to="/ask" label="Ask the data a question" />
-      )}
+      <PageAction className="mb-32" to="/ask" label="Ask the data a question" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
+        {/* Acceptance points, not a hardware count: an active business is
+            somewhere a payment can actually be made, which is what coverage
+            means. No delta — this is a stock with no prior-period snapshot
+            to difference against, and an invented one would be worse than
+            none. */}
         <StatCard
-          title={isMerchant ? 'My active devices' : 'Active devices'}
-          value={String(txnSummary?.activeDevices ?? 0)}
-          delta={delta(deltas?.devices)}
-          deltaTone={tone(deltas?.devices)}
-          icon={DevicePhoneMobileIcon}
+          title="Active businesses"
+          value={String(activeMerchants)}
+          icon={BuildingStorefrontIcon}
           trend={trend}
         />
         <StatCard
@@ -151,23 +141,9 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
-        {(isRegulator || isAdmin) && <SystemHealthCard data={health} loading={healthLoading} />}
-        {(isRegulator || isAdmin || isMerchant) && <AnomalyAlertsCard data={alerts} loading={alertsLoading} />}
+        <SystemHealthCard data={health} loading={healthLoading} />
+        <AnomalyAlertsCard data={alerts} loading={alertsLoading} />
       </div>
-
-      {isMerchant && settlements && settlements.length > 0 && (
-        <Card variant="elevated" className="p-24 mb-24">
-          <h2 className="text-subheading font-signifier text-ink mb-16">Recent settlements</h2>
-          <div className="divide-y divide-mist">
-            {settlements.slice(0, 4).map((s) => (
-              <div key={s.id} className="flex justify-between py-12 text-body font-sohne">
-                <span className="text-slate">{new Date(s.settlementDate).toLocaleDateString()} &middot; {s.reference}</span>
-                <span className="text-ink capitalize">{s.status} &middot; N${s.amount.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       <Card variant="elevated" className="p-24">
         <h2 className="text-subheading font-signifier text-ink mb-16">Payment volume, last 14 days</h2>

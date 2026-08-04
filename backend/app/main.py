@@ -7,9 +7,7 @@ from app.api import (
     analytics,
     assistant,
     auth,
-    devices,
     oversight,
-    payments,
     reports,
     resources,
     settings as settings_api,
@@ -41,7 +39,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
-    description="SoundBox API - Payment confirmation device for Namibia's Instant Payment Programme",
+    description="Buffr Intelligence - RegTech analytics for Namibia's National Payment System",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -63,7 +61,7 @@ app.add_middleware(
     allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type", "X-User-Name", "X-Device-Code", "X-Device-Key"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -86,15 +84,10 @@ async def security_headers(request: Request, call_next):
 #  - auth / users: /auth/login, /auth/forgot-password and /auth/reset-password
 #    must be reachable by someone who cannot sign in. Everything else in those
 #    modules is gated per-route.
-#  - devices / payments: device-facing. They authenticate with a provisioned
-#    device credential (X-Device-Code / X-Device-Key), not a user JWT, so a
-#    user-token requirement here would lock out the hardware.
 #  - assistant: gated to regulator and admin inside the module.
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 app.include_router(assistant.router, prefix=settings.API_V1_STR, tags=["assistant"])
 app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
-app.include_router(devices.router, prefix=settings.API_V1_STR, tags=["devices"])
-app.include_router(payments.router, prefix=settings.API_V1_STR, tags=["payments"])
 
 # Operator-facing routers. **Authentication is required at the router level,
 # not per handler.**
@@ -119,7 +112,7 @@ app.include_router(settings_api.router, prefix=settings.API_V1_STR, tags=["setti
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Starting up SoundBox API...")
+    logger.info("Starting up Buffr Intelligence API...")
     logger.info(f"Project: {settings.PROJECT_NAME} v{settings.PROJECT_VERSION}")
     logger.info("Database tables created/verified")
 
@@ -138,7 +131,7 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("Shutting down SoundBox API...")
+    logger.info("Shutting down Buffr Intelligence API...")
 
 @app.get("/", tags=["Root"])
 async def read_root():

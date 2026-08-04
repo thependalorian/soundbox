@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.helpers import get_or_create_merchant, get_or_create_organization, log_status_change
-from app.db.models import AIModelVersion, Device, AnomalyAlert, AnomalyAlertStatusLog, Transaction
+from app.db.models import AIModelVersion, AnomalyAlert, AnomalyAlertStatusLog, Transaction
 from app.services import anomaly_rule_config
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class AnomalyScoringEngine:
         self.feature_names = [
             'amount_normalized', 'transaction_frequency',
             'merchant_age_days', 'time_of_day', 'day_of_week',
-            'device_age_days', 'avg_transaction_amount', 'std_transaction_amount',
+            'avg_transaction_amount', 'std_transaction_amount',
             'velocity_1h', 'velocity_24h'
         ]
 
@@ -110,13 +110,6 @@ class AnomalyScoringEngine:
                 Transaction.merchant_id == merchant.id
             ).all()
 
-            device = None
-            device_code = transaction.get("device_id")
-            if device_code:
-                device = self.db.query(Device).filter(
-                    Device.device_code == device_code
-                ).first()
-
             timestamp_str = transaction.get("timestamp", datetime.utcnow().isoformat())
             timestamp = datetime.fromisoformat(timestamp_str)
 
@@ -126,7 +119,6 @@ class AnomalyScoringEngine:
                 'merchant_age_days': self._calculate_merchant_age(merchant_txns),
                 'time_of_day': timestamp.hour,
                 'day_of_week': timestamp.weekday(),
-                'device_age_days': self._calculate_device_age(device) if device else 0,
                 'avg_transaction_amount': self._get_avg_transaction_amount(merchant_txns),
                 'std_transaction_amount': self._get_std_transaction_amount(merchant_txns),
                 'velocity_1h': self._get_transaction_velocity(merchant.id, minutes=60, as_of=timestamp),
@@ -560,7 +552,6 @@ class AnomalyScoringEngine:
                 organization_id=self.organization.id,
                 merchant_id=merchant.id,
                 transaction_id=transaction.id if transaction else None,
-                device_id=transaction.device_id if transaction else None,
                 model_version_id=model_version.id,
                 amount=Decimal(str(amount)),
                 anomaly_score=Decimal(str(anomaly_score)),
@@ -602,12 +593,6 @@ class AnomalyScoringEngine:
             return 0
         oldest = min(t.created_at for t in transactions)
         return (datetime.utcnow() - oldest).days
-
-    def _calculate_device_age(self, device: Device) -> int:
-        """Calculate device age in days"""
-        if not device:
-            return 0
-        return (datetime.utcnow() - device.registered_at).days
 
     def _get_avg_transaction_amount(self, transactions: List[Transaction]) -> float:
         """Get average transaction amount"""

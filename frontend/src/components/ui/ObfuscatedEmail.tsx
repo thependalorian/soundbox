@@ -15,7 +15,7 @@ import React, { useEffect, useRef, useState } from 'react';
  *
  * **Accessibility is preserved deliberately.** A canvas is invisible to a
  * screen reader, so the link carries an `aria-label` in spoken form — "team
- * at justasoundbox dot com". That is readable to a person and useless to the
+ * at buffranalytics dot com". That is readable to a person and useless to the
  * naive regex a harvester uses, which is the right trade: an obfuscation
  * that locks out assistive technology has made the page worse, not safer.
  *

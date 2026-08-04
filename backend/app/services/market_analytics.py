@@ -239,8 +239,15 @@ class MarketAnalyticsService:
                 return {"status": "no_data", "observationDays": days,
                         "detail": "No payments in this window."}
 
+            # `bank_account`, not `bank` — the code is the one seeded into
+            # type_definitions (domain `payer_instrument`). Testing against
+            # "bank" matched nothing, so every bank-funded payment fell into
+            # `unknown` and wallet share reported 100% no matter what the real
+            # split was. A financial-inclusion figure that always reads 100%
+            # is worse than none: it is confidently wrong in the direction
+            # that flatters the programme.
             wallet = sum(1 for t in txns if (t.payer_instrument or "") == "wallet")
-            bank = sum(1 for t in txns if (t.payer_instrument or "") == "bank")
+            bank = sum(1 for t in txns if (t.payer_instrument or "") == "bank_account")
             unknown = len(txns) - wallet - bank
             known = wallet + bank
 
@@ -443,12 +450,11 @@ class MarketAnalyticsService:
         Two distinct intervals, and conflating them is the usual mistake:
 
         - **Confirmation lag** (`created_at` to `verified_at`) is what the
-          seller waits at the counter. Seconds matter; this is the number the
-          SoundBox exists to shorten the *perception* of.
+          payee waits before knowing the money arrived. Seconds matter here.
         - **Settlement lag** (`verified_at` to `settled_at`) is interbank net
           settlement, which happens later in cycles. The payee is credited in
-          real time and settlement follows; a seller is not waiting on this,
-          and reporting it as though they were would misstate the experience.
+          real time and settlement follows; nobody is waiting on this, and
+          reporting it as though they were would misstate the experience.
         """
         try:
             txns = [t for t in self._transactions(days) if t.status == "success"]

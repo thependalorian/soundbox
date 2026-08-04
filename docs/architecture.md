@@ -2,19 +2,19 @@
 
 > How the system is actually built, what it deliberately cannot do, and where it breaks at scale.
 >
-> Part of the SoundBox documentation set — see [README.md](README.md).
+> Part of the Buffr Intelligence documentation set — see [README.md](README.md).
 
 ---
 
 ## 1. What this system is
 
-> **Naming note.** SoundBox listens to the WayaMe rails. WayaMe is the
+> **Naming note.** Buffr Intelligence reads data from the WayaMe rails. WayaMe is the
 > consumer-facing name of Namibia's instant payment service, operated by
 > Instant Payments Namibia; it is named throughout this documentation to say
-> what SoundBox connects to, **not to imply endorsement, partnership or
+> what Buffr Intelligence connects to, **not to imply endorsement, partnership or
 > approval that has not been granted**. Integration terms, branding terms and
-> the approvals attached to both are being taken to the Bank of Namibia and
-> IPN — see [`soundbox.md`](../soundbox.md) §0 and §0a.
+> Data-sharing terms are being taken to the Bank of Namibia and IPN — the
+> phased path is set out in [`business-plan.md`](business-plan.md).
 
 ### What WayaMe actually is
 
@@ -38,112 +38,107 @@ Two consequences worth holding on to:
    Namibia. The party we integrate with and the party that regulates the
    system are closely related, which raises the value of being able to say
    plainly that we never touch money.
-2. **The stated target market is ours.** The programme is explicitly aimed at
-   small businesses, street vendors, farmers and township traders who have
-   relied on cash and lack access to expensive payment infrastructure. Those
-   are precisely the people a sound box serves. We are not proposing a new
-   market — we are proposing the missing piece of an existing one.
+2. **The stated target population is the hardest one to see.** The programme
+   is explicitly aimed at small businesses, street vendors, farmers and
+   township traders who have relied on cash. Those are precisely the
+   participants a national aggregate hides, which is why every measure here
+   reports its denominator and drills to constituency level. Individuals
+   transact in their own right too — person-to-person is a live use case —
+   so "participant" is never a synonym for "business" in this system.
 
 ### Our position in it
 
 **An observer, not a participant.** The platform is told the outcome of
-payments made over WayaMe and announces them aloud. It is not in the payment
-path.
+payments made over WayaMe and analyses them. It is not in the payment path.
 
 This is the single most important fact about the architecture, and it is
 structural rather than a policy we apply:
 
 | It does | It cannot do |
 |---|---|
-| Receive confirmation from WayaMe that a payment succeeded | Start a payment |
-| Announce the outcome on the device | Stop, hold or reverse a payment |
-| Record what it observed, and where | Hold a balance or touch anyone's money |
-| Flag unusual patterns for human review | Change what WayaMe recorded |
+| Receive transaction-pattern data under agreement | Start a payment |
+| Analyse it for pattern, concentration and reach | Stop, hold or reverse a payment |
+| Surface dashboards, anomalies and returns | Hold a balance or touch anyone's money |
+| Flag unusual patterns for human review | Change what the rails recorded |
 
-Verifiable in the code: the only outbound calls in
-`backend/app/services/wayame_api_client.py` are `verify_payment`
-(a **GET** on `/payment/status/{transaction_id}`), `register_device` and
-`send_heartbeat`. There is no initiate, authorise, debit, decline or block
-anywhere in `backend/app/`.
+**Verifiable in the code, which is the point of stating it this way.** There
+is no HTTP client in `backend/app/` that calls a payment rail at all, and no
+function anywhere named initiate, authorise, debit, decline, hold or reverse.
+The application's entire write surface is its own tables. This is not a
+policy that could be relaxed by a configuration change — there is nothing to
+relax.
 
-**Why this matters commercially.** The company that proved this model at
-scale abroad suffered severe regulatory action against its *banking* arm,
-which was a major factor in its collapse. A device business that holds no
-money and moves no money is not exposed to that category of risk at all.
-Staying out of the payment path is a feature, not a limitation, and it
-should be stated first in any conversation with the Bank of Namibia.
-
-> **On the precedent used throughout this document.** Namibia's instant
-> payment platform is derived from technology licensed from NPCI
-> International, so the Indian deployments are the closest available
-> reference implementation. They are cited as evidence of what works at
-> scale — not as a description of what we are building. Everything below
-> describes the Namibian system: WayaMe, IPN, NAMQR, the Bank of Namibia.
+**Why this matters commercially.** An analytics platform that holds no money
+and moves no money is not exposed to the category of regulatory risk that
+attaches to custody. Staying out of the payment path is a feature, not a
+limitation, and it should be stated first in any conversation with the Bank
+of Namibia.
 
 ---
 
-## 2. Payment flow
+## 2. Data flow
 
-The device is waiting to be told what happened. Every step below is
+The platform is waiting to be told what happened. Every step below is
 observation, not action.
 
 ```
-  Customer phone                   WayaMe (operated by IPN)           SoundBox + this system
-        │                                    │                                 │
-        │  1. scans seller's static NAMQR    │                                 │
-        │───────────────────────────────────>│                                 │
-        │  2. approves payment in their      │                                 │
-        │     own bank's app                 │                                 │
-        │───────────────────────────────────>│                                 │
-        │                                    │  3. money moves, bank to bank   │
-        │                                    │      (nothing to do with us)    │
-        │                                    │                                 │
-        │                                    │  4. WayaMe pushes the outcome   │
-        │                                    │────────────────────────────────>│
-        │                                    │  5. (fallback) we ask for status│
-        │                                    │<────────────────────────────────│
-        │                                    │                                 │  6. speaks the
-        │                                    │                                 │     amount aloud
-        │                                    │                                 │  7. records it
+  Payer                    WayaMe (operated by IPN)          Buffr Intelligence
+    │                               │                                │
+    │  1. initiates a payment in    │                                │
+    │     their own institution's   │                                │
+    │     app or by short code      │                                │
+    │──────────────────────────────>│                                │
+    │                               │  2. clears and settles,        │
+    │                               │     institution to institution │
+    │                               │     (nothing to do with us)    │
+    │                               │                                │
+    │                               │  3. transaction-pattern data   │
+    │                               │     shared under agreement     │
+    │                               │───────────────────────────────>│
+    │                               │                                │  4. scored against
+    │                               │                                │     that participant's
+    │                               │                                │     own history
+    │                               │                                │  5. measures and
+    │                               │                                │     returns updated
+    │                               │                                │  6. ranked for review
+    │                               │                                │     by a named person
 ```
 
-**Step 4 should be a push, not a poll.** An earlier draft of this document
-argued for polling on the grounds that a device behind carrier NAT cannot
-receive an inbound webhook. That reasoning was wrong, and the correction
-matters:
+**Steps 1 and 2 complete without us.** By the time anything reaches this
+platform the payment is final. That ordering is the architecture, not a
+sequence diagram convention — there is no step at which an analytical result
+could feed back into a payment, because the payment is already settled when
+the data arrives.
 
-The Indian deployments — on the rails WayaMe is derived from — use
-**MQTT (or WebSocket) push**. The device opens an
-*outbound* long-lived connection to a broker and keeps it open, so
-confirmations arrive in real time and NAT is never an issue — the device
-dialled out. Polling costs battery and data on exactly the weak 2G links
-where both are scarcest, and adds latency to the one moment the seller is
-waiting on.
+### What arrives, and what does not
 
-Polling remains the **fallback**, for a device that missed a push while
-offline. It is the recovery path, not the primary one.
+Data-sharing terms are scoped to aggregate, privacy-preserving transaction
+analytics: masked or tokenised identifiers where linkage is needed, and no
+retention of raw personal identifiers beyond a documented analytical purpose.
+A stable pseudonym per participant is sufficient for every feature the models
+use — enough to link one participant's payments to each other, and not enough
+to identify a person. No phone number and no national ID is requested at any
+phase. The full field-by-field ask, and what is lost if a field is withheld,
+is in `backend/notebooks/anomaly_detection.ipynb` §11.
 
 ### Failure path
 
-If step 4 cannot complete, **the payment is unaffected** — it already
-happened at step 3. What is delayed is our knowledge of it. The device
+If a shared extract is late or incomplete, **no payment is affected** — they
+all completed at step 2. What is delayed is the analysis. The platform
 therefore:
 
-1. Reconnects and retries with exponential backoff (3 attempts).
-2. Says *"payment pending"* rather than going silent — silence is the one
-   outcome a seller cannot act on.
-3. Holds the amber ring so nothing is handed over yet.
-4. Re-checks when connectivity returns and announces the real result.
-
-The seller is never told a payment succeeded when it did not, and never left
-guessing.
+1. Reports the period it actually holds data for, rather than presenting a
+   partial period as a whole one.
+2. Withholds a figure where the base is too thin to carry it, rather than
+   publishing a ratio over eleven observations as though it were evidence.
+3. Reconciles on the next complete extract.
 
 ### Idempotency
 
-The same payment can be reported more than once — a retry that actually
-succeeded, a duplicate device report, a replayed message. Every transaction
-carries a reference (`transactions.transaction_ref`, unique) and is upserted
-on it. A repeat is recognised, announced once, and counted once.
+The same payment can be reported more than once — a replayed message, an
+overlapping extract window. Every payment carries a reference
+(`transactions.transaction_ref`, unique) and is upserted on it. A repeat is
+recognised and counted once.
 
 ---
 
@@ -151,14 +146,16 @@ on it. A repeat is recognised, announced once, and counted once.
 
 | Component | Location | Responsibility |
 |---|---|---|
-| Firmware | `firmware/src/` | Modem and broker connection, audio announcement, retry loop, local pending queue |
-| Backend API | `backend/app/api/` | Payment verification, device registration, heartbeats, analytics, reporting |
+| Backend API | `backend/app/api/` | Analytics, oversight, reporting, accounts. Every router mounts behind authentication |
 | Data layer | `backend/app/db/` | Wiebe-pattern schema: immutable logs, soft deletes, tenancy on every table |
-| Scoring | `backend/app/services/anomaly_scoring.py` | Transparent rule scorer that explains every score |
-| Anomaly model | `backend/ml/` + `app/services/anomaly_detection.py` | Unsupervised detector, built and untrained — see `backend/ml/README.md` |
-| Assistant | `backend/app/services/ask_service.py` | Natural-language questions answered by tool-calling over existing analytics methods |
-| Operator UI | `frontend/src/pages/` | Three role-scoped portals (seller, oversight, administrator) |
-| Public site | `frontend/src/pages/public/` | Marketing and the self-contained demo |
+| Rule scorer | `backend/app/services/anomaly_scoring.py` | Transparent scorer that explains every score, with thresholds held as configuration |
+| Anomaly models | `backend/ml/` + `backend/notebooks/` | The two-layer classifier-then-Isolation-Forest framework, five models compared — see `backend/notebooks/anomaly_detection.ipynb` |
+| Segmentation | `backend/ml/segmentation.py` | k-means over behavioural features, k chosen by silhouette, refuses to segment on too little trade |
+| Assistant | `backend/app/agents/` + `app/api/assistant.py` | Natural-language questions answered by tool-calling over existing analytics methods, never raw SQL |
+| Synthetic data | `backend/scripts/seed_synthetic.py` | Phase 0 population: every use case, both party kinds, constituency spread, planted anomalies |
+| Operator UI | `frontend/src/pages/` | Role-scoped console (regulator, administrator) |
+| Public site | `frontend/src/pages/public/` | The institutional argument |
+| Brand assets | `frontend/scripts/build_brand_assets.py` | Derives every mark and icon from source art — outputs are not hand-edited |
 
 ---
 
@@ -240,7 +237,7 @@ operator chose is worse than refusing the change.
 ### The resource API
 
 `app/api/resources.py` carries everything a person uses to run the deployment:
-devices, businesses, payments, settlements and alerts — read and write. Three
+businesses, payments, settlements and alerts — read and write. Three
 rules hold throughout — `organization_id` on every query, `deleted_at IS NULL`
 on every list, and the append-only status-log row written in the same request
 as any status change.
@@ -248,9 +245,9 @@ as any status change.
 Four decisions in the write paths are worth stating, because each one is a
 constraint rather than a convenience:
 
-- **Deletes are soft, always.** A payment taken through a device retired last
-  year must still resolve that device. `deleted_at` removes a record from
-  every list without removing it from the history.
+- **Deletes are soft, always.** A payment recorded against a business closed
+  last year must still resolve that business. `deleted_at` removes a record
+  from every list without removing it from the history.
 - **Status is never settable through a profile update.** A business moves
   between states only through `PUT /merchants/{id}/status`, so every
   transition carries a decision, an actor and a log row. There is no path
@@ -263,42 +260,34 @@ constraint rather than a convenience:
   records whether it was fraud. Only the second becomes training data, and
   conflating them would poison the only ground truth this product has.
 
-**A device need not belong to a business.** `devices.merchant_id` is nullable
-because a unit in the warehouse has no stall yet, and a unit recovered from a
-closed business has none again. The alternative — inventing an assignment —
-inflates that business's device count and the coverage figures built on it.
-Closing a business therefore releases its devices rather than leaving them
-pointing at somewhere that no longer trades.
-
 **Taxonomies are read, not hardcoded.** `GET /type-definitions/{domain}`
 gives the console its status options. A UI holding its own copy of a list
 that lives in configuration will eventually offer a value the API rejects.
 
 None of it can move money. These endpoints read payment outcomes and manage
-the estate around them; the observer position is a property of the service,
+the record around them; the observer position is a property of the service,
 not a check inside one function.
 
-**Authorization is server-verified, never caller-asserted.** Two credentials,
-neither trusting a claim the caller can set itself:
+**Authorization is server-verified, never caller-asserted.** One credential,
+and it never trusts a claim the caller can set itself:
 
-- A **person** authenticates once (`POST /auth/login`, bcrypt-checked
-  password) and gets back a signed JWT. Every role-gated write decodes that
-  token server-side (`app/api/deps.py`'s `require_roles`) to get the actor's
-  role and identity — there is no header a request can set to grant itself
-  `admin`.
-- A **device** authenticates with a secret issued once, at provisioning
-  (`POST /devices`'s response), bcrypt-hashed at rest and never recoverable
-  afterward. `/devices/register`, `/devices/heartbeat`, `/payments/verify`
-  and `/payments/process_qr` all require it (`X-Device-Code` /
-  `X-Device-Key`), which is why device registration no longer creates a row
-  from an unauthenticated POST — a device must already exist, provisioned by
-  an admin, before it can announce itself.
+A person authenticates once (`POST /auth/login`, bcrypt-checked password) and
+gets back a signed JWT. Every role-gated write decodes that token server-side
+(`app/api/deps.py`'s `require_roles`) to get the actor's role and identity —
+there is no header a request can set to grant itself `admin`.
 
-A NAMQR QR's CRC (tag 63) proves the code wasn't mis-scanned; it proves
-nothing about who generated it. Where a QR carries a signature (tag 66),
-`app/services/namqr_processor.py` verifies it with ECDSA P-256/SHA-256
-against the presenting merchant's on-file key (falling back to a configured
-org-wide key), per Bank of Namibia NAMQR Code Standards v5.0 Annexure I.
+**Reads are authenticated at the router, not per endpoint.** Every analytics,
+oversight, reporting and resource router is mounted with an authentication
+dependency in `app/main.py`, so a new endpoint added to any of them is
+protected by default. Per-endpoint guards were how thirty-four read paths —
+every payment, business, alert and the regulatory returns — ended up
+publicly readable: not one of them was marked unsafe, each was simply
+missing a decorator nobody noticed.
+
+Session invalidation is carried in the token itself: a JWT's `iat` is
+compared against `users.password_changed_at`, so changing a password
+immediately invalidates every session issued before it without needing a
+server-side session store.
 
 Two fields are deliberately withheld from responses: a beneficial owner's
 national ID (only `hasIdOnFile` is returned) and raw payer detail (only the
@@ -318,14 +307,13 @@ a worse one.
 
 | Forecast | Signal | Why it is first, or not |
 |---|---|---|
-| **Device battery** | Monotonic discharge between charges, already captured in `device_heartbeat_log` | The strongest candidate. A physical signal, a short horizon, and an action attached — "this box dies in about three days, send someone". It makes no claim about money. |
-| **Payment volume** | Weekly seasonality plus trend | Legitimate once history exists. Needs the seasonality handled explicitly — a Saturday peak is not growth. Useful for settlement and capacity planning. |
-| **Regional coverage** | Merchant onboarding rate per region | The most useful to oversight and the furthest away: it needs enough history per region to separate a genuine trend from a single distributor's activity. |
+| **Payment volume and value** | Weekly seasonality plus trend | Built and running. The seasonality is handled explicitly and shown separately, because a Saturday peak is not growth. Useful for capacity planning. |
+| **Constituency coverage** | Onboarding rate per constituency | The most useful to oversight and the furthest away: it needs enough history per constituency to separate a genuine trend from one institution's onboarding push. |
 
-All three need the same thing the anomaly model needs: real transaction
-history. Battery is the exception worth noting — heartbeats accumulate as
-soon as a device is switched on, so it becomes possible before any payment
-is ever taken.
+Both need the same thing the anomaly models need: real transaction history.
+The forecaster returns no number at all below four weeks of trading, and says
+why — a projection built on three weeks looks identical to one built on three
+years unless the system refuses to draw it.
 
 Method, when the time comes, is the standard decomposition: separate trend
 from seasonality, difference to stationarity, then fit. The weekday baseline
@@ -336,20 +324,16 @@ a volume forecast would reuse.
 
 ## 7. Known gaps
 
-Identified by comparing our build against the Indian deployments, which are
-the closest available reference implementation for this product category.
-Each gap below is stated in terms of what it means for Namibia.
+Stated as what would break first, not as a wish list. Nothing here is broken
+at current scale.
 
 | Gap | Status | Why it matters here |
 |---|---|---|
-| **Multilingual announcements** | `firmware/src/audio.h` declares `language_code[4]` with `"en"`, `"af"`, `"on"`. Nothing else in the stack surfaces it. | The Indian devices ship 11 languages, and does it **without a speech engine**: short pre-recorded clips in flash are concatenated at playback — "You have received" + "forty five dollars fifty". That is what makes multilingual affordable on a cheap SoC, and it is the approach to copy. Namibia's largest first-language group speaks Oshiwambo; English-only excludes much of the target market. |
-| **2G fallback** | `firmware/src/modem.h` does not distinguish generations. | Kavango, Kunene and Omaheke have thin coverage. Proven designs pair a 4G radio with 2G fallback precisely because the last mile is where the customers are — and in Namibia the last mile is most of the country by area. |
-| **Static merchant QR** | `namqr_processor.py` has no static/dynamic distinction. | A static NAMQR code tied to the seller's payment alias removes per-sale QR generation and lets onboarding be a printed sticker. This is what makes near-zero onboarding cost possible, and NAMQR being a national standard means one sticker works for every bank. |
-| **Push delivery to devices** | Devices call the API over HTTP; there is no broker. | This is the largest gap. Push is how confirmations reach a device in real time without draining a 2G link. It needs an MQTT broker and a persistent device connection, and it changes the firmware contract — so it should be decided before hardware is finalised, not after. |
-| **Device ingestion queue** | Direct HTTP to the API. | Fine at hundreds of devices. At tens of thousands, a queue feeding a gateway is required so a backend deploy cannot drop confirmations. |
-
-None of these are broken today at current scale. They are the things that
-break first when it works.
+| **No real data** | The entire analytical surface runs on `scripts/seed_synthetic.py`. | This is the only gap that matters, and it is not an engineering one. Every threshold, every detection rate and every seasonal index below is derived from a distribution we chose. They are re-derived, not carried over, the moment real activity exists. |
+| **Liquidity features absent** | The published methodology uses collateral, credit limits and system-wide liquidity as a feature family. | A retail instant-payment rail has no direct analogue. Their absence is stated in the notebook rather than substituted with something weaker, because a proxy invented to fill a table is worse than an acknowledged gap. |
+| **Two constituencies unresolved** | `namibia_geography.py` lists 119 of the 121 official constituencies. | Coverage is divided by the official 121, so the shortfall understates reach rather than overstating it. Resolving it is an INSERT against the Electoral Commission's delimitation record, not a migration. |
+| **Model retraining is manual** | Models are fitted in the notebook, not on a schedule. | The participant population grows as institutions onboard, so a model fitted once drifts. This needs a retraining cadence before Phase 3, not before Phase 1. |
+| **Ingestion queue** | There is no ingestion path at all yet; Phase 1 is a bounded historical extract. | Fine for an extract. A continuous feed at Phase 3 needs a queue in front of the writers so a backend deploy cannot drop records. |
 
 ---
 
@@ -358,20 +342,20 @@ break first when it works.
 Current shape, adequate for pilot volumes:
 
 ```
-devices ──HTTP──> FastAPI ──> Postgres
+data extract ──> FastAPI ──> Postgres
 ```
 
 The shape it needs to become, and the order to get there:
 
 ```
-devices ──> ingest gateway ──> queue ──> workers ──> Postgres
-                                  │
-                                  └──> analytics / scoring
+data feed ──> ingest gateway ──> queue ──> workers ──> Postgres
+                                    │
+                                    └──> analytics / scoring
 ```
 
-1. **Queue first.** Decouples device reporting from backend availability. A
-   deploy or a slow query stops costing confirmations.
-2. **Read replica second.** Analytics and reporting compete with verification
+1. **Queue first.** Decouples ingestion from backend availability. A deploy or
+   a slow query stops costing records.
+2. **Read replica second.** Analytics and reporting compete with ingestion
    writes; separate them before they interfere.
 3. **Partition transactions by month third.** See §8.2 — the trigger is
    closer than a merchant-count view of the product suggests.
@@ -382,15 +366,16 @@ add operational burden a small team cannot carry.
 
 ### 8.1 What sets the row count
 
-**SoundBox reports on every payment carried by the WayaMe rails, not only the
-ones its own devices confirm.** That single fact governs every capacity
-question here, and it is easy to get wrong: the instinct is to size the
-database against SoundBox merchant adoption, which is the wrong denominator
-by roughly two orders of magnitude.
+**Buffr Intelligence reports on every payment carried by the WayaMe rails.**
+That single fact governs every capacity question here, and it is easy to get
+wrong: the instinct is to size the database against the number of businesses
+on the platform, which is the wrong denominator by roughly two orders of
+magnitude. Individuals transact in their own right, and the participant count
+grows with every institution that onboards.
 
 Namibia has 3,022,401 people and about 1,901,090 adults
 (`app/db/namibia_geography.py`, which is the denominator of record). Sizing
-against national instant-payment adoption rather than device sales:
+against national instant-payment adoption:
 
 | Rails maturity | Payments per adult per year | Rows per year |
 |---|---|---|
@@ -398,10 +383,10 @@ against national instant-payment adoption rather than device sales:
 | Established | 50 | ~95M |
 | Mature (Pix/UPI-like) | 150 | ~285M |
 
-For contrast, a merchant-only view — 20,000 SoundBox merchants at 20 payments
-a day — is ~146M/year, and that is an ambitious ceiling for device
-distribution. The rails number passes it at moderate national adoption and
-keeps going, because it does not depend on selling any more hardware.
+For contrast, a business-only view — 20,000 businesses at 20 payments a day —
+is ~146M/year, and that is an ambitious ceiling. The rails number passes it at
+moderate national adoption and keeps going, because it counts everyone
+transacting rather than everyone onboarded to a platform.
 
 A single Postgres table with correct indexes is comfortable to roughly 100M
 rows. On the rails figures that is reached during ordinary scheme growth, not
@@ -414,7 +399,7 @@ Two things follow:
 
 - `transactions` is empty today. Converting an empty table to a partitioned
   one is trivial; converting a 100M-row table is a maintenance window on a
-  system sellers depend on. The cheapest moment to do this is the one where
+  system participants depend on. The cheapest moment to do this is the one where
   it appears to be least necessary.
 - The partition key must be the column queries already filter on.
   `ix_transactions_org_merchant_created` leads with the tenant and carries
@@ -451,7 +436,7 @@ Three things were changed once the rails scope was clear.
   every response annotated with `cachedAt`/`ageSeconds`). Only derived
   aggregates — never a payment, balance or alert status, because a cached
   payment status is a stale one and the whole argument for this product is
-  that a seller can trust what it says. Figures derived from anomaly
+  that a regulator can trust what it says. Figures derived from anomaly
   thresholds are listed in `RULE_DEPENDENT_NAMESPACES` and dropped whenever a
   rule changes; a moved threshold makes a cached flag rate misleading rather
   than merely old.
@@ -476,18 +461,17 @@ It affected every soft-deletable entity, not just payments:
 | `Transaction` | Withdrawn payments counted in totals, health, and **the PSD-6 return** |
 | `EMoneyWallet` | Withdrawn wallets counted in **the PSD-3 float balance** |
 | `AnomalyAlert` | Withdrawn alerts inflated flag counts and the review queue |
-| `Device` | Withdrawn devices counted as deployed fleet |
 | `Settlement` | Withdrawn settlements counted in settlement value |
 
 Nothing about this failed loudly. Every individual query read correctly, the
 totals were plausible, and the only way to see it was to withdraw a record
 and check whether the number moved. Verified after the fix by inserting live
-and withdrawn rows side by side: payments report 10 of 15, devices 4 of 6,
+and withdrawn rows side by side: payments report 10 of 15,
 alerts 4 of 6, and PSD-3 reports 4 wallets at N$100.00 rather than 6 at
 N$20,098.00.
 
 **Two sites deliberately do not filter**, and are documented at the call
-site: the `device_code` and `merchant_code` uniqueness pre-checks in
+site: the `merchant_code` uniqueness pre-check in
 `api/resources.py`. Both columns are `UNIQUE` at the database level, so a
 withdrawn row still holds its code; filtering there would report the code as
 free and then fail on INSERT with an integrity error the caller cannot act
@@ -520,7 +504,7 @@ distinction is deliberate.
 
 - **One relational database with cross-cutting tenancy.** Every operational
   table carries `organization_id`, and the metrics join across payments,
-  businesses, devices and alerts. Splitting the deployment means either
+  businesses, payments and alerts. Splitting the deployment means either
   distributed transactions on payment data or eventual consistency in a
   regulatory return. Neither is a trade worth making to solve a problem we do
   not have.
@@ -540,62 +524,6 @@ The honest failure mode of deciding otherwise: a distributed system whose
 parts still share one schema. That is a monolith with network calls in it,
 and it is worse than either option.
 
-### Decision: RabbitMQ adopted for the event stream
-
-**Status: adopted and running. Superseding an earlier position in this
-document that recommended deferring it.**
-
-The earlier argument was that MQTT suits device delivery and Redis suits
-background compute, so AMQP had no clear home yet. Both halves of that remain
-true and both are now implemented — device delivery is still MQTT, and Redis
-caches the assemblies. What the earlier position underweighted is that the
-*event stream itself* is the thing worth having early: it is an interface,
-and interfaces are cheap to establish before there are consumers and
-expensive afterwards.
-
-**Topology.** A durable topic exchange `soundbox.events`, routing keys
-`payment.verified`, `payment.failed`, `alert.raised`, `alert.verdict`,
-`device.status_changed`, `merchant.status_changed`. Consumers bind by name
-rather than wildcard, so a new event type is an explicit decision to consume
-rather than something that silently starts arriving.
-
-**Postgres remains the system of record.** Every event describes a row that
-is *already committed* — publishing happens after the commit, never before,
-because an event describing a payment that did not persist would have a
-consumer announcing money that is not there. A lost event costs a
-notification, never the truth.
-
-**Publishing is best-effort and never raises.** A broker outage must not fail
-a payment: a seller at a stall does not care that our bus is down, and taking
-a working system and making it depend on a new one would be the worst
-possible trade. Measured with the broker stopped: the first publish returns
-`False` after 56ms, subsequent publishes after 2ms — a degraded flag prevents
-a timeout on every payment. `EVENTS_ENABLED=false` is a supported production
-posture, not just a test convenience.
-
-**Delivery is at-least-once; idempotency is the consumer's job.** Every event
-carries an `event_id` generated before publishing, so a retried publish
-carries the same id and the consumer discards the duplicate. Verified:
-publishing the same event twice produces one `payment.verified` at the
-consumer. Announcing a payment twice is a defect a seller notices.
-
-**Failures dead-letter rather than requeue.** A message that fails
-deterministically and is requeued loops forever and saturates the broker —
-the classic poison-message failure. Failed messages go to
-`soundbox.events.dead` for inspection while the stream keeps flowing.
-
-**The consumer reconnects.** A broker restart initially killed the worker,
-which is a real outage in disguise: the queue grows silently while a
-supervisor waits to notice. It now reconnects with backoff to a 60-second
-ceiling. Verified by bouncing the broker mid-session — the consumer
-reconnected and drained a message published while it was down, because both
-exchange and queue are durable and messages are persistent.
-
-**What has not changed.** Device delivery is still MQTT: the box dials out
-over a mobile link, which is what makes NAT a non-issue, and AMQP is a poor
-fit for a constrained device on 2G. The AMQP consumer is the seam where the
-two meet.
-
 ### Decision: Redis for cached assemblies
 
 `redis==5.0.1` sat declared and running, imported by nothing, for months.
@@ -605,8 +533,8 @@ payments is the slowest read in the platform and the one a person refreshes.
 
 Scope is deliberately narrow: **derived, read-only aggregates only.** Never a
 payment, a balance or an alert status. A cached payment status is a stale
-payment status, and the whole argument for this product is that a seller can
-trust what it says. An aggregate is different — a concentration index five
+payment status, and the whole argument for this product is that a regulator
+can trust what it says. An aggregate is different — a concentration index five
 minutes old is still true about five minutes ago, and every cached response
 carries `cachedAt` and `ageSeconds` so a reader can tell.
 
@@ -617,12 +545,15 @@ longer in force.
 Cache failure is soft: unreachable Redis means every request computes
 normally. A cache that can break the thing it accelerates is worse than none.
 
-### The one latency problem worth naming now
+### The latency that actually matters here
 
-`verify_payment` awaits an external WayaMe call inside the request that the
-seller is waiting on. No queue fixes that — a payment confirmation cannot be
-deferred, since deferring it is exactly the uncertainty the box exists to
-remove. What helps there is timeout discipline and the pending state the
-firmware already implements: announce *pending* rather than go silent, and
-re-announce the true result. That is a correctness property of the device
-protocol, not a broker.
+The slowest read in the platform is the dashboard assembly, and the person
+waiting on it is an analyst rather than someone mid-transaction. That is a
+materially easier problem than a payment path: a dashboard can be served from
+a cache with its age stated, and a five-minute-old concentration index is
+still a true statement about five minutes ago.
+
+Nothing in this system sits inside a payment, so no latency here can delay a
+payment reaching anyone. That is worth stating explicitly because it removes
+an entire category of engineering constraint — there is no request whose
+slowness costs someone their money.

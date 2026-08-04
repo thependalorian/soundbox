@@ -2,14 +2,14 @@
 
 > The visual language, where it comes from, and the rules that keep it honest.
 >
-> Part of the SoundBox documentation set — see [README.md](README.md).
+> Part of the Buffr Intelligence documentation set — see [README.md](README.md).
 
 ---
 
 ## 1. Where this comes from
 
 The palette, typography and shapes are taken from the WayaMe brand assets in
-[`brand/`](brand/) — the launch material and the FAQ series. SoundBox listens
+[`brand/`](brand/) — the launch material and the FAQ series. Buffr Intelligence listens
 to the WayaMe rails, and its own mark is drawn from the same family: plum
 lettering with a coral signal arc. Using a second visual language would make
 the two look like unrelated products sitting next to each other.
@@ -178,7 +178,6 @@ identity comes from **area**, not from accents.
 | Selected nav item | `bg-brand-gradient-aa` |
 | Header close | 2px `bg-brand-gradient` hairline, both shells |
 | Row hover | `bg-blush-tint` |
-| Seller page CTA | Sign in to their business (`/login?as=merchant`) |
 | Regulator page CTA | Sign in for oversight (`/login?as=regulator`) |
 | Administrator sign-in | Public footer only |
 
@@ -208,12 +207,10 @@ Every tone is a saturated gradient, so the section immediately following a
 hero cannot default to `bg-brand-gradient-aa` (or reuse the same tone) without
 risking two visually identical panels stacked with no seam — found on the
 home page (hero `origin` next to a `brand-gradient-aa` vision panel, both the
-same coral/magenta family) and the sellers page (hero `trader` next to a
-`brand-gradient-aa` emphasis band — nearly the same gradient by coincidence
-of shared endpoints). Both were fixed by giving the section under the hero a
-*different* gradient — reusing a different `hero-*` token (`bg-hero-oversight`
-on the landing page, `bg-hero-assurance` on the sellers page) rather than the
-generic emphasis token. Check this pairing on any new page.
+same coral/magenta family). Fixed by giving the section under the hero a
+*different* gradient — reusing a different `hero-*` token
+(`bg-hero-oversight` on the landing page) rather than the generic emphasis
+token. Check this pairing on any new page.
 
 **The same rule applies at the bottom of every page.** Every page's closing
 section is `bg-paper`, and `PublicShell`'s footer was also unstyled white —
@@ -256,77 +253,82 @@ main one; a bordered secondary still reads as brand, at lower weight.
 
 | Page | Closes with |
 |---|---|
-| For sellers | Sign in to your business |
+| Landing | Sign in, with request-access beneath it |
 | For regulators | Sign in for oversight |
-| How it works, Demo | `AudienceSplit` — which side are you on |
+| How it works | Privacy — the next honest question, not a sign-in |
+| Privacy | What it does with all this |
 | Public footer | Administrator sign-in |
 
-How-it-works and the demo previously closed on copy describing a feature
-("Ask it a question", "This is the merchant's half") which sent the reader
-nowhere they had a reason to go. A closing section hands someone their next
-step; on a page serving both audiences, that means asking which one they are
-rather than guessing.
+A closing section hands someone their next step rather than describing a
+feature. How-it-works deliberately does not ask for a sign-in: a reader who
+has just been told how scoring works has a question about privacy next, not
+an account.
 
-### The QR code
+### Illustration and charts
 
-`BrandQrCode` renders a real, scannable code in the brand gradient with the
-monogram at its centre, replacing a hand-drawn illustration. Two constraints
-are not negotiable:
+Public pages carry a real visual in every section. That is a rule, not a
+preference: a page of text boxes describing analytics is the least convincing
+possible way to sell analytics, and a supervisor skims before they read.
 
-- **Error correction is forced to H (30%).** A logo destroys modules. At the
-  default level a code with a logo scans *intermittently*, which is worse
-  than one that plainly fails — nobody trusts it afterwards.
-- **The logo covers 22% and no more.** Past roughly a quarter, even H cannot
-  recover, and it fails on cheaper phone cameras first — precisely the
-  segment this product serves. A code that only scans on a flagship has
-  inverted its own purpose.
+**Components live in two places, and the split is meaningful.**
 
-Corner markers stay solid and high-contrast. A gradient across a finder
-pattern is where stylised codes usually become unreliable.
+| Where | What | Rule |
+|---|---|---|
+| `components/illustration/` | Figures that make an argument — the observer diagram, the two-layer funnel, the map, the phase ladder, the assistant exchange | One idea per figure. If it needs a paragraph to explain what it shows, it is the wrong figure |
+| `components/charts/primitives.tsx` | Reusable chart shapes — share bars, trend, concentration curve, score scatter, reconciliation | Shared scale and palette. A chart that quietly diverges from its siblings is worse than none |
 
-### The device
+**Every chart draws its own scale.** A bar with no track behind it is a shape;
+with a track it is a measurement. A trend line without a marked boundary
+between observed and forecast invites a reader to treat a projection as
+evidence.
 
-`SoundBoxDevice` carries the brand on its body gradient and the status bar's
-glow. An earlier version's doc claimed a "waveform"; the SVG has never had
-one — only the body gradient and the glow around the status bar carry the
-brand. **The LED ring keeps status colours, not brand colours.** That ring is
-the one part a seller reads at arm's length, in a hurry, to decide whether to
-hand over goods. Recolouring it to magenta would make the device look more
-on-brand and less able to do its only job, and the cost lands on the person
-least able to absorb it. The driver sits on the body's true horizontal
-centre — an earlier version offset it to leave room for two sound-arc
-strokes that were later removed as unnecessary decoration, and the offset
-driver was left looking lopsided until it was recentred.
+**Every figure that shows numbers says where they came from.** All public
+figures are computed from generated data, and each carries that in its caption
+or the section around it. A chart that looks real is precisely the thing that
+needs the caveat most.
 
----
+#### The map
 
-## 8. Rules
+`NamibiaMap` draws the fourteen current regions from OCHA boundary data
+(`namibiaRegions.ts`, generated — do not hand-edit). Two things it gets right
+that the obvious approach does not:
 
-1. **The gradient is for brand moments, never for data.** It encodes nothing.
-2. **White body text goes on the `-aa` variants, never the display hues.**
-3. **Status colours are not brand colours**, and neither substitutes for the
-   other.
-4. **No new colour literals in components.** Tokens in `tailwind.config.js`
-   for anything Tailwind can reach; `chartTokens.ts` for anything it cannot.
-5. **Large type is light.** Weight is not how this brand emphasises.
-6. **Measure any new colour against every surface it can land on**, not just
-   white. Blush is a primary surface now, and it is the one that catches
-   failures — it is the darkest thing text sits on.
-7. **No two adjacent sections share a background**, including the hero above
-   the first section and the footer below the last. A hero tone and the
-   generic `brand-gradient-aa` emphasis token can be close enough in hue to
-   read as one panel even when their class names differ — check the actual
-   rendered colours, not just that the class names differ. See §6a.
-8. **A page needs exactly one emphasis band.** Besides being the visual
-   rhythm the rest of the site uses, an emphasis band is also what resets
-   the paper/blush alternation cleanly ahead of a closing section that is
-   always `paper` — see §6a for the parity problem a missing one caused.
+- **The boundaries are current.** Natural Earth and geoBoundaries both still
+  ship the pre-2013 delimitation — "Caprivi", and Kavango undivided. Either
+  would have drawn a map over a decade out of date.
+- **No data is not zero.** An unreached region is hatched, never filled at the
+  lowest band. A choropleth that shades absence as a low value is the single
+  easiest way to overstate coverage, and it is the error this platform exists
+  to catch in other people's figures.
 
----
+Selecting a region opens `RegionModal` — use-case mix, a daily trend, and
+constituencies drawn as countable segments rather than a percentage bar.
 
-## 9. Outstanding
+### The marks
 
-- **Confirm the licensed typeface** against IPN's brand guidelines.
-- **Permission to use the WayaMe name and marks** is a commercial matter with
-  Instant Payments Namibia, not a design one. The interface currently names
-  WayaMe to say what SoundBox connects to, and says so explicitly.
+Every brand asset is **derived, not hand-made**: `frontend/scripts/build_brand_assets.py`
+reads the two supplied source files and emits the wordmark, its reversed
+variant, the icon, a white knockout mark, the full favicon set and the social
+card. Editing an output directly means the next run silently reverts it.
+
+Three corrections the script applies, each because of a defect in the supplied
+art rather than a stylistic preference:
+
+- **The bar is recoloured to the brand gradient.** The supplied marks carry a
+  blue bar, and blue appears nowhere in this palette. The gradient is swept
+  across the bar's own width so it reads as the same sweep the interface uses,
+  and anti-aliased edge pixels are blended rather than thresholded — a hard
+  cut leaves a blue halo, which is exactly what makes a recoloured logo look
+  recoloured.
+- **The icon's transparency is restored.** It was supplied as a JPEG with a
+  black background baked in, and JPEG cannot carry transparency; used directly
+  as a favicon it renders as a black square.
+- **A reversed wordmark is derived.** The supplied wordmark is near-black and
+  disappears on the plum and gradient panels this system uses for emphasis.
+
+**Which mark goes where.** The full icon — a light tile with a dark letter —
+is right for a favicon, an app icon and the assistant's avatar. It is wrong
+laid over a gradient hero, where it reads as a pale rectangle; those surfaces
+take `buffr-mark.png`, the white knockout of the letterform alone, at low
+opacity.
+

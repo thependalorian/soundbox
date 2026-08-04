@@ -4,12 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchMerchantById,
   fetchMerchantStatusLog,
-  fetchDevices,
   fetchTransactions,
   fetchAnomalyAlerts,
   reviewMerchantKyc,
 } from '../api/api';
-import { MERCHANT_TYPE_LABEL, StatusLogEntry} from '../types/soundbox';
+import { MERCHANT_TYPE_LABEL, StatusLogEntry} from '../types/domain';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Skeleton from '../components/ui/Skeleton';
@@ -55,30 +54,17 @@ const MerchantDetailPage: React.FC = () => {
   const [reviewNote, setReviewNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Merchant-role guard: a merchant may only view their own profile, not
-  // browse others by guessing an id.
-  if (user?.role === 'merchant' && user.merchantId) {
-    const own = user.merchantId;
-    if (id !== own) {
-      // merchant ids in mock data are internal ("merchant-1"); merchantId
-      // on the auth user is the business code ("M-101") — resolved below.
-    }
-  }
-
   const { data: merchant, isLoading } = useQuery({
     queryKey: ['merchant', id],
     queryFn: () => fetchMerchantById(id as string),
     enabled: !!id,
   });
 
-  const isOwnMerchant = user?.role !== 'merchant' || merchant?.merchantCode === user?.merchantId;
-
   const { data: statusLog } = useQuery({
     queryKey: ['merchantStatusLog', id],
     queryFn: () => fetchMerchantStatusLog(id as string),
     enabled: !!id,
   });
-  const { data: devices } = useQuery({ queryKey: ['devices', id], queryFn: () => fetchDevices({ merchantId: id }), enabled: !!id });
   const { data: transactions } = useQuery({ queryKey: ['transactions', id], queryFn: () => fetchTransactions({ merchantId: id }), enabled: !!id });
   const { data: anomalyAlerts } = useQuery({ queryKey: ['anomalyAlerts', id], queryFn: () => fetchAnomalyAlerts({ merchantId: id }), enabled: !!id });
 
@@ -107,7 +93,6 @@ const MerchantDetailPage: React.FC = () => {
   }, [transactions, anomalyAlerts]);
 
   if (!isLoading && !merchant) return <Navigate to="/merchants" replace />;
-  if (merchant && user?.role === 'merchant' && !isOwnMerchant) return <Navigate to="/" replace />;
 
   const handleReview = async (decision: 'approve' | 'reject') => {
     if (!merchant) return;
@@ -208,10 +193,12 @@ const MerchantDetailPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-16 mb-24">
         <Card variant="neutral" className="p-20">
-          <p className="text-caption font-sohne text-slate">Devices</p>
-          <p className="text-heading-sm font-signifier text-ink tabular-nums">{devices?.length ?? 0}</p>
+          <p className="text-caption font-sohne text-slate">Status</p>
+          <p className="text-heading-sm font-signifier text-ink capitalize">
+            {merchant.status.replace(/_/g, ' ')}
+          </p>
           <p className="text-caption font-sohne text-ash mt-4">
-            {(devices ?? []).filter((d) => d.status === 'active').length} active
+            Registered {new Date(merchant.createdAt).toLocaleDateString('en-NA')}
           </p>
         </Card>
         <Card variant="neutral" className="p-20">
@@ -251,21 +238,6 @@ const MerchantDetailPage: React.FC = () => {
           </p>
         </Card>
       </div>
-
-      <Card variant="elevated" className="p-24 mb-24">
-        <h2 className="text-subheading font-signifier text-ink mb-16">Devices</h2>
-        <div className="divide-y divide-mist">
-          {(devices ?? []).map((d) => (
-            <Link key={d.id} to={`/devices/${d.id}`} className="flex justify-between py-12 hover:bg-blush-tint -mx-8 px-8 rounded-inputs">
-              <span className="text-body font-sohne text-ink">{d.deviceCode}</span>
-              <span className="text-caption font-sohne text-slate capitalize">{d.status} &middot; {d.batteryLevel}%</span>
-            </Link>
-          ))}
-          {(devices ?? []).length === 0 && (
-            <EmptyState title="No SoundBox fitted yet" detail="This business is onboarded but has no device installed, so nothing is being announced or recorded for it." />
-          )}
-        </div>
-      </Card>
 
       <Card variant="elevated" className="p-24 mb-24">
         <h2 className="text-subheading font-signifier text-ink mb-16">Recent payments</h2>

@@ -175,9 +175,21 @@ module.exports = {
         hero: '440px',
         'hero-lg': '620px',
       },
+      transitionTimingFunction: {
+        // One easing curve for the whole system. A decelerating curve with a
+        // long tail reads as mass — the element arrives and settles rather
+        // than stopping dead. `ease-in-out` is symmetric and reads as
+        // mechanical, which is why nothing here uses it.
+        brand: 'cubic-bezier(0.32, 0.72, 0, 1)',
+      },
       borderRadius: {
         full: '9999px',
         cards: '24px',
+        // Concentric radii for nested surfaces. An inner panel sharing its
+        // shell's radius reads as a mistake: the curves have to differ by the
+        // padding between them or the two edges fight.
+        shell: '32px',
+        shellInner: '26px',
         images: '12px',
         inputs: '16px',
         buttons: '9999px',
@@ -202,6 +214,12 @@ module.exports = {
         shimmer: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.55' },
+        },
+        // The dialog arrives rather than appearing. Transform and opacity
+        // only, so it composites on the GPU.
+        fadeUp: {
+          '0%': { opacity: '0', transform: 'translateY(24px) scale(0.985)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
         // A highlight sliding left to right across an active connector, so
         // the payment rail and sequence diagrams read as something moving

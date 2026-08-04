@@ -5,7 +5,7 @@ import Card from '../ui/Card';
 import StatusPill from '../ui/StatusPill';
 import Tag from '../ui/Tag';
 import Skeleton from '../ui/Skeleton';
-import { createUser, fetchAssignableRoles, fetchMerchants, fetchUsers, setUserActive } from '../../api/api';
+import { createUser, fetchAssignableRoles, fetchUsers, setUserActive } from '../../api/api';
 import { ACCOUNTS, MIN_PASSWORD_LENGTH } from '../../lib/copy/accounts';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../lib/logger';
@@ -37,20 +37,13 @@ const UserManagement: React.FC = () => {
     display_name: '',
     role: 'regulator',
     password: '',
-    merchant_id: '',
   });
 
   const users = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
   const roles = useQuery({ queryKey: ['assignableRoles'], queryFn: fetchAssignableRoles });
-  // Only needed to scope a business-operator account to its business.
-  const merchants = useQuery({
-    queryKey: ['merchants'],
-    queryFn: () => fetchMerchants(),
-    enabled: form.role === 'merchant',
-  });
 
   const reset = () => {
-    setForm({ email: '', display_name: '', role: 'regulator', password: '', merchant_id: '' });
+    setForm({ email: '', display_name: '', role: 'regulator', password: '' });
     setError(null);
   };
 
@@ -61,7 +54,6 @@ const UserManagement: React.FC = () => {
         display_name: form.display_name.trim(),
         role: form.role,
         password: form.password,
-        merchant_id: form.role === 'merchant' ? form.merchant_id || null : null,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] });
@@ -182,10 +174,10 @@ const UserManagement: React.FC = () => {
               <select
                 id="nu-role"
                 value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value, merchant_id: '' })}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
                 className="block w-full border border-mist rounded-inputs px-16 py-12 text-body font-sohne bg-paper focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
-                {(roles.data ?? ['admin', 'regulator', 'merchant']).map((r) => (
+                {(roles.data ?? ['admin', 'regulator']).map((r) => (
                   <option key={r} value={r}>
                     {roleLabel(r)}
                   </option>
@@ -211,28 +203,6 @@ const UserManagement: React.FC = () => {
             </div>
           </div>
 
-          {form.role === 'merchant' && (
-            <div>
-              <label htmlFor="nu-biz" className="block text-caption font-sohne text-slate mb-4">
-                {ACCOUNTS.users.business}
-              </label>
-              <select
-                id="nu-biz"
-                value={form.merchant_id}
-                onChange={(e) => setForm({ ...form, merchant_id: e.target.value })}
-                required
-                className="block w-full max-w-[360px] border border-mist rounded-inputs px-16 py-12 text-body font-sohne bg-paper focus:outline-none focus:ring-2 focus:ring-ink/20"
-              >
-                <option value="">Select a business</option>
-                {(merchants.data ?? []).map((m: any) => (
-                  <option key={m.id} value={m.id}>
-                    {m.tradingName || m.legalName || m.merchantCode}
-                  </option>
-                ))}
-              </select>
-              <p className="text-caption font-sohne text-ash mt-4">{ACCOUNTS.users.businessHint}</p>
-            </div>
-          )}
 
           <div className="flex gap-12">
             <Button type="submit" variant="filled" disabled={create.isPending}>

@@ -5,6 +5,7 @@ import { useAnalyticsChat } from '../components/Assistant/useAnalyticsChat';
 import Card from '../components/ui/Card';
 import Tag from '../components/ui/Tag';
 import { ASSISTANT, ASSISTANT_EXAMPLES, TOOL_LABEL } from '../lib/copy/assistant';
+import assistantAvatar from '../assets/brand/buffr-icon.png';
 
 /**
  * The analytics assistant.
@@ -95,23 +96,37 @@ const AnalyticsChatPage: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div key={turn.id} className="max-w-3xl">
-                {turn.toolCalls.map((call) => (
-                  <ToolCallBlock key={call.id} name={call.name} result={call.result} />
-                ))}
-                {turn.text && (
-                  <p className="text-body font-sohne text-ink whitespace-pre-line mt-16">
-                    {turn.text}
-                  </p>
-                )}
-                {turn.toolCalls.length > 0 && turn.text && (
-                  <p className="text-caption font-sohne text-ash mt-12">
-                    Answered using:{' '}
-                    {Array.from(new Set(turn.toolCalls.map((c) => TOOL_LABEL[c.name] ?? c.name))).join(
-                      ', ',
-                    )}
-                  </p>
-                )}
+              /* The assistant's turns carry the mark; the reader's do not.
+                 A question and an answer look alike once both are plain
+                 paragraphs, and which of the two is machine-generated is not
+                 a detail an oversight officer should have to infer. */
+              <div key={turn.id} className="flex gap-16 max-w-3xl">
+                <img
+                  src={assistantAvatar}
+                  alt=""
+                  aria-hidden="true"
+                  width={32}
+                  height={32}
+                  className="w-32 h-32 rounded-inputs shrink-0 mt-2"
+                />
+                <div className="min-w-0 flex-1">
+                  {turn.toolCalls.map((call) => (
+                    <ToolCallBlock key={call.id} name={call.name} result={call.result} />
+                  ))}
+                  {turn.text && (
+                    <p className="text-body font-sohne text-ink whitespace-pre-line mt-16 first:mt-0">
+                      {turn.text}
+                    </p>
+                  )}
+                  {turn.toolCalls.length > 0 && turn.text && (
+                    <p className="text-caption font-sohne text-ash mt-12">
+                      Answered using:{' '}
+                      {Array.from(
+                        new Set(turn.toolCalls.map((c) => TOOL_LABEL[c.name] ?? c.name)),
+                      ).join(', ')}
+                    </p>
+                  )}
+                </div>
               </div>
             ),
           )}

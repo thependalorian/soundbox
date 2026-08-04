@@ -5,8 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
 import RequestAccess from '../components/Public/RequestAccess';
 import Button from '../components/ui/Button';
-import SoundBoxDevice from '../components/Public/SoundBoxDevice';
-import wordmark from '../assets/brand/soundbox-wordmark.png';
+import wordmark from '../assets/brand/buffr-wordmark.png';
 import { BRAND } from '../lib/copy/public';
 
 const LoginPage: React.FC = () => {
@@ -20,17 +19,13 @@ const LoginPage: React.FC = () => {
   // credentials decide the actual role, so a wrong hint cannot grant access.
   const arriving = searchParams.get('as');
   const ARRIVAL: Record<string, { title: string; detail: string }> = {
-    merchant: {
-      title: 'Sign in to your business',
-      detail: 'See your payments, your box, and what you have taken.',
-    },
     regulator: {
       title: 'Sign in for oversight',
-      detail: 'Coverage, market structure and the monthly returns.',
+      detail: 'Coverage, market structure, the review queue and the returns.',
     },
     admin: {
       title: 'Administrator sign-in',
-      detail: 'Devices, onboarding and platform settings.',
+      detail: 'Accounts, scoring policy and platform settings.',
     },
   };
   const arrival = (arriving && ARRIVAL[arriving]) || null;
@@ -56,19 +51,13 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-blush-tint">
       <Card variant="elevated" className="p-40 w-full max-w-md">
-        {/* The device itself, rather than a wordmark. Operators sign in here
-            every day; showing the thing they manage is more use than a
-            second copy of the brand name. */}
         <div className="flex flex-col items-center mb-32">
-          <div className="scale-75 origin-center -my-16">
-            <SoundBoxDevice state="idle" />
-          </div>
           <img
             src={wordmark}
             alt={BRAND.name}
-            className="h-32 w-auto mt-8"
-            width={401}
-            height={106}
+            className="h-32 w-auto"
+            width={598}
+            height={195}
           />
           <p className="text-caption font-sohne text-slate mt-8">{BRAND.tagline}</p>
           {arrival ? (
@@ -77,7 +66,7 @@ const LoginPage: React.FC = () => {
               <p className="text-caption font-sohne text-slate mt-4">{arrival.detail}</p>
             </div>
           ) : (
-            <p className="text-body font-sohne text-slate mt-4">Sign in to manage your devices</p>
+            <p className="text-body font-sohne text-slate mt-4">Sign in to the oversight console</p>
           )}
         </div>
         <form onSubmit={handleSubmit} className="space-y-20">

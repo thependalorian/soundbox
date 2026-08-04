@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.db.helpers import get_or_create_organization
 from app.db.models import (
-    Device,
     EMoneyWallet,
     AnomalyAlert,
+    Merchant,
     RegulatoryReport,
     Settlement,
     Transaction,
@@ -68,11 +68,27 @@ class RegulatoryReportingEngine:
             else:
                 end_date = datetime(year, month + 1, 1)
 
-            # Transaction volumes by type
+            # Volumes by type, split by whether the payment actually
+            # completed.
+            #
+            # **A failed payment moved no money, so its value does not belong
+            # in the value the system carried.** Folding the two together
+            # overstates the return — and it does so invisibly, because the
+            # total still looks like a plausible number. Reported separately,
+            # so the headline figure is what settled and the failures are
+            # still visible rather than dropped.
             volumes = self.db.query(
                 Transaction.payment_type,
                 func.count(Transaction.id).label("transaction_count"),
-                func.sum(Transaction.amount).label("total_value"),
+                func.sum(
+                    case((Transaction.status == "success", Transaction.amount), else_=0)
+                ).label("total_value"),
+                func.sum(
+                    case((Transaction.status == "success", 1), else_=0)
+                ).label("successful_count"),
+                func.sum(
+                    case((Transaction.status != "success", Transaction.amount), else_=0)
+                ).label("failed_value"),
             ).filter(
                 Transaction.organization_id == self.organization_id,
                 Transaction.deleted_at.is_(None),
@@ -98,17 +114,20 @@ class RegulatoryReportingEngine:
                 func.date(Settlement.settlement_date)
             ).all()
 
-            # Device summary
-            total_devices = self.db.query(Device).filter(
-                Device.organization_id == self.organization_id,
-                Device.deleted_at.is_(None),
-                Device.registered_at < end_date,
+            # Acceptance points: businesses that could receive a payment in
+            # the period. Registered-but-not-yet-active is counted separately
+            # rather than folded in — a business awaiting KYC cannot accept a
+            # payment, so counting it would overstate the network's reach.
+            total_merchants = self.db.query(Merchant).filter(
+                Merchant.organization_id == self.organization_id,
+                Merchant.deleted_at.is_(None),
+                Merchant.created_at < end_date,
             ).count()
-            active_devices = self.db.query(Device).filter(
-                Device.organization_id == self.organization_id,
-                Device.deleted_at.is_(None),
-                Device.registered_at < end_date,
-                Device.status == "active",
+            active_merchants = self.db.query(Merchant).filter(
+                Merchant.organization_id == self.organization_id,
+                Merchant.deleted_at.is_(None),
+                Merchant.created_at < end_date,
+                Merchant.status == "active",
             ).count()
 
             report = {
@@ -116,12 +135,23 @@ class RegulatoryReportingEngine:
                 "period": f"{month}/{year}",
                 "generated_at": datetime.utcnow().isoformat(),
                 "transaction_summary": {
+                    # `total_value` is settled value only. `total_count` is
+                    # every payment attempted, so the two are deliberately not
+                    # a matched pair — see `successful_count` for the count
+                    # that corresponds to the value.
                     "total_count": sum(v.transaction_count for v in volumes),
-                    "total_value": float(sum(v.total_value or 0 for v in volumes)),
+                    "successful_count": int(sum(v.successful_count or 0 for v in volumes)),
+                    "total_value": round(float(sum(v.total_value or 0 for v in volumes)), 2),
+                    "failed_count": int(
+                        sum(v.transaction_count for v in volumes)
+                        - sum(v.successful_count or 0 for v in volumes)
+                    ),
+                    "failed_value": round(float(sum(v.failed_value or 0 for v in volumes)), 2),
                     "by_type": [
                         {
                             "payment_type": v.payment_type,
                             "count": v.transaction_count,
+                            "successful_count": int(v.successful_count or 0),
                             "value": round(float(v.total_value or 0), 2),
                         }
                         for v in volumes
@@ -139,9 +169,9 @@ class RegulatoryReportingEngine:
                         for s in settlements
                     ],
                 },
-                "device_summary": {
-                    "total_devices": total_devices,
-                    "active_devices": active_devices,
+                "acceptance_summary": {
+                    "registered_businesses": total_merchants,
+                    "active_acceptance_points": active_merchants,
                 },
             }
             self._persist_report("PSD-6", report, period_start=start_date, period_end=end_date)
@@ -302,14 +332,14 @@ class RegulatoryReportingEngine:
                 Transaction.status == "failed",
             ).count()
 
-            total_devices = self.db.query(Device).filter(
-                Device.organization_id == self.organization_id,
-                Device.deleted_at.is_(None),
+            total_merchants = self.db.query(Merchant).filter(
+                Merchant.organization_id == self.organization_id,
+                Merchant.deleted_at.is_(None),
             ).count()
-            active_devices = self.db.query(Device).filter(
-                Device.organization_id == self.organization_id,
-                Device.deleted_at.is_(None),
-                Device.status == "active",
+            active_merchants = self.db.query(Merchant).filter(
+                Merchant.organization_id == self.organization_id,
+                Merchant.deleted_at.is_(None),
+                Merchant.status == "active",
             ).count()
 
             anomaly_alerts = self.db.query(AnomalyAlert).filter(
@@ -335,10 +365,10 @@ class RegulatoryReportingEngine:
                     "failed": failed_txns,
                     "success_rate": round((successful_txns / total_txns * 100) if total_txns > 0 else 0, 2),
                 },
-                "device_metrics": {
-                    "total": total_devices,
-                    "active": active_devices,
-                    "inactive": total_devices - active_devices,
+                "acceptance_metrics": {
+                    "registered": total_merchants,
+                    "active": active_merchants,
+                    "not_yet_accepting": total_merchants - active_merchants,
                 },
                 "flag_metrics": {
                     "total_alerts": anomaly_alerts,

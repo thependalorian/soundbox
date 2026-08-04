@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Avatar from '../components/ui/Avatar';
+import bonCrest from '../assets/brand/bank-of-namibia.svg';
 import StatusPill from '../components/ui/StatusPill';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
@@ -23,13 +24,6 @@ import AnomalyRulesSection from '../components/Settings/AnomalyRulesSection';
  * A toggle that appears to work and does not is worse than one that admits
  * it.
  */
-
-const LANGUAGES = [
-  { code: 'en', label: 'English', ready: true },
-  { code: 'af', label: 'Afrikaans', ready: false },
-  { code: 'ng', label: 'Oshiwambo', ready: false },
-  { code: 'kj', label: 'Khoekhoegowab', ready: false },
-];
 
 const Section: React.FC<{ title: string; detail?: string; children: React.ReactNode }> = ({
   title,
@@ -61,9 +55,7 @@ const Row: React.FC<{ label: string; hint?: string; children?: React.ReactNode }
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const isMerchant = user?.role === 'merchant';
   const isRegulator = user?.role === 'regulator';
-  const [language, setLanguage] = useState('en');
 
   return (
     <div className="max-w-prose">
@@ -75,14 +67,12 @@ const SettingsPage: React.FC = () => {
       <Section title="Account">
         <Card variant="elevated" className="p-24">
           <div className="flex items-start gap-20">
-            <Avatar name={user?.name ?? 'User'} />
+            <Avatar name={user?.name ?? 'User'} email={user?.email} />
             <div className="min-w-0">
               <p className="text-body font-sohne font-450 text-ink">{user?.name}</p>
+              <p className="text-caption font-sohne text-slate mt-2">{user?.email}</p>
               <div className="flex flex-wrap items-center gap-8 mt-8">
                 <StatusPill label={user?.role ?? 'user'} tone="neutral" />
-                {user?.merchantId && (
-                  <span className="text-caption font-sohne text-slate">Business {user.merchantId}</span>
-                )}
               </div>
               <p className="text-caption font-sohne text-ash mt-12">
                 Your role decides which parts of the system you can reach. Ask an administrator if
@@ -93,66 +83,32 @@ const SettingsPage: React.FC = () => {
         </Card>
       </Section>
 
-      {(isMerchant || isAdmin) && (
       <Section
-        title="Announcements"
-        detail="What the box says out loud, and in which language. For most sellers this is the only setting that will ever matter."
+        title="What gets reviewed"
+        detail="How unusual a payment must be before someone is asked to look at it, and which signals count toward that. Every control here takes effect immediately, and every change is kept on the record."
       >
-        <Card variant="elevated" className="p-24">
-          <Row
-            label="Announcement language"
-            hint="The box plays short recorded phrases rather than reading text, so adding a language means recording it — not rebuilding anything."
-          >
-            <div className="flex flex-wrap gap-4 justify-end">
-              {LANGUAGES.map((l) => (
-                <button
-                  key={l.code}
-                  onClick={() => l.ready && setLanguage(l.code)}
-                  disabled={!l.ready}
-                  title={l.ready ? undefined : 'Recording not finished yet'}
-                  className={`text-caption font-sohne rounded-buttons px-12 py-8 transition-colors ${
-                    language === l.code
-                      ? 'bg-brand-gradient-aa text-paper'
-                      : l.ready
-                      ? 'bg-mist text-slate hover:text-ink'
-                      : 'bg-mist/50 text-ash cursor-not-allowed'
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-          </Row>
-          <Row label="Speak the amount" hint="Turning this off leaves only the coloured ring.">
-            <StatusPill label="On" tone="success" />
-          </Row>
-          <Row
-            label="Repeat when a payment fails"
-            hint="Says a failed payment twice — it is the one a seller must not miss."
-          >
-            <StatusPill label="On" tone="success" />
-          </Row>
-        </Card>
+        <AnomalyRulesSection
+          canEdit={isAdmin || isRegulator}
+          actor={{ role: user?.role ?? 'unknown', name: user?.name ?? 'unknown' }}
+        />
       </Section>
-      )}
-
-      {!isMerchant && (
-        <Section
-          title="What gets reviewed"
-          detail="How unusual a payment must be before someone is asked to look at it, and which signs count toward that. Every control here takes effect immediately, and every change is kept on the record."
-        >
-          <AnomalyRulesSection
-            canEdit={isAdmin || isRegulator}
-            actor={{ role: user?.role ?? 'unknown', name: user?.name ?? 'unknown' }}
-          />
-        </Section>
-      )}
 
       {isAdmin && (
         <Section title="Organisation" detail="Applies to everyone on this deployment.">
           <Card variant="elevated" className="p-24">
-            <Row label="Organisation">
-              <span className="text-body font-sohne text-ink">SoundBox</span>
+            <Row label="Platform">
+              <span className="text-body font-sohne text-ink">{BRAND.name}</span>
+            </Row>
+            {/* The institution this deployment is configured for. Shown here,
+                inside the console, and deliberately nowhere on the public
+                site: no agreement is in place, and placing an institution's
+                mark on a marketing page implies an endorsement that has not
+                been given. */}
+            <Row label="Configured for" hint="The institution this deployment serves.">
+              <span className="inline-flex items-center gap-8">
+                <img src={bonCrest} alt="" aria-hidden="true" width={20} height={26} className="h-24 w-auto" />
+                <span className="text-body font-sohne text-ink">Bank of Namibia</span>
+              </span>
             </Row>
             <Row label="Currency" hint="Amounts are stored as exact figures alongside this code.">
               <span className="text-body font-sohne text-ink">NAD (N$)</span>
@@ -251,8 +207,10 @@ const SettingsPage: React.FC = () => {
       </Section>
 
       <p className="text-caption font-sohne text-ash">
-        SoundBox listens to the {BRAND.rails} rails, operated by {BRAND.railsOperator}. Naming
-        {' '}{BRAND.rails} here describes what this connects to; it does not imply endorsement.
+        {BRAND.name} reads data about payments carried on the {BRAND.rails} rails, operated by
+        {' '}{BRAND.railsOperator}. Naming {BRAND.rails} here describes what this observes; it
+        does not imply endorsement, partnership or licence, and no institution&rsquo;s mark on
+        this page should be read as one.
       </p>
     </div>
   );

@@ -1,7 +1,7 @@
 import Meter from './Meter';
 import React, { useState } from 'react';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
-import { AnomalyReason } from '../../types/soundbox';
+import { AnomalyReason } from '../../types/domain';
 
 interface ExplanationCardProps {
   reasons: AnomalyReason[];
@@ -24,7 +24,7 @@ interface ExplanationCardProps {
  *   steep.app/ai, where model reasoning sits behind an expandable line.
  * - **States its scope.** "Make clear what the system can do" (p126) cuts
  *   both ways: a reviewer who assumes the score already accounts for
- *   onboarding checks or device tampering will overtrust it. Naming what
+ *   onboarding checks will overtrust it. Naming what
  *   the score covers is what keeps trust calibrated.
  */
 const ExplanationCard: React.FC<ExplanationCardProps> = ({
@@ -89,7 +89,7 @@ const ExplanationCard: React.FC<ExplanationCardProps> = ({
               {modelAssisted ? ', with an anomaly model contributing' : ' (rules only)'}.
             </p>
             <p className="text-caption font-sohne text-ash">
-              This score reads trading patterns only. Onboarding checks, device condition and
+              This score reads trading patterns only. Onboarding checks and
               counterparty history are each assessed on their own terms.
             </p>
           </div>

@@ -1,13 +1,12 @@
 """Auth dependencies shared across routers.
 
 get_current_user / require_roles replace the old per-router X-User-Role
-header trust (removed from resources.py and settings.py): role now comes
-from a verified JWT, never from a header the caller controls.
+header trust: role now comes from a verified JWT, never from a header the
+caller controls.
 
-get_authenticated_device is the equivalent for the physical SoundBox units
-themselves -- a device proves it is the device it claims to be with a
-bcrypt-verified secret issued once at provisioning (POST /devices), sent as
-X-Device-Code / X-Device-Key on every subsequent call.
+Every account belongs to the supervising institution. There is no
+credential type for a supervised business -- businesses are subjects of the
+analysis, not callers of this API.
 """
 
 from datetime import datetime, timedelta
@@ -17,7 +16,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token, verify_password
-from app.db.models import Device, User
+from app.db.models import User
 from app.db.session import get_db
 
 
@@ -73,31 +72,6 @@ def get_current_user(
     return user
 
 
-def scoped_merchant_id(user: User, requested: Optional[str]) -> Optional[str]:
-    """The merchant filter a read must actually use, given who is asking.
-
-    **A merchant-role account is confined to its own business, and the client
-    cannot widen that.** Whatever `merchant_id` arrived on the query string is
-    discarded for such a user and replaced with their own.
-
-    This exists because the scoping was previously client-side only: the
-    console passed `merchantId` as a filter, the server honoured whatever it
-    was given, and `users.merchant_id` was read only to echo it back at login.
-    A merchant-role token plus one curl therefore read every business on the
-    platform. A filter the caller supplies is a convenience; a boundary has to
-    be applied by the side that cannot be edited.
-
-    Admin and regulator accounts are oversight roles and legitimately see
-    across businesses, so their `requested` value passes through untouched.
-    """
-    if user.role == "merchant":
-        # Falls back to a value that matches nothing rather than to None: a
-        # merchant account with no business linked must see nothing, not
-        # everything. `None` here would mean "no filter".
-        return str(user.merchant_id) if user.merchant_id else "__unscoped__"
-    return requested
-
-
 def require_roles(*roles: str):
     """FastAPI dependency factory: 403s unless the verified JWT's user has
     one of `roles`. Usage: Depends(require_roles("admin", "regulator"))."""
@@ -112,28 +86,3 @@ def require_roles(*roles: str):
         return user
 
     return _dependency
-
-
-def get_authenticated_device(
-    x_device_code: Optional[str] = Header(default=None),
-    x_device_key: Optional[str] = Header(default=None),
-    db: Session = Depends(get_db),
-) -> Device:
-    if not x_device_code or not x_device_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Device credentials required (X-Device-Code, X-Device-Key).",
-        )
-    device = (
-        db.query(Device)
-        .filter(Device.device_code == x_device_code, Device.deleted_at.is_(None))
-        .first()
-    )
-    if device is None or not device.api_key_hash:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unknown or unprovisioned device.",
-        )
-    if not verify_password(x_device_key, device.api_key_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid device key.")
-    return device

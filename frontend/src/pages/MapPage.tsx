@@ -5,7 +5,7 @@ import GeoDistributionMap from '../components/Map/GeoDistributionMap';
 import Card from '../components/ui/Card';
 import PageAction from '../components/ui/PageAction';
 import Skeleton from '../components/ui/Skeleton';
-import { GeoDistributionPoint } from '../types/soundbox';
+import { GeoDistributionPoint } from '../types/domain';
 
 const MapPage: React.FC = () => {
   const [view, setView] = useState<'markers' | 'heatmap'>('markers');
@@ -46,7 +46,7 @@ const MapPage: React.FC = () => {
         <p className="text-caption font-sohne text-slate">
           {located.length} merchant location{located.length === 1 ? '' : 's'} plotted
           {unlocated > 0 ? `, ${unlocated} without coordinates on file` : ''}. Sized/weighted by
-          transaction volume — backs docs/device.md's "Geographic Distribution" / "Merchant Activity
+          transaction volume — backs the "Geographic Distribution" / "Activity
           Heatmaps" analytics.
         </p>
       </Card>

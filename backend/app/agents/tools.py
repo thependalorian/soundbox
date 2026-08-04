@@ -54,8 +54,8 @@ def json_safe(value: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 async def get_transaction_summary(ctx: RunContext[AnalyticsDeps], days: int = 7) -> Dict:
-    """Headline activity over the last N days: active device count, payment
-    count, total value in NAD, and the share of payments flagged for review.
+    """Headline activity over the last N days: payment count, total value in
+    NAD, and the share of payments flagged for review.
     Use for "how are we doing" and any total-volume question."""
     return json_safe(AnalyticsService(ctx.deps.db).get_transaction_summary(days=days))
 
@@ -69,8 +69,8 @@ async def get_transaction_trends(ctx: RunContext[AnalyticsDeps], days: int = 7) 
 
 async def get_system_health(ctx: RunContext[AnalyticsDeps]) -> Dict:
     """Overall payment system health: a 0-1 score, a status band, and the
-    component measures behind it (success rate, device availability, latency,
-    share flagged)."""
+    component measures behind it (success rate, latency, share flagged).
+    The three are weighted to sum to 1.0, so a perfect system scores 1.0."""
     return json_safe(AnalyticsService(ctx.deps.db).get_system_health())
 
 
@@ -166,8 +166,8 @@ async def get_activation_and_dormancy(
 # ---------------------------------------------------------------------------
 
 async def get_geo_distribution(ctx: RunContext[AnalyticsDeps]) -> Dict:
-    """Per-business location, region, device count and payment count. Use for
-    map and "where are the businesses" questions."""
+    """Per-business location, region and payment count. Use for map and
+    "where are the businesses" questions."""
     return json_safe({"locations": AnalyticsService(ctx.deps.db).get_geo_distribution()})
 
 

@@ -1,5 +1,5 @@
 """
-Wiebe-schema database models for the SoundBox backend.
+Wiebe-schema database models for the Buffr Intelligence backend.
 
 Conventions (see workspace CLAUDE.md §2 and hotel-etuna-os/supabase/migrations
 for the canonical in-repo example of this pattern):
@@ -102,23 +102,15 @@ class Merchant(Base):
     contact_phone = Column(String, nullable=True)
     contact_email = Column(String, nullable=True)
     address = Column(JSONB, nullable=False, default=dict)
-    # Anchor location for maps/heatmap analytics (docs/device.md's "Geographic
-    # Distribution" / "Merchant Activity Heatmaps" data products). Devices
-    # don't carry their own lat/lng — they're installed at the merchant's
-    # premises, so location lives here, one level up, to avoid duplicating
-    # the same coordinates on every device row.
+    # Anchor location for coverage maps and regional heatmaps. Held on the
+    # business rather than derived per payment: a stall does not move between
+    # transactions, and repeating the coordinates on every row would make a
+    # correction a bulk update instead of a single one.
     lat = Column(Numeric(9, 6), nullable=True)
     lng = Column(Numeric(9, 6), nullable=True)
     region_id = ref_id(nullable=True)  # type_definitions(domain='region')
     constituency_id = ref_id(nullable=True)  # type_definitions(domain='constituency')
     local_authority_id = ref_id(nullable=True)  # type_definitions(domain='local_authority')
-    # NAMQR Code Standards v5.0, Annexure I S1.2 "Manage Verified Address
-    # Entries": the merchant's (or its acquirer PSP's, on its behalf)
-    # uploaded ECDSA P-256 public key, used to verify the signature (tag 66)
-    # on QR codes this merchant presents. NULL until the merchant is
-    # onboarded onto signed QR; falls back to Settings.NAMQR_ORG_PUBLIC_KEY_PEM
-    # per S1.7.2(b/c)'s "use parent key" rule.
-    namqr_public_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=True)
     deleted_at = Column(DateTime, nullable=True)
@@ -170,7 +162,7 @@ class MerchantStatusLog(Base):
 
 class TypeDefinition(Base):
     """Config-driven taxonomy replacing hardcoded status/type enums.
-    Domains in use: device_type, device_status, merchant_type,
+    Domains in use: merchant_type,
     merchant_status, transaction_status, payment_type, anomaly_risk_level,
     signal_type, wallet_status, settlement_status, incident_type, event_type.
     """
@@ -201,11 +193,16 @@ class TypeDefinition(Base):
 # ---------------------------------------------------------------------------
 
 class User(Base):
-    """A person who can act against this API: admin, regulator, or a
-    merchant's own operator. This is the sole source of authority for role
-    -gated endpoints -- every write endpoint derives `role` and actor
-    identity from a verified JWT issued against this table (app/core/security.py),
-    never from a client-supplied header."""
+    """A person who can act against this API: a regulator or an administrator.
+    This is the sole source of authority for role-gated endpoints -- every
+    write endpoint derives `role` and actor identity from a verified JWT
+    issued against this table (app/core/security.py), never from a
+    client-supplied header.
+
+    Accounts are issued by an administrator; there is no self-service
+    sign-up. Every account here belongs to the supervising institution, not
+    to a supervised business -- the businesses are subjects of the analysis,
+    not users of the platform."""
 
     __tablename__ = "users"
 
@@ -214,10 +211,7 @@ class User(Base):
     email = Column(String, nullable=False, unique=True, index=True)
     password_hash = Column(String, nullable=False)
     display_name = Column(String, nullable=False)
-    role = Column(String, nullable=False)  # type_definitions(domain='user_role'): admin, regulator, merchant
-    # Set only for role='merchant' -- scopes what the token holder can see
-    # (Devices/Transactions/Flagged Alerts filtered to this merchant).
-    merchant_id = ref_id(nullable=True)
+    role = Column(String, nullable=False)  # type_definitions(domain='user_role'): admin, regulator
     is_active = Column(Boolean, nullable=False, default=True)
     last_login_at = Column(DateTime, nullable=True)
     # When the password last changed. Load-bearing for session invalidation:
@@ -254,9 +248,8 @@ class UserStatusLog(Base):
 class PasswordResetToken(Base):
     """A single-use, expiring grant to set a new password.
 
-    Only the *hash* of the token is stored, the same way a device credential
-    is (`devices.api_key_hash`). The plaintext exists once, in the email that
-    carries it. A database dump therefore does not let anyone reset an
+    Only the *hash* of the token is stored. The plaintext exists once, in
+    the email that carries it. A database dump therefore does not let anyone reset an
     account, which is the whole reason to hash it rather than store it.
 
     Rows are kept after use rather than deleted. "Was a reset requested for
@@ -311,79 +304,6 @@ class PasswordResetTokenStatusLog(Base):
 
 
 # ---------------------------------------------------------------------------
-# Assets: devices
-# ---------------------------------------------------------------------------
-
-class Device(Base):
-    """SoundBox device. `device_code` is the business/WayaMe-facing
-    identifier (e.g. "SB-001"); `id` is the internal UUID PK."""
-
-    __tablename__ = "devices"
-
-    id = uuid_pk()
-    organization_id = ref_id()
-    # Nullable: a device in the warehouse has no business yet, and a device
-    # recovered from a closed business has none again. Asserting otherwise
-    # forced an invented assignment, which inflated coverage figures.
-    merchant_id = ref_id(nullable=True)
-    device_code = Column(String, nullable=False, unique=True, index=True)
-    device_type_id = ref_id(nullable=True)  # type_definitions(domain='device_type')
-    firmware_version = Column(String, nullable=False)
-    status = Column(String, nullable=False, default="active")
-    battery_level = Column(Integer, nullable=False, default=100)
-    signal_strength = Column(Integer, nullable=False, default=0)
-    # bcrypt hash of the per-device credential issued once at provisioning
-    # (see POST /devices). NULL means the device cannot authenticate --
-    # /devices/register, /devices/heartbeat, /payments/verify and
-    # /payments/process_qr all require a matching X-Device-Key header.
-    api_key_hash = Column(String, nullable=True)
-    registered_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    last_heartbeat_at = Column(DateTime, nullable=True)
-    deleted_at = Column(DateTime, nullable=True)
-
-    __table_args__ = (
-        Index("ix_devices_org_merchant", "organization_id", "merchant_id", postgresql_where=text("deleted_at IS NULL")),
-        Index("ix_devices_org_status", "organization_id", "status", postgresql_where=text("deleted_at IS NULL")),
-    )
-
-
-class DeviceStatusLog(Base):
-    __tablename__ = "device_status_log"
-
-    id = uuid_pk()
-    organization_id = ref_id()
-    device_id = ref_id()
-    from_status = Column(String, nullable=True)
-    to_status = Column(String, nullable=False)
-    note = Column(Text, nullable=True)
-    actor_user_id = ref_id(nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-
-    __table_args__ = (
-        Index("ix_device_status_log_device", "device_id", "created_at"),
-    )
-
-
-class DeviceHeartbeatLog(Base):
-    """Persists device telemetry that was previously Redis-only (TTL'd and
-    lost). Backs the "device/network health" analytics product pitched in
-    docs/architecture.md."""
-
-    __tablename__ = "device_heartbeat_log"
-
-    id = uuid_pk()
-    organization_id = ref_id()
-    device_id = ref_id()
-    battery_level = Column(Integer, nullable=True)
-    signal_strength = Column(Integer, nullable=True)
-    recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-
-    __table_args__ = (
-        Index("ix_device_heartbeat_device_recorded", "device_id", "recorded_at"),
-    )
-
-
-# ---------------------------------------------------------------------------
 # Payments (ledger-style; corrections are reversal rows, not UPDATEs)
 # ---------------------------------------------------------------------------
 
@@ -393,7 +313,6 @@ class Transaction(Base):
     id = uuid_pk()
     organization_id = ref_id()
     merchant_id = ref_id()
-    device_id = ref_id(nullable=True)
     transaction_ref = Column(String, nullable=False, unique=True, index=True)
     amount = money()
     currency_code = currency()
@@ -594,7 +513,6 @@ class AnomalyAlert(Base):
     organization_id = ref_id()
     merchant_id = ref_id()
     transaction_id = ref_id(nullable=True)
-    device_id = ref_id(nullable=True)
     model_version_id = ref_id(nullable=True)
     amount = money()
     currency_code = currency()
@@ -712,7 +630,6 @@ class AnalyticsEvent(Base):
     id = uuid_pk()
     organization_id = ref_id()
     event_type = Column(String, nullable=False, index=True)
-    device_id = ref_id(nullable=True)
     merchant_id = ref_id(nullable=True)
     transaction_id = ref_id(nullable=True)
     event_data = Column(JSONB, nullable=False, default=dict)
@@ -728,7 +645,7 @@ class AnalyticsEvent(Base):
 # ---------------------------------------------------------------------------
 
 class MediaAsset(Base):
-    """Images attached to an entity — a merchant storefront, a device photo.
+    """Images attached to an entity — a merchant storefront, a region scene.
 
     The interface renders drawn illustrations today, which never go stale and
     need no storage. This table exists so real photography can be introduced
@@ -744,10 +661,10 @@ class MediaAsset(Base):
 
     id = uuid_pk()
     organization_id = ref_id()
-    # type_definitions domain 'media_type': merchant_storefront, device_photo,
+    # type_definitions domain 'media_type': merchant_storefront,
     # region_scene. A new kind of image is an INSERT, not a migration.
     type_code = Column(String, nullable=False)
-    # Bare UUID of whatever the image belongs to — merchant, device, region.
+    # Bare UUID of whatever the image belongs to — merchant or region.
     # Which table it points at is given by type_code, resolved in the app
     # layer like every other reference here.
     owner_id = ref_id(nullable=True)

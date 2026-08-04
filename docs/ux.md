@@ -2,50 +2,48 @@
 
 > Who uses this, what they are trying to do, and what each role can reach.
 >
-> Part of the SoundBox documentation set — see [README.md](README.md).
+> Part of the Buffr Intelligence documentation set — see [README.md](README.md).
 
 ---
 
-## 1. Two audiences, opposite needs
+## 1. Two roles, one analytical surface
 
-The product serves two groups who want almost nothing in common:
+Everyone who signs in is doing oversight work of some kind:
 
-- **Sellers** want certainty at the counter, in the next two seconds.
-- **Oversight** wants visibility across the country, over months.
+- **A regulator** supervises a payment system: coverage, market structure,
+  the review queue and the returns.
+- **An administrator** runs the deployment: accounts, scoring policy, and
+  whatever is currently broken.
 
-Trying to serve both in one screen or one page of copy serves neither. The
-public site splits at the first click (`/for-merchants`, `/for-regulators`)
-and the application splits by role.
+Both see the same analysis, because the analysis is the product and there is
+no version of it that is safe for one and not the other. A business appears
+here as a subject of the analysis, never as a caller — there is no account
+type that represents one.
 
 ---
 
 ## 2. Personas
 
-### Maria — market trader, Katutura
+### The people being measured — not users of this platform
 
-Runs a vegetable stall. Basic smartphone, uses WhatsApp. Income around
-N$2,000–3,000/month. Reads English slowly; speaks Oshiwambo at home.
+Nobody outside the supervising institution signs in. The traders, grant
+recipients, agents and small businesses whose payments this analyses are
+**subjects of the analysis, never callers of the API** — and the platform has
+no account type that represents one.
 
-**Goal:** take payment without holding up the queue or getting cheated.
+Naming them anyway matters, because every measure is a claim about someone:
 
-**Pain:** a customer holds up a phone showing a "paid" screen. She cannot
-tell a real confirmation from a screenshot or an old message, cannot hear a
-notification over market noise, and cannot afford to lose a day's stock.
+- A trader whose stall took forty payments last week and none this week is a
+  retention signal, not a row that vanished.
+- A grant recipient with one large inflow twice a year and long dormancy
+  between is a seasonal-income pattern, not an anomaly — flagging it would be
+  the platform failing at the thing it exists to do.
+- A constituency with three active businesses is a coverage finding, and the
+  denominator has to be its own population rather than a national average.
 
-**What the product must do:** say the amount out loud, immediately, in a
-language she uses. Nothing to read, no app, no login. If it does not know
-yet, it must say so rather than go quiet — silence is the one outcome she
-cannot act on.
-
-**Her customers are not all on smartphones either.** Payment reaches her
-through a banking app or through Universal USSD on a basic handset. She
-cannot tell which from where she stands, and she should not have to: the box
-announces both identically.
-
-**Current gap:** announcements are English-only. `firmware/src/audio.h`
-anticipates `"en"`, `"af"`, `"on"` but nothing else in the stack surfaces
-language selection. For Maria specifically this is the difference between
-adoption and rejection.
+Individuals transact in their own right — person-to-person is a live use case,
+and the participant count grows as institutions onboard — so "business" is not
+a synonym for "participant" anywhere in this system.
 
 ### Johannes — payment system analyst, central bank
 
@@ -66,35 +64,36 @@ returns that reconcile to what the dashboards show.
 
 ### Toivo — platform administrator
 
-Operates the deployment. Needs device fleet health, onboarding queues, and
-the ability to act on alerts.
+Operates the deployment. Needs the onboarding queue, account management,
+scoring policy, and the ability to act on alerts.
+
+**Goal:** keep the deployment answering correctly, and keep an audit trail
+that survives a question asked months later.
+
+**Pain:** a threshold changed six months ago and nobody can say by whom or
+from what, so two alerts scored under different policy get compared as though
+they were the same measurement.
+
+**What the product must do:** record every configuration change append-only
+with a named actor, and stamp every score with the configuration fingerprint
+that produced it.
 
 ---
 
 ## 3. Journeys
 
-### Maria takes a payment
+### A payment becomes a measure
 
-1. Switches the box on once. It finds the network itself.
-2. Customer scans the printed code on her stall.
-3. Customer approves the payment — in a banking app, or by dialling a short
-   code on a basic handset.
-4. Box announces *"N$45.50 received"*; ring turns green.
-5. She hands over the vegetables.
+1. A payment is made, cleared and settled between institutions on the
+   national rails. This platform is not consulted and cannot intervene.
+2. Pattern data about it is shared under agreement — scoped, minimised, and
+   with tokenised identifiers rather than personal ones.
+3. Rules and models score it against that participant's own history.
+4. If it ranks high enough, it enters the review queue.
+5. A named reviewer records a verdict. Only that decides anything.
 
-**Step 3 has two paths, and the second one is the one that matters.** The
-rails are reachable through a participant app *or* through Universal USSD, so
-a customer with a feature phone can pay. That is a large share of the people
-Maria serves. It also sharpens why the box exists: with USSD there is no
-payment confirmation screen for the customer to show her, so the only
-evidence available is the sound her own device makes.
-
-Steps 3 and 4 are separated by the platform confirming the payment — she is
-never asked to wait on a screen. Total added time: none.
-
-**When the network drops** — box says *"payment pending"*, ring holds amber,
-she does not hand over goods. It re-checks and announces the true result.
-Her customer's payment was never affected; only her knowledge of it was late.
+Steps 1 and 2 are the boundary: everything this platform does happens after
+a payment is already final.
 
 ### Johannes investigates a concentration
 
@@ -121,54 +120,36 @@ Step 6 is the loop that matters: unsupervised scoring can say what is
    queue stops being worked.
 3. Rejection routes through the detail page, because it requires a stated
    reason and the backend refuses the change without one.
-4. The detail page carries registration details, beneficial owners, connected
-   devices and the full status history. Owners show whether an identity
-   document is on file, never the number itself.
+4. The detail page carries registration details, beneficial owners, recent
+   payments, open alerts and the full status history. Owners show whether an
+   identity document is on file, never the number itself.
 5. Every decision is appended to the log with the actor and timestamp.
-
-### Toivo commissions a device
-
-1. Records the unit on arrival. It starts `inactive` — a device that has
-   never reported in must not appear healthy.
-2. Assigns it to a business once the stall is known. Only businesses that
-   have passed review are offered.
-3. Marks it active on installation, with a note that stays on the record.
-4. When the business closes, the device is released automatically rather than
-   left pointing at somewhere that no longer trades.
-5. Retiring it takes it out of every list. The row survives, so payments
-   taken through it still resolve.
-
----
 
 ## 4. Capability matrix
 
 Mirrors `Sidebar.tsx`'s `navigation` array and the `RoleRoute` guards in
 `App.tsx`. Enforced at the router, not merely hidden from a menu.
 
-| Capability | Seller | Oversight | Administrator |
-|---|:---:|:---:|:---:|
-| Dashboard | own business | national | full |
-| Devices | own only | — | all |
-| Transactions | own only | — | all |
-| Flagged payments | own only | — | all + verdict |
-| Merchants list | — | yes | yes |
-| Merchant detail | own profile | read-only | full + review |
-| Coverage map | — | yes | yes |
-| Analytics | own only | national | full |
-| Reports | — | yes | yes |
-| Settings | own | own | own + organisation |
-| Review thresholds | — | read + change | read + change |
-| Register a business | — | yes | yes |
-| Decide an application | — | yes | yes |
-| Add or retire a device | — | — | yes |
-| Assign a device | — | — | yes |
-| Record an alert verdict | — | yes | yes |
-| Oversight analytics | — | yes | yes |
+| Capability | Regulator | Administrator |
+|---|:---:|:---:|
+| Dashboard | national | full |
+| Payments | all | all |
+| Flagged payments | all + verdict | all + verdict |
+| Businesses list | yes | yes |
+| Business detail | read-only + review | full + review |
+| Coverage map | yes | yes |
+| Analytics | national | full |
+| Ask the data | yes | yes |
+| Reports | yes | yes |
+| Settings | own | own + organisation |
+| Review thresholds | read + change | read + change |
+| Register a business | yes | yes |
+| Decide an application | yes | yes |
+| Record an alert verdict | yes | yes |
+| Manage accounts | — | yes |
 
-Public and unauthenticated: landing, for-sellers, for-regulators,
-how-it-works, privacy, and vacancies. The demo lives inside how-it-works
-(`/demo` redirects there); trust content was folded into the privacy page
-rather than kept as a separate page — see `changelog.md`.
+Public and unauthenticated: landing, for-regulators, how-it-works and
+privacy.
 
 ---
 
@@ -189,25 +170,3 @@ applied where they change actual behaviour:
 
 ---
 
-## 6. Firmware-side experience
-
-Specified here because there is no firmware harness in this repository to run
-it against. The `/demo` page is its visual representation.
-
-**LED ring**
-
-| State | Ring | Meaning |
-|---|---|---|
-| Idle | Off / dim | Ready |
-| Waiting | Amber, pulsing | Checking — do not hand over goods |
-| Confirmed | Green | Money arrived |
-| Failed | Red | Did not go through |
-
-**Audio.** The amount is spoken in full ("N$45.50 received"). Distinct tones
-for success and failure so the outcome is clear even if words are missed.
-Announcements should be available in at least English, Afrikaans and
-Oshiwambo — see the gap noted in §2 and `docs/architecture.md` §5.
-
-**Zero-reading principle.** Every critical outcome is carried by sound and
-colour. Text on the device is a convenience, never the only channel. A seller
-who cannot read the display must still be able to run their business.

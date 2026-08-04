@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTransactions, fetchMerchants } from '../api/api';
-import { Transaction, Merchant } from '../types/soundbox';
+import { Transaction, Merchant } from '../types/domain';
 import Card from '../components/ui/Card';
 import PageAction from '../components/ui/PageAction';
 import Skeleton from '../components/ui/Skeleton';
@@ -18,13 +18,11 @@ const STATUS_TONE: Record<Transaction['status'], 'success' | 'warning' | 'danger
 };
 
 const TransactionsPage: React.FC = () => {
-  const { user } = useAuth();
-  const merchantId = user?.role === 'merchant' ? user.merchantId : undefined;
   const [filters, setFilters] = useState({ status: '', search: '' });
 
   const { data: transactions, isLoading } = useQuery({
-    queryKey: ['transactions', filters, merchantId ?? 'all'],
-    queryFn: () => fetchTransactions({ ...filters, merchantId }),
+    queryKey: ['transactions', filters],
+    queryFn: () => fetchTransactions(filters),
   });
 
   // A payment that did not complete is the only row here anyone must act on.
@@ -36,7 +34,7 @@ const TransactionsPage: React.FC = () => {
   return (
     <div>
       <h1 className="text-heading font-signifier text-ink mb-8">
-        {merchantId ? 'My payments' : 'Payments'}
+        Payments
       </h1>
       <p className="text-body font-sohne text-slate mb-24">
         Every payment the boxes heard, newest first.

@@ -17,7 +17,7 @@ const TONES: Record<Tone, string> = {
 };
 
 /**
- * The one place operational status color is used — device/transaction/
+ * The one place operational status color is used — business/transaction/
  * anomaly-risk pips. Never used for brand chrome (headlines, nav, buttons).
  */
 const StatusPill: React.FC<StatusPillProps> = ({ label, tone, className = '' }) => (

@@ -7,7 +7,7 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.db.helpers import get_or_create_organization
-from app.db.models import AnalyticsEvent, Device, AnomalyAlert, Merchant, Transaction, TypeDefinition
+from app.db.models import AnalyticsEvent, AnomalyAlert, Merchant, Transaction, TypeDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,6 @@ class AnalyticsService:
                 Transaction.created_at >= start_date
             ).scalar() or 0
 
-            active_devices = self.db.query(Device).filter(
-                Device.organization_id == org_id,
-                Device.deleted_at.is_(None),
-                Device.status == "active"
-            ).count()
-
             today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             today_count = self.db.query(Transaction).filter(
                 Transaction.organization_id == org_id,
@@ -62,7 +56,6 @@ class AnalyticsService:
             flag_rate = (flagged_count / total_txns * 100) if total_txns > 0 else 0
 
             return {
-                "activeDevices": active_devices,
                 "todayCount": today_count,
                 "totalVolume": round(float(total_volume), 2),
                 "flagRate": round(flag_rate, 2),
@@ -166,20 +159,6 @@ class AnalyticsService:
             ).count()
             success_rate = (successful_txns / total_txns * 100) if total_txns > 0 else 0
 
-            total_devices = self.db.query(Device).filter(
-                Device.organization_id == org_id,
-                Device.deleted_at.is_(None),
-                Device.status == "active"
-            ).count()
-            one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-            online_devices = self.db.query(Device).filter(
-                Device.organization_id == org_id,
-                Device.deleted_at.is_(None),
-                Device.status == "active",
-                Device.last_heartbeat_at >= one_hour_ago
-            ).count()
-            device_availability = (online_devices / total_devices * 100) if total_devices > 0 else 0
-
             avg_latency = self.db.query(
                 func.avg(Transaction.response_time_ms)
             ).filter(
@@ -197,25 +176,37 @@ class AnalyticsService:
             ).count()
             flag_rate = (flagged_txns / total_txns * 100) if total_txns > 0 else 0
 
+            # Three components, weighted to sum to exactly 1.0 — so a system
+            # performing perfectly scores 1.0 and can actually reach HEALTHY.
+            #
+            # The weights preserve the relative judgement of the earlier
+            # version (success 0.25 : latency 0.15 : flagged 0.20, i.e. 5:3:4)
+            # renormalised over the three measures that are computed. Two
+            # things were corrected in doing so:
+            #
+            #  - `device_availability` measured whether *our* hardware was
+            #    reachable, which was never a property of the payment system.
+            #    It is not replaced: an observer reports on the rails, and
+            #    success rate already carries whether payments completed.
+            #  - `merchant_coverage` and `settlement_compliance` were declared
+            #    with weight but never computed or applied, so the old score
+            #    could not exceed 0.80 and a flawless system was reported as
+            #    MONITOR rather than HEALTHY. Weights that are not applied are
+            #    not weights.
             weights = {
-                "transaction_success_rate": 0.25,
-                "device_availability": 0.20,
-                "response_latency": 0.15,
-                "flag_rate": 0.20,
-                "merchant_coverage": 0.10,
-                "settlement_compliance": 0.10
+                "transaction_success_rate": 0.42,
+                "flag_rate": 0.33,
+                "response_latency": 0.25,
             }
 
             success_score = min(success_rate / 100, 1.0)
-            device_score = min(device_availability / 100, 1.0)
             latency_score = max(1 - (float(avg_latency) / 500), 0)  # 500ms threshold
             anomaly_score = max(1 - (flag_rate / 5), 0)  # 5% threshold
 
             health_score = (
                 success_score * weights["transaction_success_rate"] +
-                device_score * weights["device_availability"] +
-                latency_score * weights["response_latency"] +
-                anomaly_score * weights["flag_rate"]
+                anomaly_score * weights["flag_rate"] +
+                latency_score * weights["response_latency"]
             )
 
             if health_score >= 0.9:
@@ -232,7 +223,6 @@ class AnalyticsService:
                 "status": status,
                 "metrics": {
                     "transaction_success_rate": round(success_rate, 2),
-                    "device_availability": round(device_availability, 2),
                     "response_latency": round(float(avg_latency), 2),
                     "flag_rate": round(flag_rate, 2)
                 },
@@ -244,7 +234,7 @@ class AnalyticsService:
 
     def get_geo_distribution(self) -> List[Dict]:
         """Merchant locations, region, and activity counts for map/heatmap
-        rendering — the data layer behind docs/device.md's "Geographic
+        rendering — the data layer behind the "Geographic
         Distribution" / "Merchant Activity Heatmaps" analytics pitch.
         Does not render a map itself; that's a frontend concern."""
         try:
@@ -265,13 +255,6 @@ class AnalyticsService:
                 Merchant.deleted_at.is_(None),
             ).all()
 
-            device_counts = {
-                merchant_id: count
-                for merchant_id, count in self.db.query(Device.merchant_id, func.count(Device.id))
-                .filter(Device.organization_id == org_id, Device.deleted_at.is_(None))
-                .group_by(Device.merchant_id)
-                .all()
-            }
             txn_counts = {
                 merchant_id: count
                 for merchant_id, count in self.db.query(Transaction.merchant_id, func.count(Transaction.id))
@@ -321,7 +304,6 @@ class AnalyticsService:
                     "lng": float(r.lng) if r.lng is not None else None,
                     "regionCode": r.region_code,
                     "regionLabel": r.region_label,
-                    "deviceCount": device_counts.get(r.id, 0),
                     "transactionCount": txn_counts.get(r.id, 0),
                     "expectedLoss": round(exposure.get(r.id, 0.0), 2),
                     "openAlertCount": open_alerts.get(r.id, 0),

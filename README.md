@@ -1,21 +1,35 @@
-# SoundBox & Predictive Analytics Platform
+# Buffr Intelligence
 
-This repository contains the full source code and documentation for the SoundBox project, a hardware-enabled payment confirmation device and predictive analytics platform for the Namibian market.
+A RegTech and SupTech analytics platform for the Bank of Namibia. It reads
+transaction-pattern data from Namibia's instant payment rails and turns it
+into real-time dashboards, explainable anomaly detection, market-structure and
+financial-inclusion measures, and automated regulatory reporting.
 
-## Project Structure
+**It is an observer, not a participant.** The platform is told the outcome of
+payments and analyses them. It cannot start, stop, hold or reverse a payment
+and holds no funds at any point — see
+[docs/architecture.md](docs/architecture.md) §1.
 
-The project is organized into the following directories:
+## Project structure
 
--   `backend/`: Contains the Python FastAPI backend services, including the API for device management, payment processing, and the predictive analytics engine.
--   `firmware/`: Contains the C/C++ source code for the embedded firmware of the SoundBox device.
--   `frontend/`: Contains the React-based web application for the merchant and regulator dashboards.
--   `docs/`: Contains the complete business plan, technical specifications, and other project documentation.
+-   `backend/`: FastAPI services — analytics, oversight, reporting, scoring and
+    the natural-language assistant.
+    -   `backend/ml/`: offline model training and behavioural segmentation.
+    -   `backend/notebooks/`: the anomaly-detection framework end to end,
+        runnable, with five classifiers compared and every score explained.
+    -   `backend/scripts/`: synthetic data generation for Phase 0 validation.
+-   `frontend/`: React console for regulator and administrator roles, plus the
+    public site.
+    -   `frontend/scripts/`: brand asset derivation. Run it; do not hand-edit
+        the outputs.
+-   `docs/`: architecture, business plan, privacy, regulatory and design
+    documentation.
 
 ## Deployment status
 
-- **Frontend**: linked to Vercel project `justasoundbox.com`
+- **Frontend**: linked to Vercel project `buffranalytics.com`
   (`frontend/.vercel/project.json`). A preview deploy is live; promoting to
-  the production domains (`justasoundbox.com`, `www.justasoundbox.com`) is a
+  the production domains (`buffranalytics.com`, `www.buffranalytics.com`) is a
   manual `vercel deploy --prod` (or promote-in-dashboard) once the backend
   below is reachable — the frontend still points `REACT_APP_API_URL` at
   `http://localhost:8000/api/v1` (see `frontend/.env.local`), so a
@@ -28,7 +42,7 @@ The project is organized into the following directories:
   Once unblocked: `fly deploy` from `backend/`, then `fly secrets set` for
   every value in `backend/.env` (`DATABASE_URL`, `SECRET_KEY`,
   `BOOTSTRAP_ADMIN_EMAIL`/`PASSWORD`, `CORS_ALLOWED_ORIGINS` updated to the
-  real frontend origin, `NAMQR_ORG_PUBLIC_KEY_PEM`, `REDIS_URL`, and set
+  real frontend origin, `REDIS_URL`, and set
   `ENVIRONMENT=production`), then point `REACT_APP_API_URL` at the Fly
   hostname and redeploy the frontend.
 - **DNS**: not configured. Once the backend has a stable Fly hostname, a
@@ -43,31 +57,70 @@ The project is organized into the following directories:
 3.  Copy `.env.example` to `.env` and fill it in — `SECRET_KEY`,
     `BOOTSTRAP_ADMIN_EMAIL`/`BOOTSTRAP_ADMIN_PASSWORD` (creates the first
     login on an empty database; skipped if either is unset), and
-    `NAMQR_ORG_PUBLIC_KEY_PEM` if you want signed-QR verification to have
-    something to verify against (`backend/scripts/generate_namqr_keypair.py`
-    generates a keypair). Set `APP_BASE_URL` to the origin the console is
+    and `APP_BASE_URL` set to the origin the console is
     served from — it is embedded in password-reset links, and a production
     deploy refuses to start while it still says localhost. `RESEND_API_KEY` /
     `RESEND_FROM_EMAIL` are optional: without them reset mail is skipped and
     logged, and every other flow behaves normally.
 4.  Run the migrations: `alembic upgrade head`
 5.  Run the server: `uvicorn app.main:app --reload`
+6.  Optionally populate a Phase 0 dataset:
+    `PYTHONPATH=. python scripts/seed_synthetic.py`. Every row it writes is
+    marked synthetic (`SYN-` prefix), so it can never be mistaken for real
+    activity, and `--purge` removes exactly what it wrote.
 
-There is no fallback login and no self-service sign-up. Every write endpoint
-requires a real JWT (`POST /api/v1/auth/login`) or, for the device-facing
-endpoints, a provisioned device key (`X-Device-Code` / `X-Device-Key`, issued
-once by `POST /api/v1/devices` — see
-[docs/architecture.md](docs/architecture.md)). Further accounts are created by
-an administrator; a forgotten password is recovered by an emailed single-use
-link. See [Account lifecycle](#account-lifecycle).
+There is no fallback login and no self-service sign-up. Every endpoint —
+reads included — requires a real JWT (`POST /api/v1/auth/login`), enforced at
+the router rather than per endpoint so a newly added endpoint is protected by
+default. Further accounts are created by an administrator; a forgotten
+password is recovered by an emailed single-use link. See
+[Account lifecycle](#account-lifecycle).
 
-### Firmware
+### Workstation setup
 
-1.  Navigate to the `firmware` directory.
-2.  Install mbedTLS (`brew install mbedtls` / `apt-get install
-    libmbedtls-dev`) — the NAMQR signed-QR verification in `security.c` links
-    it for real ECDSA P-256/SHA-256, not a stub.
-3.  Use the provided `Makefile` to build the firmware: `make`
+Two settings live on your machine rather than in this repository, and neither
+is set by cloning it. Both defend against the npm supply-chain attacks of
+2025–26, where malicious package versions were live for hours before being
+pulled:
+
+```
+# Block install-time script execution. preinstall/postinstall hooks are the
+# main delivery channel for npm malware. Packages that genuinely need them
+# (esbuild, sharp, bcrypt) get rebuilt explicitly:
+#   npm rebuild <pkg> --ignore-scripts=false     <- the flag is required
+npm config set ignore-scripts true
+
+# A pre-commit scan for known malware indicators, so a poisoned file is
+# blocked before it reaches the remote.
+git config --global core.hooksPath <path-to-your-hooks-dir>
+```
+
+The rest is already enforced in the repository and needs nothing from you:
+exact dependency versions with no `^` or `~`, a committed lockfile, and
+`npm ci` in the Docker image with the lockfile copied by explicit path rather
+than a `package*.json` glob — the glob tolerates a missing lockfile, which is
+precisely the failure it looks like it prevents.
+
+**Check your setup:**
+
+```
+npm config get ignore-scripts                     # true
+git config --global core.hooksPath                # a path, not empty
+grep -E '"[^"]+": *"[\^~]' frontend/package.json # no output
+ls frontend/package-lock.json                     # present
+```
+
+A seven-day cool-down applies to every new dependency version: malicious
+releases are usually caught and yanked within 24–72 hours. If something is
+genuinely urgent before that, raise it rather than upgrading quietly.
+
+### Notebooks
+
+1.  `pip install -r requirements.txt -r requirements-notebook.txt`
+2.  `cd notebooks && jupyter lab anomaly_detection.ipynb`
+
+The notebook runs against whatever is in the database. With the synthetic
+seed loaded it reproduces every figure end to end in a few minutes.
 
 ### Frontend
 
@@ -145,10 +198,8 @@ if any tenant-scoped query omits the filter without a documented reason. See
 
 ## The API surface
 
-- **Device-facing**: register, heartbeat, verify a payment. The only paths the
-  hardware uses.
-- **Resources** (`app/api/resources.py`): devices, businesses, payments and
-  alerts — everything the console reads and writes.
+- **Resources** (`app/api/resources.py`): businesses, payments, settlements
+  and alerts — everything the console reads and writes.
 - **Analytics** (`app/api/analytics.py`): aggregates, geographic drill-down,
   and the question-answering endpoint.
 - **Oversight** (`/market/*`): concentration (Herfindahl-Hirschman by
@@ -159,33 +210,34 @@ if any tenant-scoped query omits the filter without a documented reason. See
   the NPS Vision 2030 success indicators in
   [docs/regulatory.md](docs/regulatory.md).
 - **Reports** (`app/api/reports.py`): the regulatory returns.
+- **Assistant** (`app/api/assistant.py`): the natural-language analytics
+  endpoint, tool-calling over the same service methods the dashboards use and
+  never raw SQL.
 - **Settings** (`app/api/settings.py`): anomaly rule configuration and its
-  change history.
+  append-only change history.
 
 Nothing in any of them can initiate, hold or reverse a payment. The system
-reads outcomes and announces them. See [docs/architecture.md](docs/architecture.md).
+reads outcomes and analyses them. See
+[docs/architecture.md](docs/architecture.md).
 
 ## Auth model
 
-Two independent credentials, neither trusting anything the caller merely
-asserts:
+One credential, and it never trusts anything the caller merely asserts.
 
-- **People** (`app/api/auth.py`, `app/core/security.py`): `POST
-  /api/v1/auth/login` exchanges a bcrypt-checked password for a signed JWT.
-  Every role-gated endpoint decodes that token server-side
-  (`app/api/deps.py`'s `require_roles`) — nothing reads an `X-User-Role`
-  header, because a header is exactly what a caller can set to whatever it
-  wants.
-- **Devices** (`app/api/deps.py`'s `get_authenticated_device`): a SoundBox
-  unit proves itself with a per-device secret, bcrypt-hashed at rest and
-  issued exactly once (in the response of `POST /api/v1/devices`), sent as
-  `X-Device-Code` / `X-Device-Key` on `/devices/register`,
-  `/devices/heartbeat`, `/payments/verify` and `/payments/process_qr`.
+`POST /api/v1/auth/login` (`app/api/auth.py`, `app/core/security.py`)
+exchanges a bcrypt-checked password for a signed JWT. Every role-gated
+endpoint decodes that token server-side (`app/api/deps.py`'s `require_roles`)
+— nothing reads an `X-User-Role` header, because a header is exactly what a
+caller can set to whatever it wants.
 
-NAMQR QR codes (`app/services/namqr_processor.py`) are ECDSA P-256/SHA-256
-verified per Bank of Namibia NAMQR Code Standards v5.0 Annexure I — CRC
-alone is integrity, not authenticity, and only the signature check proves a
-QR came from the merchant it claims to.
+**Authentication is applied at the router, not per endpoint.** Every
+analytics, oversight, reporting, resource and settings router is mounted with
+an authentication dependency in `app/main.py`, so an endpoint added to any of
+them is protected by default rather than by remembering a decorator.
+
+**Changing a password invalidates every existing session.** A token's `iat`
+is compared against `users.password_changed_at` on each request, so
+revocation needs no server-side session store.
 
 ### Account lifecycle
 
@@ -223,9 +275,9 @@ Four properties worth stating because each is load-bearing:
   `POST /auth/forgot-password` answers identically for a registered address,
   an unregistered one, a deactivated account, and an undeliverable email.
   Anything else turns the form into a way to enumerate who holds an account
-  here, and on this platform those are named regulators and businesses.
-- **Only the hash of a reset token is stored**, the same way a device
-  credential is. The plaintext exists once, in the email. Requesting a second
+  here, and on this platform those are named supervisory staff.
+- **Only the hash of a reset token is stored**, the same way a password is.
+  The plaintext exists once, in the email. Requesting a second
   reset supersedes the first, so an older link left in an inbox stops working
   rather than widening the window.
 - **The first password is shown to the administrator, not emailed.** The mail
@@ -240,7 +292,3 @@ in that link, and `assert_production_ready` refuses to boot if it is still
 localhost: a reset link pointing at the recipient's own machine fails in a way
 that looks like the email never arrived.
 
-Generate the fallback NAMQR org keypair with
-`PYTHONPATH=. python scripts/generate_namqr_keypair.py`. Only the public half
-belongs in `.env` — nothing in this service signs, so it never needs the
-private one.

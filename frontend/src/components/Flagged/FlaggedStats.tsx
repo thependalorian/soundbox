@@ -1,6 +1,6 @@
 import React from 'react';
 import Card from '../ui/Card';
-import { AnomalyAlert } from '../../types/soundbox';
+import { AnomalyAlert } from '../../types/domain';
 
 interface FlaggedStatsProps {
   data: AnomalyAlert[];

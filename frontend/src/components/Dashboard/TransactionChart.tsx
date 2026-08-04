@@ -1,6 +1,6 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TransactionTrendPoint } from '../../types/soundbox';
+import { TransactionTrendPoint } from '../../types/domain';
 import { AXIS, GRID, DATA } from '../../lib/chartTokens';
 
 interface TransactionChartProps {

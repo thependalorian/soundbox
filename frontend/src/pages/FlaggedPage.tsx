@@ -8,13 +8,11 @@ import FlaggedFilters from '../components/Flagged/FlaggedFilters';
 import { useAuth } from '../context/AuthContext';
 
 const FlaggedPage: React.FC = () => {
-  const { user } = useAuth();
-  const merchantId = user?.role === 'merchant' ? user.merchantId : undefined;
   const [filters, setFilters] = useState({ riskLevel: '', dateRange: '30d' });
 
   const { data: alerts, isLoading } = useQuery({
-    queryKey: ['anomalyAlerts', merchantId ?? 'all'],
-    queryFn: () => fetchAnomalyAlerts(merchantId ? { merchantId } : undefined),
+    queryKey: ['anomalyAlerts'],
+    queryFn: () => fetchAnomalyAlerts(),
   });
 
   const { data: merchants } = useQuery({ queryKey: ['merchants'], queryFn: () => fetchMerchants() });
@@ -29,7 +27,7 @@ const FlaggedPage: React.FC = () => {
   return (
     <div>
       <h1 className="text-heading font-signifier text-ink mb-8">
-        {merchantId ? 'My flagged payments' : 'Flagged for review'}
+        Flagged for review
       </h1>
       <p className="text-body font-sohne text-slate mb-24">
         Payments the system found unusual, ordered by how much money is at risk. Unusual is not

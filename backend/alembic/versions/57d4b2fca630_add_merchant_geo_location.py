@@ -5,7 +5,7 @@ Revises: 1c22b2586d66
 Create Date: 2026-07-27 18:47:26.053258
 
 Adds an anchor lat/lng + region to merchants, backing the "Geographic
-Distribution" / "Merchant Activity Heatmaps" analytics docs/device.md pitches.
+Distribution" / "Activity Heatmaps" analytics in the oversight console.
 `region` is a type_definitions domain (Namibia's 14 regions), not a CHECK
 enum, per the Wiebe config-table convention.
 """

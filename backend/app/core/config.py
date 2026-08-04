@@ -12,7 +12,7 @@ _DB_HOST = os.getenv("DB_HOST", "localhost")
 _DB_PORT = os.getenv("DB_PORT", "5432")
 _DB_USER = os.getenv("DB_USER", "postgres")
 _DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
-_DB_NAME = os.getenv("DB_NAME", "soundbox")
+_DB_NAME = os.getenv("DB_NAME", "buffr_intelligence")
 _DB_SSLMODE = os.getenv("DB_SSLMODE", "")
 
 # DATABASE_URL, if set directly (e.g. a hosted Postgres/Neon connection
@@ -24,7 +24,7 @@ if _DB_SSLMODE:
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "SoundBox API"
+    PROJECT_NAME: str = "Buffr Intelligence API"
     PROJECT_VERSION: str = "1.1.0"
     API_V1_STR: str = "/api/v1"
 
@@ -35,13 +35,6 @@ class Settings(BaseSettings):
     DB_NAME: str = _DB_NAME
     DATABASE_URL: str = os.getenv("DATABASE_URL", _DEFAULT_DATABASE_URL)
 
-    # Event broker. Publishing is best-effort: a broker outage must never
-    # fail a payment, so EVENTS_ENABLED=false is a supported production
-    # posture, not only a test convenience.
-    RABBITMQ_URL: str = os.getenv(
-        "RABBITMQ_URL", "amqp://guest:guest@localhost:5672/%2F"
-    )
-    EVENTS_ENABLED: bool = os.getenv("EVENTS_ENABLED", "true").lower() == "true"
 
     # Redis. A full URL, because a hosted instance carries credentials, a
     # port and sometimes TLS — none of which fit a host/port pair. Host and
@@ -58,8 +51,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
 
     # development | production. Gates the startup credential check below --
-    # default DB/RabbitMQ credentials and an empty SECRET_KEY are fine on a
-    # laptop and refused everywhere else.
+    # default DB credentials and an empty SECRET_KEY are fine on a laptop and
+    # refused everywhere else.
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
     # First admin account, created once on a fresh database if both are set
@@ -70,16 +63,6 @@ class Settings(BaseSettings):
     # Comma-separated list of frontend origins allowed to call this API.
     CORS_ALLOWED_ORIGINS: str = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 
-    # NAMQR Code Standards v5.0, Annexure I: fallback ECDSA P-256 public key
-    # for verifying signed QR (tag 66) when the presenting merchant has no
-    # key of its own (merchants.namqr_public_key_pem). Empty means only
-    # merchant-specific keys are honored.
-    NAMQR_ORG_PUBLIC_KEY_PEM: str = os.getenv("NAMQR_ORG_PUBLIC_KEY_PEM", "")
-    NAMQR_REQUIRE_SIGNATURE: bool = os.getenv("NAMQR_REQUIRE_SIGNATURE", "false").lower() == "true"
-
-    WAYAME_API_BASE_URL: str = os.getenv("WAYAME_API_BASE_URL", "https://api.wayame.com.na/v1")
-    WAYAME_CLIENT_ID: str = os.getenv("WAYAME_CLIENT_ID", "")
-    WAYAME_CLIENT_SECRET: str = os.getenv("WAYAME_CLIENT_SECRET", "")
 
     # Powers the analytics agent (app/agents/). Inert — the endpoint returns a
     # clear error rather than failing at startup — until a real key is set.
@@ -124,12 +107,6 @@ def assert_production_ready(s: "Settings") -> None:
         problems.append("SECRET_KEY is empty")
     if s.DB_PASSWORD == "postgres" and "neon.tech" not in (s.DATABASE_URL or ""):
         problems.append("DB_PASSWORD is still the default 'postgres'")
-    # Only load-bearing when publishing is actually on -- EVENTS_ENABLED=false
-    # is a supported production posture (see the comment on RABBITMQ_URL
-    # above), and refusing to boot over an unused broker default would
-    # contradict "a broker outage must never fail a payment."
-    if s.EVENTS_ENABLED and "guest:guest" in s.RABBITMQ_URL:
-        problems.append("RABBITMQ_URL is still using the default guest:guest credentials")
     # The password-reset email embeds this. Left at the laptop default in
     # production it produces a link to the recipient's own machine, which
     # fails in a way that looks like the email never arrived.

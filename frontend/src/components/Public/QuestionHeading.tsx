@@ -20,9 +20,9 @@ interface QuestionHeadingProps {
  * eyebrow-plus-heading pair is exactly how the eyebrow ends up tracked
  * differently on section five than on section one.
  *
- * The eyebrow treatment is not new: it follows the existing label on
- * `ForMerchantsPage` (caption, ash, uppercase, tracked), with the
- * light-on-dark variant taken from `PageHero`'s own eyebrow. No new tokens.
+ * The eyebrow treatment uses existing tokens only — caption, ash, uppercase,
+ * tracked — with the light-on-dark variant taken from `PageHero`'s own
+ * eyebrow. No new tokens.
  */
 const QuestionHeading: React.FC<QuestionHeadingProps> = ({
   label,

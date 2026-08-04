@@ -25,6 +25,36 @@ these codes are this app's own `type_definitions(domain='region')` codes
 from typing import Dict, List, Optional, Tuple
 
 # region_code -> [(constituency_code, label, seat_or_None), ...]
+# The official number of constituencies, as distinct from how many this file
+# happens to list.
+#
+# **Coverage must be measured against the country, not against our own
+# reference table.** Dividing by len(NAMIBIA_CONSTITUENCIES) would report
+# "100% of constituencies reached" the moment every constituency we happen to
+# know about had a payment in it — which is a statement about this file, not
+# about Namibia. Verified against the individual region records: Erongo 7,
+# Hardap 8, Kavango East 6, Kavango West 7, Khomas 10, Kunene 7, ǁKaras 7,
+# Ohangwena 11, Omaheke 7, Omusati 12, Oshana 11, Oshikoto 11, Otjozondjupa 7,
+# Zambezi 8. The two unresolved entries are a follow-up INSERT against the
+# Electoral Commission of Namibia's delimitation record, not a blocker.
+# Three different counts exist in circulation, and anyone reaching for a
+# second source will hit the discrepancy:
+#
+#   121  the officially cited number, and the denominator used here
+#   119  captured in this file (see the note above)
+#   107  OCHA/HDX ADM2, the same source the region map geometry comes from
+#
+# The map deliberately uses OCHA's ADM1 (regions) only. Its ADM2 layer is not
+# used anywhere, and should not be adopted as a constituency source without
+# first reconciling it against the Electoral Commission's delimitation record.
+NAMIBIA_CONSTITUENCY_COUNT_OFFICIAL = 121
+
+# Regions are the top level. Constituencies are electoral subdivisions of a
+# region. **Local authorities — cities, towns and villages — are a separate
+# classification under the Local Authorities Act, not a subdivision of a
+# constituency**, which is why they are a separate mapping below rather than
+# a third level of one hierarchy. A constituency may contain a town, share
+# one, or contain none.
 NAMIBIA_CONSTITUENCIES: Dict[str, List[Tuple[str, str, Optional[str]]]] = {
     "erongo": [
         ("arandis", "Arandis", "Arandis"),

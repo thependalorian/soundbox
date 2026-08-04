@@ -58,7 +58,7 @@ def configure_langfuse() -> bool:
         # Pydantic AI already speaks. Spans go to Langfuse via the OTLP
         # variables set above; nothing is sent to Logfire's own service.
         logfire.configure(
-            service_name="soundbox-analytics-agent",
+            service_name="buffr-intelligence-analytics-agent",
             send_to_logfire=False,
             console=False,
         )

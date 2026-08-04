@@ -1,5 +1,5 @@
 import React from 'react';
-import { TransactionTrendPoint } from '../../types/soundbox';
+import { TransactionTrendPoint } from '../../types/domain';
 import TransactionChart from '../Dashboard/TransactionChart';
 import Card from '../ui/Card';
 import Meter from '../ui/Meter';
@@ -91,12 +91,11 @@ const GenericTable: React.FC<{ data: Payload }> = ({ data }) => {
   );
 };
 
-/** Headline activity. The four figures the dashboard leads with. */
+/** Headline activity. The figures the dashboard leads with. */
 const TransactionSummary: React.FC<{ data: Payload }> = ({ data }) => (
-  <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
+  <div className="grid grid-cols-2 lg:grid-cols-3 gap-12">
     <StatCard title="Payments" value={num(data.totalTransactions)} />
     <StatCard title="Total value" value={NAD(data.totalVolume)} />
-    <StatCard title="Active devices" value={num(data.activeDevices)} />
     {/* "Flagged" never says "fraud": an alert is a payment a person was asked
         to look at, not a confirmed case. The label carries that distinction
         because the number cannot. */}

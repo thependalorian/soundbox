@@ -117,8 +117,20 @@ const ReportsPage: React.FC = () => {
                 Payment system operator return
               </h2>
               <p className="text-caption font-sohne text-ash mb-16">PSD-6 &middot; {psd6.period}</p>
-              <p className="text-body font-sohne text-ink">Total transactions: {psd6.transaction_summary.total_count}</p>
-              <p className="text-body font-sohne text-ink mb-16">Total value: N${psd6.transaction_summary.total_value.toLocaleString()}</p>
+              {/* Settled value is the headline; attempts and failures are
+                  stated beside it rather than folded in. A return whose total
+                  value includes payments that never moved overstates what the
+                  system carried, and does it invisibly — the number still
+                  looks plausible. */}
+              <p className="text-body font-sohne text-ink">
+                Settled: {psd6.transaction_summary.successful_count.toLocaleString()} payments
+                {' '}&middot; N${psd6.transaction_summary.total_value.toLocaleString()}
+              </p>
+              <p className="text-caption font-sohne text-slate mb-16">
+                {psd6.transaction_summary.total_count.toLocaleString()} attempted,
+                {' '}{psd6.transaction_summary.failed_count.toLocaleString()} failed
+                {' '}(N${psd6.transaction_summary.failed_value.toLocaleString()} not settled)
+              </p>
               {/* Share-of-value bars alongside the figures. The table is the
                   record; the bars are how a reviewer sees the mix without
                   doing arithmetic across three rows. */}
@@ -143,14 +155,25 @@ const ReportsPage: React.FC = () => {
               <ValidationList
                 checks={[
                   {
-                    label: 'Sum of by-type counts equals total transaction count',
+                    label: 'Sum of by-type counts equals total attempted',
                     passed: psd6.transaction_summary.by_type.reduce((s, t) => s + t.count, 0) === psd6.transaction_summary.total_count,
                   },
                   {
-                    label: 'Sum of by-type values equals total value',
+                    label: 'Sum of by-type settled values equals settled total',
                     passed: Math.abs(psd6.transaction_summary.by_type.reduce((s, t) => s + t.value, 0) - psd6.transaction_summary.total_value) < 1,
                   },
-                  { label: 'All three payment types (P2P/P2M/G2P) present', passed: psd6.transaction_summary.by_type.length === 3 },
+                  {
+                    label: 'Settled plus failed equals attempted',
+                    passed: psd6.transaction_summary.successful_count + psd6.transaction_summary.failed_count === psd6.transaction_summary.total_count,
+                  },
+                  {
+                    // Not a fixed count: the taxonomy is configuration, so
+                    // asserting a specific number here would fail the day a
+                    // use case is added. What matters is that the return
+                    // carries a breakdown at all.
+                    label: 'Return carries a use-case breakdown',
+                    passed: psd6.transaction_summary.by_type.length > 0,
+                  },
                 ]}
               />
             </>
@@ -218,11 +241,11 @@ const ReportsPage: React.FC = () => {
         <Card variant="elevated" className="p-24">
           <h2 className="text-subheading font-signifier text-ink mb-16">Regional coverage</h2>
           <p className="text-body font-sohne text-ink mb-16">
-            {geo.length} merchants across {new Set(geo.map((g) => g.regionCode)).size} of {NAMIBIA_REGION_COUNT} regions.
+            {geo.length} businesses across {new Set(geo.map((g) => g.regionCode)).size} of {NAMIBIA_REGION_COUNT} regions.
           </p>
           <div className="overflow-x-auto">
           <table className="w-full text-body font-sohne">
-            <thead><tr className="text-caption text-ash text-left"><th className="py-8">Region</th><th className="py-8">Merchants</th><th className="py-8">Devices</th><th className="py-8">Transactions</th></tr></thead>
+            <thead><tr className="text-caption text-ash text-left"><th className="py-8">Region</th><th className="py-8">Businesses</th><th className="py-8">Payments</th></tr></thead>
             <tbody className="divide-y divide-mist">
               {Array.from(new Set(geo.map((g) => g.regionLabel))).map((region) => {
                 const rows = geo.filter((g) => g.regionLabel === region);
@@ -230,7 +253,6 @@ const ReportsPage: React.FC = () => {
                   <tr key={region}>
                     <td className="py-8">{region}</td>
                     <td className="py-8">{rows.length}</td>
-                    <td className="py-8">{rows.reduce((s, r) => s + r.deviceCount, 0)}</td>
                     <td className="py-8">{rows.reduce((s, r) => s + r.transactionCount, 0)}</td>
                   </tr>
                 );

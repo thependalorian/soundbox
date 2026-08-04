@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { fetchSystemHealth, fetchTransactionTrends, fetchMerchants, fetchGeoDistribution, fetchWalletShare } from '../api/api';
-import { MERCHANT_TYPE_LABEL, MerchantType } from '../types/soundbox';
+import { MERCHANT_TYPE_LABEL, MerchantType } from '../types/domain';
 import Card from '../components/ui/Card';
 import PageAction from '../components/ui/PageAction';
 import GeoDrilldown from '../components/Analytics/GeoDrilldown';
@@ -10,19 +10,14 @@ import MarketStructure from '../components/Analytics/MarketStructure';
 import SegmentScatter from '../components/Analytics/SegmentScatter';
 import { fetchMerchantSegments } from '../api/api';
 import Meter from '../components/ui/Meter';
-import { useAuth } from '../context/AuthContext';
 
 const AnalyticsPage: React.FC = () => {
-  const { user } = useAuth();
-  const isRegulator = user?.role === 'regulator' || user?.role === 'admin';
-  const merchantId = user?.role === 'merchant' ? user.merchantId : undefined;
-
-  const { data: health } = useQuery({ queryKey: ['systemHealth'], queryFn: fetchSystemHealth, enabled: isRegulator });
-  const { data: trends } = useQuery({ queryKey: ['transactionTrends', merchantId ?? 'all'], queryFn: () => fetchTransactionTrends(merchantId) });
-  const { data: merchants } = useQuery({ queryKey: ['merchants'], queryFn: () => fetchMerchants(), enabled: isRegulator });
-  const { data: geo } = useQuery({ queryKey: ['geoDistribution'], queryFn: fetchGeoDistribution, enabled: isRegulator });
-  const { data: walletShare } = useQuery({ queryKey: ['walletShare'], queryFn: fetchWalletShare, enabled: isRegulator });
-  const { data: segments } = useQuery({ queryKey: ['merchantSegments'], queryFn: () => fetchMerchantSegments(), enabled: isRegulator });
+  const { data: health } = useQuery({ queryKey: ['systemHealth'], queryFn: fetchSystemHealth });
+  const { data: trends } = useQuery({ queryKey: ['transactionTrends'], queryFn: () => fetchTransactionTrends() });
+  const { data: merchants } = useQuery({ queryKey: ['merchants'], queryFn: () => fetchMerchants() });
+  const { data: geo } = useQuery({ queryKey: ['geoDistribution'], queryFn: fetchGeoDistribution });
+  const { data: walletShare } = useQuery({ queryKey: ['walletShare'], queryFn: fetchWalletShare });
+  const { data: segments } = useQuery({ queryKey: ['merchantSegments'], queryFn: () => fetchMerchantSegments() });
 
   const byType = (merchants ?? []).reduce<Record<string, number>>((acc, m) => {
     acc[m.merchantType] = (acc[m.merchantType] ?? 0) + 1;
@@ -42,60 +37,6 @@ const AnalyticsPage: React.FC = () => {
     .map(([region, count]) => ({ region, count }))
     .sort((a, b) => b.count - a.count);
 
-  // A seller and a regulator are asking different questions of the same
-  // data. "How much did I take this week" and "which constituencies are
-  // being left behind" do not belong on one page with conditionals.
-  const isSeller = user?.role === 'merchant';
-
-  if (isSeller) {
-    const total = (trends ?? []).reduce((sum, t) => sum + t.count, 0);
-    const busiest = [...(trends ?? [])].sort((a, b) => b.count - a.count)[0];
-    return (
-      <div>
-        <h1 className="text-heading font-signifier text-ink mb-8">Takings</h1>
-        <p className="text-body font-sohne text-slate mb-24">
-          What came through your box, day by day.
-        </p>
-        <PageAction className="mb-24" to="/transactions" label="See every payment" />
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-16 mb-24">
-          <Card variant="neutral" className="p-20">
-            <p className="text-caption font-sohne text-slate">Payments</p>
-            <p className="text-heading-sm font-signifier text-ink tabular-nums">{total}</p>
-          </Card>
-          <Card variant="neutral" className="p-20">
-            <p className="text-caption font-sohne text-slate">Busiest day</p>
-            <p className="text-heading-sm font-signifier text-ink">
-              {busiest ? new Date(busiest.date).toLocaleDateString('en-NA', { weekday: 'long' }) : '—'}
-            </p>
-            <p className="text-caption font-sohne text-ash mt-4">
-              {busiest ? `${busiest.count} payments` : 'No payments yet'}
-            </p>
-          </Card>
-          <Card variant="neutral" className="p-20">
-            <p className="text-caption font-sohne text-slate">Box</p>
-            <p className="text-heading-sm font-signifier text-ink">Working</p>
-            <p className="text-caption font-sohne text-ash mt-4">Reporting normally</p>
-          </Card>
-        </div>
-
-        <Card variant="elevated" className="p-24">
-          <h3 className="text-subheading font-signifier text-ink mb-16">Payments per day</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={trends}>
-              <XAxis dataKey="date" stroke="#675C62" fontSize={12} />
-              <YAxis stroke="#675C62" fontSize={12} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #F6F1F2' }} />
-              <Bar dataKey="count" fill="#E6136C" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          <p className="text-caption font-sohne text-ash mt-16">
-            Quiet days and busy days are normal. Weekends usually look different from weekdays.
-          </p>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -103,11 +44,9 @@ const AnalyticsPage: React.FC = () => {
       <p className="text-body font-sohne text-slate mb-24">
         Where activity is, where it is not, and whether that needs acting on.
       </p>
-      {isRegulator && (
-        <PageAction className="mb-24" to="/reports" label="Generate this month's return" />
-      )}
+      <PageAction className="mb-24" to="/reports" label="Generate this month's return" />
 
-      {isRegulator && (
+      {(
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
           <Card variant="elevated" className="p-24">
             <h3 className="text-subheading font-signifier text-ink mb-16">Payment system health</h3>
@@ -115,9 +54,8 @@ const AnalyticsPage: React.FC = () => {
               <div className="flex justify-between"><span className="text-slate">Health score</span><span className="text-ink font-500">{((health?.healthScore ?? 0) * 100).toFixed(1)}%</span></div>
               <div className="flex justify-between"><span className="text-slate">Status</span><span className={`font-500 ${health?.status === 'HEALTHY' ? 'text-status-success' : health?.status === 'MONITOR' ? 'text-status-warning' : 'text-status-danger'}`}>{health?.status}</span></div>
               <div className="flex justify-between"><span className="text-slate">Payments that went through</span><span className="text-ink">{health?.metrics?.transaction_success_rate?.toFixed(1)}%</span></div>
-              <div className="flex justify-between"><span className="text-slate">Boxes reporting in</span><span className="text-ink">{health?.metrics?.device_availability?.toFixed(1)}%</span></div>
+              <div className="flex justify-between"><span className="text-slate">Typical response</span><span className="text-ink">{health?.metrics?.response_latency}ms</span></div>
               <div className="flex justify-between"><span className="text-slate">Flagged for review</span><span className="text-ink">{health?.metrics?.flag_rate?.toFixed(2)}%</span></div>
-              <div className="flex justify-between"><span className="text-slate">Businesses taking payments</span><span className="text-ink">{health?.metrics?.merchant_coverage?.toFixed(1)}%</span></div>
             </div>
           </Card>
 
@@ -135,7 +73,7 @@ const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {isRegulator && byRegionData.length > 0 && (
+      {byRegionData.length > 0 && (
         <Card variant="elevated" className="p-24 mb-24">
           <h3 className="text-subheading font-signifier text-ink mb-16">Where payments are happening</h3>
           <ResponsiveContainer width="100%" height={260}>
@@ -149,12 +87,12 @@ const AnalyticsPage: React.FC = () => {
         </Card>
       )}
 
-      {isRegulator && <GeoDrilldown className="mb-24" />}
+      <GeoDrilldown className="mb-24" />
 
       {/* Oversight measures. Kept below the operational view because an
           analyst arrives asking what happened today; market structure is
           the question they turn to next, not first. */}
-      {isRegulator && (
+      {(
         <>
           <h2 className="text-subheading font-signifier text-ink mb-4 mt-32">
             Structure, reach and reliability
@@ -176,7 +114,7 @@ const AnalyticsPage: React.FC = () => {
         </>
       )}
 
-      {isRegulator && (walletShare ?? []).length > 0 && (
+      {(walletShare ?? []).length > 0 && (
         <Card variant="elevated" className="p-24 mb-24">
           <h3 className="text-subheading font-signifier text-ink mb-4">
             Paid from a wallet, by region

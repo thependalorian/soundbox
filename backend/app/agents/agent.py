@@ -42,7 +42,7 @@ def get_agent() -> Agent:
             # Names the trace in Langfuse. Without it every run lands as the
             # generic "a run", which is unusable in a project shared with
             # other workspace projects.
-            name="soundbox-analytics",
+            name="buffr-intelligence-analytics",
             deps_type=AnalyticsDeps,
             instructions=SYSTEM_PROMPT,
             tools=ALL_TOOLS,

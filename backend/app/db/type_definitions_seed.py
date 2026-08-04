@@ -21,16 +21,8 @@ from app.db.namibia_geography import (
 
 # domain -> list of (code, label)
 SEED_DATA: Dict[str, List[tuple]] = {
-    "device_type": [
-        ("soundbox", "SoundBox"),
-    ],
-    "device_status": [
-        ("active", "Active"),
-        ("inactive", "Inactive"),
-        ("offline", "Offline"),
-    ],
     # Namibia's 14 administrative regions — backs the "Geographic
-    # Distribution" / "Merchant Activity Heatmaps" analytics docs/device.md
+    # Distribution" / "Activity Heatmaps" analytics the oversight console
     # pitches (§5 Recommended Tech Stack, §2.2 Payment System Health Index).
     "region": [
         # Population comes from NAMIBIA_REGION_POPULATION and is written into
@@ -102,13 +94,13 @@ SEED_DATA: Dict[str, List[tuple]] = {
         ("p2g", "Person-to-Government"),
         ("b2g", "Business-to-Government"),
         ("b2b", "Business-to-Business"),
+        ("g2b", "Government-to-Business"),
     ],
     # How the payer funded it. Wallet and bank account are interoperable on
     # the national rails, and the split matters: wallet-funded payments are
     # the financial-inclusion signal worth reporting on separately.
     "media_type": [
         ("merchant_storefront", "Merchant storefront photo"),
-        ("device_photo", "Device photo"),
         ("region_scene", "Region scene"),
     ],
     "payer_instrument": [
@@ -125,7 +117,6 @@ SEED_DATA: Dict[str, List[tuple]] = {
         ("velocity_abuse", "Velocity Abuse"),
         ("amount_anomaly", "Amount Anomaly"),
         ("off_hours", "Off-Hours Transaction"),
-        ("device_tamper", "Device Tamper Signal"),
     ],
     "wallet_status": [
         ("active", "Active"),
@@ -140,7 +131,6 @@ SEED_DATA: Dict[str, List[tuple]] = {
     "user_role": [
         ("admin", "Administrator"),
         ("regulator", "Regulator"),
-        ("merchant", "Business operator"),
     ],
     # Lifecycle of a password reset grant. `superseded` is what happens to an
     # outstanding token when a newer one is issued for the same account —
@@ -180,8 +170,6 @@ SEED_DATA: Dict[str, List[tuple]] = {
         ("connectivity_failure", "Connectivity Failure"),
     ],
     "event_type": [
-        ("device_registered", "Device Registered"),
-        ("device_heartbeat", "Device Heartbeat"),
         ("payment_received", "Payment Received"),
         ("payment_verified", "Payment Verified"),
         ("anomaly_alert_created", "Anomaly alert raised"),

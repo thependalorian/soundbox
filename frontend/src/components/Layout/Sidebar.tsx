@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   HomeIcon,
-  DevicePhoneMobileIcon,
   BuildingStorefrontIcon,
   CurrencyDollarIcon,
   ChartBarIcon,
@@ -25,43 +24,34 @@ interface NavItem {
 }
 
 /**
- * Navigation, by what each role actually does.
+ * Navigation, grouped by the question each item answers.
  *
- * These are three different jobs, not three permission levels on one job:
+ * Two roles do two jobs:
  *
- *  - A **seller** runs a stall. They want to know they were paid and that
- *    their box is working. They have no interest in national coverage, and
- *    "Analytics" is the wrong word for what they need — "Takings" is.
- *  - A **regulator** oversees a payment system. They need coverage, drill-
- *    down and returns. They do not manage anyone's device and never see a
- *    single business's till.
- *  - An **administrator** runs the deployment: the fleet, onboarding, and
+ *  - A **regulator** oversees a payment system. They need coverage, the
+ *    review queue, drill-down and returns.
+ *  - An **administrator** runs the deployment: accounts, scoring policy, and
  *    whatever is currently broken.
  *
- * An earlier version gave all three the same Analytics and Settings pages
- * with a few conditionals inside. That is how a product ends up serving
- * nobody properly.
+ * Both see the same analytical surface, because the analysis is the product
+ * and there is no version of it that is safe for one and not the other.
  *
  * Mirrors the route guards in App.tsx — nav visibility and route access are
  * two views of one rule set.
  */
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['merchant', 'regulator', 'admin'] },
-  // Seller
-  { name: 'My payments', href: '/transactions', icon: CurrencyDollarIcon, roles: ['merchant'] },
-  { name: 'My box', href: '/devices', icon: DevicePhoneMobileIcon, roles: ['merchant'] },
-  { name: 'Takings', href: '/analytics', icon: ChartBarIcon, roles: ['merchant'] },
-  // Oversight
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['regulator', 'admin'] },
+  // What is happening on the rails
+  { name: 'Payments', href: '/transactions', icon: CurrencyDollarIcon, roles: ['regulator', 'admin'] },
+  { name: 'Flagged', href: '/flagged', icon: ExclamationTriangleIcon, roles: ['regulator', 'admin'] },
+  // Who and where
   { name: 'Businesses', href: '/merchants', icon: BuildingStorefrontIcon, roles: ['regulator', 'admin'] },
   { name: 'Coverage', href: '/map', icon: MapIcon, roles: ['regulator', 'admin'] },
+  // Analysis and returns
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, roles: ['regulator', 'admin'] },
   { name: 'Ask the data', href: '/ask', icon: ChatBubbleLeftRightIcon, roles: ['regulator', 'admin'] },
   { name: 'Reports', href: '/reports', icon: DocumentTextIcon, roles: ['regulator', 'admin'] },
-  // Operations
-  { name: 'Devices', href: '/devices', icon: DevicePhoneMobileIcon, roles: ['admin'] },
-  { name: 'Payments', href: '/transactions', icon: CurrencyDollarIcon, roles: ['admin'] },
-  { name: 'Flagged', href: '/flagged', icon: ExclamationTriangleIcon, roles: ['merchant', 'admin'] },
-  { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, roles: ['merchant', 'regulator', 'admin'] },
+  { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, roles: ['regulator', 'admin'] },
 ];
 
 interface SidebarProps {

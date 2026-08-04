@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaf
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
-import { GeoDistributionPoint } from '../../types/soundbox';
+import { GeoDistributionPoint } from '../../types/domain';
 import { STATUS, DATA } from '../../lib/chartTokens';
 
 const NAMIBIA_CENTER: [number, number] = [-22.9576, 17.0832];
@@ -102,7 +102,6 @@ const GeoDistributionMap: React.FC<GeoDistributionMapProps> = ({ points, view })
                 <p className="font-semibold">{point.legalName}</p>
                 <p>{point.merchantCode}</p>
                 <p>{point.regionLabel ?? 'Unknown region'}</p>
-                <p>{point.deviceCount} device(s)</p>
                 <p>{point.transactionCount} transaction(s)</p>
               </div>
             </Popup>
